@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="80dp"
+    android:viewportWidth="80"
+    android:viewportHeight="80">
+
+    <!-- Fondo circular gris claro -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M40,40m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0" />
+
+    <!-- Hojas de palma -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M40,18 C35,27 27,31 23,38 C28,35 34,34 40,42 C46,34 52,35 57,38 C53,31 45,27 40,18Z" />
+
+    <!-- Tronco -->
+    <path
+        android:fillColor="#795548"
+        android:pathData="M38,42 L38,58 L42,58 L42,42Z" />
+
+</vector>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PalmaData</string>
+    <string name="worker_not_selected">Trabajador actual: Toque aquí para seleccionar</string>
+    <string name="worker_selected_prefix">Trabajador actual: </string>
+    <string name="no_worker_warning">Agregue un trabajador primero</string>
+    <string name="no_worker_message">Debe seleccionar un trabajador antes de acceder a este módulo.</string>
+    <string name="select_worker">Seleccionar trabajador</string>
+    <string name="ok">Aceptar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="gps_permission_title">Permiso de ubicación</string>
+    <string name="gps_permission_message">PalmaData necesita acceso a tu ubicación GPS para registrar coordenadas de las labores de campo.</string>
+    <string name="gps_permission_denied">Sin acceso a GPS. Algunas funciones estarán limitadas.</string>
+</resources>

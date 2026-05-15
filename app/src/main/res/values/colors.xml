@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores principales PalmaData -->
+    <color name="palma_green_dark">#1B5E20</color>
+    <color name="palma_green_medium">#2E7D32</color>
+    <color name="palma_gold">#F9A825</color>
+
+    <!-- Header -->
+    <color name="header_background">#F7F0E0</color>
+
+    <!-- Estado trabajador -->
+    <color name="worker_not_set">#D32F2F</color>
+    <color name="worker_set">#1565C0</color>
+    <color name="worker_bar_background">#F5F5F5</color>
+
+    <!-- Módulos y fondo -->
+    <color name="module_background">#FFFFFF</color>
+    <color name="module_text">#37474F</color>
+    <color name="grid_background">#ECEFF1</color>
+
+    <!-- General -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="divider">#BDBDBD</color>
+    <color name="status_bar_color">#122812</color>
+    <color name="dialog_title_text">#326E37</color>
+</resources>
