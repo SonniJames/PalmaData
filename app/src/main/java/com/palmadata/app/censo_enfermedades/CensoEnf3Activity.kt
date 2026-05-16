@@ -33,9 +33,6 @@ class CensoEnf3Activity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        binding.btnQR.setOnClickListener {
-            // QR: funcionalidad futura
-        }
     }
 
     private fun setupTeclado() {

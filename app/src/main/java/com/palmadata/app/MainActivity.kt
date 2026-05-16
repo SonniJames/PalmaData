@@ -96,12 +96,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupLocationHelper() {
-        locationHelper = LocationHelper(this) { lat, lon ->
-            binding.tvGpsCoords.visibility = View.VISIBLE
-            binding.tvGpsCoords.text = String.format(
-                Locale.getDefault(), "📍 %.6f, %.6f", lat, lon
-            )
-            binding.tvGpsStatus.text = "✓"
+        locationHelper = LocationHelper(
+            context = this,
+            onLocationUpdate = { lat, lon ->
+                binding.tvGpsCoords.visibility = View.VISIBLE
+                binding.tvGpsCoords.text = String.format(
+                    Locale.getDefault(), "📍 %.6f, %.6f", lat, lon
+                )
+                binding.tvGpsStatus.text = "✓"
+            },
+            onTrackGuardado = null
+        )
+
+        // Iniciar tracking inmediatamente al abrir la app
+        if (locationHelper.hasPermissions()) {
+            locationHelper.startLocationUpdates()
         }
     }
 
@@ -114,6 +123,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onModuleClicked(module: AppModule) {
+
+        // Módulo especial: información local → diálogo
+        if (module.id == "informacion_local") {
+            showInformacionLocal()
+            return
+        }
+
+
         if (!SessionManager.hasPlantacion(this)) {
             MaterialAlertDialogBuilder(this)
                 .setTitle("⚠️ Seleccione una plantación")
@@ -132,6 +149,12 @@ class MainActivity : AppCompatActivity() {
                 .show()
             return
         }
+        if (module.destinationClass == null) {
+            Toast.makeText(this, "Módulo '${module.name}' próximamente disponible", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+
         if (module.destinationClass == null) {
             Toast.makeText(this, "Módulo '${module.name}' próximamente disponible", Toast.LENGTH_SHORT).show()
             return
@@ -300,5 +323,26 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
         )
+    }
+
+    private fun showInformacionLocal() {
+        val dialogBinding = com.palmadata.app.databinding.DialogInformacionLocalBinding
+            .inflate(layoutInflater)
+
+        val dialog = android.app.AlertDialog.Builder(this, R.style.WorkerDialogTheme)
+            .setView(dialogBinding.root)
+            .create()
+
+        dialogBinding.tvUltimaSincronizacion.text = "Sin sincronización aún"
+
+        val totalTracks = com.palmadata.app.utils.TrackStorage.contarTracks(this)
+        dialogBinding.tvTracks.text = totalTracks.toString()
+
+        dialogBinding.tvCensoEnf.text = "0"
+        dialogBinding.tvPolinizacion.text = "0"
+        dialogBinding.tvTratamientos.text = "0"
+
+        dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 }

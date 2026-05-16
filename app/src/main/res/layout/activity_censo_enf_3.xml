@@ -147,17 +147,6 @@
                 android:backgroundTint="@color/palma_green_dark"
                 android:textColor="@color/white" />
 
-            <Button
-                android:id="@+id/btnQR"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="QR"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:backgroundTint="@color/palma_green_dark"
-                android:textColor="@color/white" />
         </LinearLayout>
 
     </LinearLayout>

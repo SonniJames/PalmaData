@@ -64,7 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:text="PALMA"
+            android:text="ENFERMEDADES"
             android:textSize="14sp"
             android:textStyle="bold"
             android:backgroundTint="@color/palma_green_dark"

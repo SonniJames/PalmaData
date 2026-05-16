@@ -4,25 +4,41 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.palmadata.app.data.model.Plantacion
 import com.palmadata.app.data.model.Worker
+import java.util.UUID
 
 object SessionManager {
 
-    private const val PREFS_NAME = "palma_data_session"
-
-    private const val KEY_WORKER_ID      = "current_worker_id"
-    private const val KEY_WORKER_NAME    = "current_worker_name"
-    private const val KEY_WORKER_CODE    = "current_worker_code"
-    private const val KEY_PLANT_ID       = "current_plantacion_id"
-    private const val KEY_PLANT_NAME     = "current_plantacion_name"
-    private const val KEY_PLANT_CODE     = "current_plantacion_code"
-    private const val KEY_GPS_REQUESTED  = "gps_permission_requested"
-    private const val KEY_LAST_LAT       = "last_latitude"
-    private const val KEY_LAST_LON       = "last_longitude"
+    private const val PREFS_NAME     = "palma_data_session"
+    private const val KEY_WORKER_ID  = "current_worker_id"
+    private const val KEY_WORKER_NAME = "current_worker_name"
+    private const val KEY_WORKER_CODE = "current_worker_code"
+    private const val KEY_PLANT_ID   = "current_plantacion_id"
+    private const val KEY_PLANT_NAME = "current_plantacion_name"
+    private const val KEY_PLANT_CODE = "current_plantacion_code"
+    private const val KEY_GPS_REQUESTED = "gps_permission_requested"
+    private const val KEY_LAST_LAT   = "last_latitude"
+    private const val KEY_LAST_LON   = "last_longitude"
+    private const val KEY_EQUIPO_ID  = "equipo_id"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    // ── Trabajador ──────────────────────────────────────────────────────────
+    // ── Equipo ID ────────────────────────────────────────────────────────────
+    /**
+     * ID único del celular. Se genera una sola vez al instalar la app
+     * y se mantiene aunque se abra y cierre.
+     */
+    fun getEquipoId(context: Context): String {
+        val p = prefs(context)
+        var id = p.getString(KEY_EQUIPO_ID, null)
+        if (id == null) {
+            id = UUID.randomUUID().toString()
+            p.edit().putString(KEY_EQUIPO_ID, id).apply()
+        }
+        return id
+    }
+
+    // ── Trabajador ───────────────────────────────────────────────────────────
 
     fun getCurrentWorker(context: Context): Worker? {
         val p = prefs(context)
@@ -52,7 +68,7 @@ object SessionManager {
 
     fun hasWorker(context: Context): Boolean = getCurrentWorker(context) != null
 
-    // ── Plantación ──────────────────────────────────────────────────────────
+    // ── Plantación ───────────────────────────────────────────────────────────
 
     fun getCurrentPlantacion(context: Context): Plantacion? {
         val p = prefs(context)
@@ -82,7 +98,7 @@ object SessionManager {
 
     fun hasPlantacion(context: Context): Boolean = getCurrentPlantacion(context) != null
 
-    // ── GPS ─────────────────────────────────────────────────────────────────
+    // ── GPS ──────────────────────────────────────────────────────────────────
 
     fun wasGpsPermissionRequested(context: Context): Boolean =
         prefs(context).getBoolean(KEY_GPS_REQUESTED, false)

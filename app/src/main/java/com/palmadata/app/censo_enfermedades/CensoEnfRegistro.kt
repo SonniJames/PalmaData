@@ -35,6 +35,8 @@ data class CensoEnfRegistro(
     val ordenLabor: Int = 0,
     val ordenSupervision: Int = 0,
 
+    val equipo: String,
+
     // Siempre null
     val sintomaHoja: String? = null,
     val sintomaPalma: String? = null,
@@ -42,5 +44,6 @@ data class CensoEnfRegistro(
     val loteAlias: String? = null,
     val fechaTratamiento: String? = null,
     val sanEnfTratamientoId: Int = 0,
-    val eliminacion: String? = null
+    val eliminacion: String? = null,
+
 )
