@@ -6,16 +6,11 @@ package com.palmadata.app.censo_enfermedades
 
 object CensoEnfData {
 
-    // ── IDs de plantación (cat_plantacion_id en PostgreSQL) ───
-    const val ID_PALMERAS_YARIMA = 123
-    const val ID_VILLA_CLAUDIA   = 456
-    const val ID_CUCU            = 789
-
-    // ── Sectores por plantación ───────────────────────────────
-    val sectoresPorPlantacion: Map<Int, List<String>> = mapOf(
-        ID_PALMERAS_YARIMA to listOf("Sector 1", "Sector 2", "Sector 3"),
-        ID_VILLA_CLAUDIA   to listOf("Sector 4", "Sector 5", "Sector 6"),
-        ID_CUCU            to listOf("Sector 7", "Sector 8", "Sector 9")
+    // ── Sectores ──────────────────────────────────────────────
+    val sectores: List<String> = listOf(
+        "Sector 1", "Sector 2", "Sector 3",
+        "Sector 4", "Sector 5", "Sector 6",
+        "Sector 7", "Sector 8", "Sector 9"
     )
 
     // ── Lotes por sector ──────────────────────────────────────
@@ -31,25 +26,19 @@ object CensoEnfData {
         "Sector 9" to listOf("L109-A", "L109-B", "L109-C")
     )
 
-    // ── Enfermedades por plantación ───────────────────────────
+    // ── Enfermedades ──────────────────────────────────────────
     data class Enfermedad(val id: Int, val nombre: String)
 
-    val enfermedadesPorPlantacion: Map<Int, List<Enfermedad>> = mapOf(
-        ID_PALMERAS_YARIMA to listOf(
-            Enfermedad(1, "Enfermedad_1"),
-            Enfermedad(2, "Enfermedad_2"),
-            Enfermedad(3, "Enfermedad_3")
-        ),
-        ID_VILLA_CLAUDIA to listOf(
-            Enfermedad(4, "Enfermedad_4"),
-            Enfermedad(5, "Enfermedad_5"),
-            Enfermedad(6, "Enfermedad_6")
-        ),
-        ID_CUCU to listOf(
-            Enfermedad(7, "Enfermedad_7"),
-            Enfermedad(8, "Enfermedad_8"),
-            Enfermedad(9, "Enfermedad_9")
-        )
+    val enfermedades: List<Enfermedad> = listOf(
+        Enfermedad(1, "Enfermedad_1"),
+        Enfermedad(2, "Enfermedad_2"),
+        Enfermedad(3, "Enfermedad_3"),
+        Enfermedad(4, "Enfermedad_4"),
+        Enfermedad(5, "Enfermedad_5"),
+        Enfermedad(6, "Enfermedad_6"),
+        Enfermedad(7, "Enfermedad_7"),
+        Enfermedad(8, "Enfermedad_8"),
+        Enfermedad(9, "Enfermedad_9")
     )
 
     // ── Eventos por enfermedad ────────────────────────────────
@@ -66,14 +55,4 @@ object CensoEnfData {
         8 to listOf(Evento(108, "Evento_8")),
         9 to listOf(Evento(109, "Evento_9"))
     )
-
-    // ── Helper: obtener cat_plantacion_id desde nombre ────────
-    fun getPlantacionId(nombrePlantacion: String): Int {
-        return when {
-            nombrePlantacion.contains("Yarima", ignoreCase = true) -> ID_PALMERAS_YARIMA
-            nombrePlantacion.contains("Claudia", ignoreCase = true) -> ID_VILLA_CLAUDIA
-            nombrePlantacion.contains("CUCU", ignoreCase = true)   -> ID_CUCU
-            else -> 0
-        }
-    }
 }

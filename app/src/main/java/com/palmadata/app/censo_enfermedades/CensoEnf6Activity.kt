@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.palmadata.app.databinding.ActivityCensoEnf6Binding
 import com.palmadata.app.ui.WorkerAdapter
-import com.palmadata.app.utils.SessionManager
 
 class CensoEnf6Activity : AppCompatActivity() {
 
@@ -23,12 +22,8 @@ class CensoEnf6Activity : AppCompatActivity() {
         val linea  = intent.getStringExtra("linea") ?: ""
         val palma  = intent.getStringExtra("palma") ?: ""
 
-        val plantacion = SessionManager.getCurrentPlantacion(this) ?: return
-        val plantacionId = CensoEnfData.getPlantacionId(plantacion.name)
-        val enfermedades = CensoEnfData.enfermedadesPorPlantacion[plantacionId] ?: emptyList()
-
         val adapter = WorkerAdapter { nombreEnf ->
-            val enfermedad = enfermedades.first { it.nombre == nombreEnf }
+            val enfermedad = CensoEnfData.enfermedades.first { it.nombre == nombreEnf }
             val nextIntent = Intent(this, CensoEnf7Activity::class.java)
             nextIntent.putExtra("sector", sector)
             nextIntent.putExtra("lote", lote)
@@ -42,6 +37,6 @@ class CensoEnf6Activity : AppCompatActivity() {
 
         binding.rvEnfermedades.layoutManager = LinearLayoutManager(this)
         binding.rvEnfermedades.adapter = adapter
-        adapter.submitList(enfermedades.map { it.nombre })
+        adapter.submitList(CensoEnfData.enfermedades.map { it.nombre })
     }
 }

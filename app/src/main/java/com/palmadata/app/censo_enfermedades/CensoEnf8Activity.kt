@@ -44,11 +44,10 @@ class CensoEnf8Activity : AppCompatActivity() {
         censo: String, linea: String, palma: String,
         enfermedadId: Int, eventoId: Int
     ) {
-        val worker     = SessionManager.getCurrentWorker(this)
-        val plantacion = SessionManager.getCurrentPlantacion(this)
+        val worker = SessionManager.getCurrentWorker(this)
 
-        if (worker == null || plantacion == null) {
-            Toast.makeText(this, "Error: sesión inválida", Toast.LENGTH_SHORT).show()
+        if (worker == null) {
+            Toast.makeText(this, "Error: no hay trabajador en sesión", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -57,17 +56,9 @@ class CensoEnf8Activity : AppCompatActivity() {
         val formatoHora  = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val formatoId    = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
 
-        val fechaStr     = formatoFecha.format(ahora)
-        val horaStr      = formatoHora.format(ahora)
-        val plantacionId = CensoEnfData.getPlantacionId(plantacion.name)
-
-        val codigoPlantacion = when (plantacionId) {
-            CensoEnfData.ID_PALMERAS_YARIMA -> "PDY"
-            CensoEnfData.ID_VILLA_CLAUDIA   -> "VC"
-            CensoEnfData.ID_CUCU            -> "CUCU"
-            else -> "UNK"
-        }
-        val idRegistro = "${codigoPlantacion}_${formatoId.format(ahora)}_${worker.code}"
+        val fechaStr  = formatoFecha.format(ahora)
+        val horaStr   = formatoHora.format(ahora)
+        val idRegistro = UUID.randomUUID().toString()
 
         val lat = SessionManager.getLastLatitude(this)
         val lon = SessionManager.getLastLongitude(this)
@@ -77,7 +68,7 @@ class CensoEnf8Activity : AppCompatActivity() {
             linea             = linea.toIntOrNull() ?: 0,
             palma             = palma.toIntOrNull() ?: 0,
             observaciones     = binding.etObservaciones.text.toString(),
-            catPlantacionId   = plantacionId,
+            catPlantacionId   = 0,
             sanEnfermedadesId = enfermedadId,
             sanEventoEnfId    = eventoId,
             evaluador         = worker.code.toIntOrNull() ?: 0,
@@ -87,7 +78,7 @@ class CensoEnf8Activity : AppCompatActivity() {
             latitud           = lat,
             longitud          = lon,
             id                = idRegistro,
-            equipo = SessionManager.getEquipoId(this)
+            equipo            = SessionManager.getEquipoId(this)
         )
 
         // TODO Etapa 4: guardar en SQLite local y subir al DataLake
@@ -97,7 +88,6 @@ class CensoEnf8Activity : AppCompatActivity() {
             Toast.LENGTH_LONG
         ).show()
 
-        // Volver al MainActivity limpiando el stack de Activities
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)

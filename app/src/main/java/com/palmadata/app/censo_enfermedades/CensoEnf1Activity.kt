@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.palmadata.app.databinding.ActivityCensoEnf1Binding
 import com.palmadata.app.ui.WorkerAdapter
-import com.palmadata.app.utils.SessionManager
 
 class CensoEnf1Activity : AppCompatActivity() {
 
@@ -17,10 +16,6 @@ class CensoEnf1Activity : AppCompatActivity() {
         binding = ActivityCensoEnf1Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val plantacion = SessionManager.getCurrentPlantacion(this) ?: return
-        val plantacionId = CensoEnfData.getPlantacionId(plantacion.name)
-        val sectores = CensoEnfData.sectoresPorPlantacion[plantacionId] ?: emptyList()
-
         val adapter = WorkerAdapter { sectorSeleccionado ->
             val nextIntent = Intent(this, CensoEnf2Activity::class.java)
             nextIntent.putExtra("sector", sectorSeleccionado)
@@ -29,6 +24,6 @@ class CensoEnf1Activity : AppCompatActivity() {
 
         binding.rvSectores.layoutManager = LinearLayoutManager(this)
         binding.rvSectores.adapter = adapter
-        adapter.submitList(sectores)
+        adapter.submitList(CensoEnfData.sectores)
     }
 }
