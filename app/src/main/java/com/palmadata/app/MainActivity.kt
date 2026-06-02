@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -22,27 +23,22 @@ import com.palmadata.app.databinding.DialogSelectWorkerBinding
 import com.palmadata.app.databinding.DialogInformacionLocalBinding
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
+import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.LocationHelper
 import com.palmadata.app.utils.ModuleRegistry
 import com.palmadata.app.utils.SessionManager
+import com.palmadata.app.utils.SyncManager
 import com.palmadata.app.utils.TrackStorage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var locationHelper: LocationHelper
-
-    // ── Trabajadores demo ────────────────────────────────────────────────────
-    private val todosLosTrabajadores = listOf(
-        Worker(id = "101", name = "Carlos Martínez",       code = "1"),
-        Worker(id = "102", name = "Ana Lucía Gómez",       code = "2"),
-        Worker(id = "103", name = "Pedro Hernández",       code = "3"),
-        Worker(id = "201", name = "María Salazar",         code = "4"),
-        Worker(id = "202", name = "Juan Pablo Roa",        code = "5"),
-        Worker(id = "301", name = "Lucía Fernández",       code = "6"),
-        Worker(id = "302", name = "Andrés Felipe Torres",  code = "7")
-    )
+    private lateinit var db: DatabaseHelper
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -62,9 +58,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        db = DatabaseHelper(this)
+
         setupLocationHelper()
         setupModulesGrid()
         setupWorkerSelector()
+        setupSincronizar()
         SessionManager.clearWorker(this)
         locationHelper.stopLocationUpdates()
         handleGpsPermissions()
@@ -96,10 +95,7 @@ class MainActivity : AppCompatActivity() {
             },
             onTrackGuardado = null
         )
-
-        if (locationHelper.hasPermissions()) {
-            locationHelper.startLocationUpdates()
-        }
+        if (locationHelper.hasPermissions()) locationHelper.startLocationUpdates()
     }
 
     // ── Grid de módulos ──────────────────────────────────────────────────────
@@ -113,7 +109,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onModuleClicked(module: AppModule) {
-        // Módulo especial: no requiere trabajador
         if (module.id == "informacion_local") {
             showInformacionLocal()
             return
@@ -124,8 +119,7 @@ class MainActivity : AppCompatActivity() {
                 .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
                 .setMessage(getString(R.string.no_worker_message))
                 .setPositiveButton(getString(R.string.select_worker)) { dialog, _ ->
-                    dialog.dismiss()
-                    showWorkerSelector()
+                    dialog.dismiss(); showWorkerSelector()
                 }
                 .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
                 .show()
@@ -137,8 +131,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val intent = Intent(this, module.destinationClass)
-        startActivity(intent)
+        startActivity(Intent(this, module.destinationClass))
     }
 
     // ── Selector de trabajador ────────────────────────────────────────────────
@@ -148,30 +141,41 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showWorkerSelector() {
+        val trabajadores = db.getTrabajadores()
+
         val dialogBinding = DialogSelectWorkerBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(this, R.style.WorkerDialogTheme)
             .setView(dialogBinding.root)
             .create()
 
-        val adapter = WorkerAdapter { nombreSeleccionado ->
-            val worker = todosLosTrabajadores.first { it.name == nombreSeleccionado }
-            onWorkerSelected(worker)
-            dialog.dismiss()
-        }
-
-        dialogBinding.rvWorkers.layoutManager = LinearLayoutManager(this)
-        dialogBinding.rvWorkers.adapter = adapter
-        adapter.submitList(todosLosTrabajadores.map { it.name })
-
-        dialogBinding.etSearchWorker.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                adapter.filter(s.toString())
-                dialogBinding.tvNoWorkers.visibility =
-                    if (adapter.isEmpty()) View.VISIBLE else View.GONE
+        if (trabajadores.isEmpty()) {
+            dialogBinding.tvNoWorkers.text = "Sin datos. Toque SINCRONIZAR primero."
+            dialogBinding.tvNoWorkers.visibility = View.VISIBLE
+            dialogBinding.rvWorkers.visibility = View.GONE
+        } else {
+            val adapter = WorkerAdapter { nombreSeleccionado ->
+                val worker = trabajadores.first { it.second == nombreSeleccionado }
+                onWorkerSelected(Worker(
+                    id   = worker.first.toString(),
+                    name = worker.second,
+                    code = worker.first.toString()
+                ))
+                dialog.dismiss()
             }
-        })
+            dialogBinding.rvWorkers.layoutManager = LinearLayoutManager(this)
+            dialogBinding.rvWorkers.adapter = adapter
+            adapter.submitList(trabajadores.map { it.second })
+
+            dialogBinding.etSearchWorker.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    adapter.filter(s.toString())
+                    dialogBinding.tvNoWorkers.visibility =
+                        if (adapter.isEmpty()) View.VISIBLE else View.GONE
+                }
+            })
+        }
 
         dialogBinding.btnCancelWorker.setOnClickListener { dialog.dismiss() }
         dialog.show()
@@ -181,13 +185,48 @@ class MainActivity : AppCompatActivity() {
         SessionManager.setCurrentWorker(this, worker)
         binding.tvWorkerSelector.text = "${getString(R.string.worker_selected_prefix)}${worker.name}"
         binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_set))
-
-        if (locationHelper.hasPermissions()) {
-            locationHelper.startLocationUpdates()
-        } else {
-            requestLocationPermissions()
-        }
+        if (locationHelper.hasPermissions()) locationHelper.startLocationUpdates()
+        else requestLocationPermissions()
         Toast.makeText(this, "Trabajador: ${worker.name}", Toast.LENGTH_SHORT).show()
+    }
+
+    // ── SINCRONIZAR ───────────────────────────────────────────────────────────
+
+    private fun setupSincronizar() {
+        binding.btnSincronizar.setOnClickListener {
+            sincronizarDatos()
+        }
+    }
+
+    private fun sincronizarDatos() {
+        binding.btnSincronizar.isEnabled = false
+        binding.btnSincronizar.text = "Sincronizando..."
+
+        lifecycleScope.launch {
+            val resultado = withContext(Dispatchers.IO) {
+                SyncManager.sincronizar(this@MainActivity)
+            }
+
+            binding.btnSincronizar.isEnabled = true
+            binding.btnSincronizar.text = "SINCRONIZAR"
+
+            if (resultado.exitoso) {
+                val detalle = resultado.detalles.entries.joinToString("\n") {
+                    "• ${it.key}: ${it.value}"
+                }
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("✅ Sincronización exitosa")
+                    .setMessage(detalle)
+                    .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
+                    .show()
+            } else {
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("❌ Error de sincronización")
+                    .setMessage(resultado.mensaje)
+                    .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
+                    .show()
+            }
+        }
     }
 
     // ── Información local ─────────────────────────────────────────────────────
@@ -198,7 +237,7 @@ class MainActivity : AppCompatActivity() {
             .setView(dialogBinding.root)
             .create()
 
-        dialogBinding.tvUltimaSincronizacion.text = "Sin sincronización aún"
+        dialogBinding.tvUltimaSincronizacion.text = SyncManager.getUltimaSincronizacion(this)
         dialogBinding.tvTracks.text = TrackStorage.contarTracks(this).toString()
         dialogBinding.tvCensoEnf.text = "0"
         dialogBinding.tvPolinizacion.text = "0"

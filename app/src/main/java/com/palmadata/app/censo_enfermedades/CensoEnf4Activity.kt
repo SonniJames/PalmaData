@@ -16,23 +16,27 @@ class CensoEnf4Activity : AppCompatActivity() {
         binding = ActivityCensoEnf4Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val sector = intent.getStringExtra("sector") ?: ""
-        val lote   = intent.getStringExtra("lote") ?: ""
-        val censo  = intent.getStringExtra("censo") ?: ""
+        val plantacionId     = intent.getIntExtra("plantacion_id", 0)
+        val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
+        val sector           = intent.getStringExtra("sector") ?: ""
+        val lote             = intent.getStringExtra("lote") ?: ""
+        val censo            = intent.getStringExtra("censo") ?: ""
 
         setupTeclado()
 
         binding.btnAccion.setOnClickListener {
             when {
-                valorActual.isEmpty() -> mostrarError("Debe ingresar un valor para LÍNEA")
-                valorActual.length > 2 -> mostrarError("LÍNEA debe tener máximo 2 dígitos")
+                valorActual.isEmpty()    -> mostrarError("Debe ingresar un valor para LÍNEA")
+                valorActual.length > 3   -> mostrarError("LÍNEA debe tener máximo 3 dígitos")
                 else -> {
-                    val intent = Intent(this, CensoEnf5Activity::class.java)
-                    intent.putExtra("sector", sector)
-                    intent.putExtra("lote", lote)
-                    intent.putExtra("censo", censo)
-                    intent.putExtra("linea", valorActual)
-                    startActivity(intent)
+                    val nextIntent = Intent(this, CensoEnf5Activity::class.java)
+                    nextIntent.putExtra("plantacion_id",     plantacionId)
+                    nextIntent.putExtra("plantacion_nombre", plantacionNombre)
+                    nextIntent.putExtra("sector",            sector)
+                    nextIntent.putExtra("lote",              lote)
+                    nextIntent.putExtra("censo",             censo)
+                    nextIntent.putExtra("linea",             valorActual)
+                    startActivity(nextIntent)
                 }
             }
         }
@@ -45,23 +49,14 @@ class CensoEnf4Activity : AppCompatActivity() {
             binding.btn6 to "6", binding.btn7 to "7", binding.btn8 to "8",
             binding.btn9 to "9"
         )
-
         botones.forEach { (btn, valor) ->
             btn.setOnClickListener {
-                if (valorActual.length < 2) {
-                    valorActual += valor
-                    actualizarDisplay()
-                }
+                if (valorActual.length < 3) { valorActual += valor; actualizarDisplay() }
             }
         }
-
         binding.btnC.setOnClickListener { valorActual = ""; actualizarDisplay(); ocultarError() }
         binding.btnDel.setOnClickListener {
-            if (valorActual.isNotEmpty()) {
-                valorActual = valorActual.dropLast(1)
-                actualizarDisplay()
-                ocultarError()
-            }
+            if (valorActual.isNotEmpty()) { valorActual = valorActual.dropLast(1); actualizarDisplay(); ocultarError() }
         }
     }
 

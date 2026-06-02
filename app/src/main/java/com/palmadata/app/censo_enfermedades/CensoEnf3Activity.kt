@@ -16,8 +16,10 @@ class CensoEnf3Activity : AppCompatActivity() {
         binding = ActivityCensoEnf3Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val sector = intent.getStringExtra("sector") ?: ""
-        val lote   = intent.getStringExtra("lote") ?: ""
+        val plantacionId     = intent.getIntExtra("plantacion_id", 0)
+        val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
+        val sector           = intent.getStringExtra("sector") ?: ""
+        val lote             = intent.getStringExtra("lote") ?: ""
 
         setupTeclado()
 
@@ -26,13 +28,14 @@ class CensoEnf3Activity : AppCompatActivity() {
                 mostrarError("El CENSO debe tener exactamente 6 dígitos")
                 return@setOnClickListener
             }
-            val intent = Intent(this, CensoEnf4Activity::class.java)
-            intent.putExtra("sector", sector)
-            intent.putExtra("lote", lote)
-            intent.putExtra("censo", valorActual)
-            startActivity(intent)
+            val nextIntent = Intent(this, CensoEnf4Activity::class.java)
+            nextIntent.putExtra("plantacion_id",     plantacionId)
+            nextIntent.putExtra("plantacion_nombre", plantacionNombre)
+            nextIntent.putExtra("sector",            sector)
+            nextIntent.putExtra("lote",              lote)
+            nextIntent.putExtra("censo",             valorActual)
+            startActivity(nextIntent)
         }
-
     }
 
     private fun setupTeclado() {
@@ -42,41 +45,18 @@ class CensoEnf3Activity : AppCompatActivity() {
             binding.btn6 to "6", binding.btn7 to "7", binding.btn8 to "8",
             binding.btn9 to "9"
         )
-
         botones.forEach { (btn, valor) ->
             btn.setOnClickListener {
-                if (valorActual.length < 6) {
-                    valorActual += valor
-                    actualizarDisplay()
-                }
+                if (valorActual.length < 6) { valorActual += valor; actualizarDisplay() }
             }
         }
-
-        binding.btnC.setOnClickListener {
-            valorActual = ""
-            actualizarDisplay()
-            ocultarError()
-        }
-
+        binding.btnC.setOnClickListener { valorActual = ""; actualizarDisplay(); ocultarError() }
         binding.btnDel.setOnClickListener {
-            if (valorActual.isNotEmpty()) {
-                valorActual = valorActual.dropLast(1)
-                actualizarDisplay()
-                ocultarError()
-            }
+            if (valorActual.isNotEmpty()) { valorActual = valorActual.dropLast(1); actualizarDisplay(); ocultarError() }
         }
     }
 
-    private fun actualizarDisplay() {
-        binding.tvDisplay.text = valorActual.ifEmpty { "" }
-    }
-
-    private fun mostrarError(msg: String) {
-        binding.tvError.text = msg
-        binding.tvError.visibility = View.VISIBLE
-    }
-
-    private fun ocultarError() {
-        binding.tvError.visibility = View.GONE
-    }
+    private fun actualizarDisplay() { binding.tvDisplay.text = valorActual }
+    private fun mostrarError(msg: String) { binding.tvError.text = msg; binding.tvError.visibility = View.VISIBLE }
+    private fun ocultarError() { binding.tvError.visibility = View.GONE }
 }

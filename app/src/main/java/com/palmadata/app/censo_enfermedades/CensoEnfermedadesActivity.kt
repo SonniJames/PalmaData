@@ -9,7 +9,7 @@ class CensoEnfermedadesActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Lanza directamente la primera pantalla del flujo
-        startActivity(Intent(this, CensoEnf1Activity::class.java))
+        startActivity(Intent(this, CensoEnf0Activity::class.java))
         finish()
     }
 }

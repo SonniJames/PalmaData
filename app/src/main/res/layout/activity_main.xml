@@ -117,4 +117,16 @@
         android:clipToPadding="false"
         android:scrollbars="vertical" />
 
+    <!-- ===== BOTÓN SINCRONIZAR ===== -->
+    <Button
+        android:id="@+id/btnSincronizar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_margin="12dp"
+        android:text="SINCRONIZAR"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/palma_green_dark" />
+
 </LinearLayout>

@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.palmadata.app.databinding.ActivityCensoEnf2Binding
 import com.palmadata.app.ui.WorkerAdapter
+import com.palmadata.app.utils.DatabaseHelper
 
 class CensoEnf2Activity : AppCompatActivity() {
 
@@ -16,18 +17,28 @@ class CensoEnf2Activity : AppCompatActivity() {
         binding = ActivityCensoEnf2Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val sector = intent.getStringExtra("sector") ?: return
-        val lotes = CensoEnfData.lotesPorSector[sector] ?: emptyList()
+        val plantacionId     = intent.getIntExtra("plantacion_id", 0)
+        val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
+        val sectorId         = intent.getIntExtra("sector_id", 0)
+        val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
 
-        val adapter = WorkerAdapter { loteSeleccionado ->
+        val db   = DatabaseHelper(this)
+        val lotes = db.getLotesPorSector(sectorId)
+
+        val adapter = WorkerAdapter { nombreSeleccionado ->
+            val lote = lotes.first { it.second == nombreSeleccionado }
             val nextIntent = Intent(this, CensoEnf3Activity::class.java)
-            nextIntent.putExtra("sector", sector)
-            nextIntent.putExtra("lote", loteSeleccionado)
+            nextIntent.putExtra("plantacion_id",     plantacionId)
+            nextIntent.putExtra("plantacion_nombre", plantacionNombre)
+            nextIntent.putExtra("sector_id",         sectorId)
+            nextIntent.putExtra("sector_nombre",     sectorNombre)
+            nextIntent.putExtra("lote_id",           lote.first)
+            nextIntent.putExtra("lote_nombre",       lote.second)
             startActivity(nextIntent)
         }
 
         binding.rvLotes.layoutManager = LinearLayoutManager(this)
         binding.rvLotes.adapter = adapter
-        adapter.submitList(lotes)
+        adapter.submitList(lotes.map { it.second })
     }
 }

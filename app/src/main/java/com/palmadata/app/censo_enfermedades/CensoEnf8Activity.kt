@@ -21,6 +21,8 @@ class CensoEnf8Activity : AppCompatActivity() {
         binding = ActivityCensoEnf8Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val plantacionId = intent.getIntExtra("plantacion_id", 0)
+        val loteId       = intent.getIntExtra("lote_id", 0)
         val censo        = intent.getStringExtra("censo") ?: ""
         val linea        = intent.getStringExtra("linea") ?: ""
         val palma        = intent.getStringExtra("palma") ?: ""
@@ -36,16 +38,15 @@ class CensoEnf8Activity : AppCompatActivity() {
         })
 
         binding.btnGuardar.setOnClickListener {
-            guardarRegistro(censo, linea, palma, enfermedadId, eventoId)
+            guardarRegistro(plantacionId, loteId, censo, linea, palma, enfermedadId, eventoId)
         }
     }
 
     private fun guardarRegistro(
-        censo: String, linea: String, palma: String,
-        enfermedadId: Int, eventoId: Int
+        plantacionId: Int, loteId: Int, censo: String, linea: String,
+        palma: String, enfermedadId: Int, eventoId: Int
     ) {
         val worker = SessionManager.getCurrentWorker(this)
-
         if (worker == null) {
             Toast.makeText(this, "Error: no hay trabajador en sesión", Toast.LENGTH_SHORT).show()
             return
@@ -54,37 +55,39 @@ class CensoEnf8Activity : AppCompatActivity() {
         val ahora        = Date()
         val formatoFecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val formatoHora  = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        val formatoId    = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
 
-        val fechaStr  = formatoFecha.format(ahora)
-        val horaStr   = formatoHora.format(ahora)
-        val idRegistro = UUID.randomUUID().toString()
+        val fechaStr = formatoFecha.format(ahora)
+        val horaStr  = formatoHora.format(ahora)
 
-        val lat = SessionManager.getLastLatitude(this)
-        val lon = SessionManager.getLastLongitude(this)
+        // Construir cat_palma_id: lote_id + linea(3 dígitos) + palma(2 dígitos)
+        val lineaPadded = (linea.toIntOrNull() ?: 0).toString().padStart(3, '0')
+        val palmaPadded = (palma.toIntOrNull() ?: 0).toString().padStart(2, '0')
+        val catPalmaId  = "${loteId}${lineaPadded}${palmaPadded}".toLongOrNull() ?: 0L
 
         val registro = CensoEnfRegistro(
             censo             = censo.toLongOrNull() ?: 0L,
             linea             = linea.toIntOrNull() ?: 0,
             palma             = palma.toIntOrNull() ?: 0,
             observaciones     = binding.etObservaciones.text.toString(),
-            catPlantacionId   = 0,
+            catPlantacionId   = plantacionId,
+            catLoteId         = loteId.toLong(),
+            catPalmaId        = catPalmaId,
             sanEnfermedadesId = enfermedadId,
             sanEventoEnfId    = eventoId,
             evaluador         = worker.code.toIntOrNull() ?: 0,
             fecha             = fechaStr,
             hora              = horaStr,
             actualizacion     = fechaStr,
-            latitud           = lat,
-            longitud          = lon,
-            id                = idRegistro,
+            latitud           = SessionManager.getLastLatitude(this),
+            longitud          = SessionManager.getLastLongitude(this),
+            id                = UUID.randomUUID().toString(),
             equipo            = SessionManager.getEquipoId(this)
         )
 
-        // TODO Etapa 4: guardar en SQLite local y subir al DataLake
+        // TODO: guardar en SQLite local
         Toast.makeText(
             this,
-            "✅ Registro guardado\nID: $idRegistro",
+            "✅ Registro guardado\nPalma ID: $catPalmaId\nID: ${registro.id}",
             Toast.LENGTH_LONG
         ).show()
 
