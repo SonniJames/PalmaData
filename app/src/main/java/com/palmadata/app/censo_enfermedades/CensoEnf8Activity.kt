@@ -60,9 +60,6 @@ class CensoEnf8Activity : AppCompatActivity() {
         val horaStr  = formatoHora.format(ahora)
 
         // Construir cat_palma_id: lote_id + linea(3 dígitos) + palma(2 dígitos)
-        val lineaPadded = (linea.toIntOrNull() ?: 0).toString().padStart(3, '0')
-        val palmaPadded = (palma.toIntOrNull() ?: 0).toString().padStart(2, '0')
-        val catPalmaId  = "${loteId}${lineaPadded}${palmaPadded}".toLongOrNull() ?: 0L
 
         val registro = CensoEnfRegistro(
             censo             = censo.toLongOrNull() ?: 0L,
@@ -71,7 +68,7 @@ class CensoEnf8Activity : AppCompatActivity() {
             observaciones     = binding.etObservaciones.text.toString(),
             catPlantacionId   = plantacionId,
             catLoteId         = loteId.toLong(),
-            catPalmaId        = catPalmaId,
+            catPalmaId        = 0L,
             sanEnfermedadesId = enfermedadId,
             sanEventoEnfId    = eventoId,
             evaluador         = worker.code.toIntOrNull() ?: 0,
@@ -87,7 +84,7 @@ class CensoEnf8Activity : AppCompatActivity() {
         // TODO: guardar en SQLite local
         Toast.makeText(
             this,
-            "✅ Registro guardado\nPalma ID: $catPalmaId\nID: ${registro.id}",
+            "✅ Registro guardado\nID: ${registro.id}",
             Toast.LENGTH_LONG
         ).show()
 
