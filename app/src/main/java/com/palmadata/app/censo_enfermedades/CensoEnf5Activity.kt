@@ -18,8 +18,10 @@ class CensoEnf5Activity : AppCompatActivity() {
 
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
-        val sector           = intent.getStringExtra("sector") ?: ""
-        val lote             = intent.getStringExtra("lote") ?: ""
+        val sectorId         = intent.getIntExtra("sector_id", 0)
+        val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
+        val loteId           = intent.getIntExtra("lote_id", 0)
+        val loteNombre       = intent.getStringExtra("lote_nombre") ?: ""
         val censo            = intent.getStringExtra("censo") ?: ""
         val linea            = intent.getStringExtra("linea") ?: ""
 
@@ -33,8 +35,10 @@ class CensoEnf5Activity : AppCompatActivity() {
                     val nextIntent = Intent(this, CensoEnf6Activity::class.java)
                     nextIntent.putExtra("plantacion_id",     plantacionId)
                     nextIntent.putExtra("plantacion_nombre", plantacionNombre)
-                    nextIntent.putExtra("sector",            sector)
-                    nextIntent.putExtra("lote",              lote)
+                    nextIntent.putExtra("sector_id",         sectorId)
+                    nextIntent.putExtra("sector_nombre",     sectorNombre)
+                    nextIntent.putExtra("lote_id",           loteId)
+                    nextIntent.putExtra("lote_nombre",       loteNombre)
                     nextIntent.putExtra("censo",             censo)
                     nextIntent.putExtra("linea",             linea)
                     nextIntent.putExtra("palma",             valorActual)

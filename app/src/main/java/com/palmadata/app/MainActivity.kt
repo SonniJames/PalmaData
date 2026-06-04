@@ -239,7 +239,7 @@ class MainActivity : AppCompatActivity() {
 
         dialogBinding.tvUltimaSincronizacion.text = SyncManager.getUltimaSincronizacion(this)
         dialogBinding.tvTracks.text = TrackStorage.contarTracks(this).toString()
-        dialogBinding.tvCensoEnf.text = "0"
+        dialogBinding.tvCensoEnf.text = db.contarCensoEnfPendientes().toString()
         dialogBinding.tvPolinizacion.text = "0"
         dialogBinding.tvTratamientos.text = "0"
 

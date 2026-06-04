@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivityCensoEnf8Binding
+import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
 import java.text.SimpleDateFormat
 import java.util.*
@@ -56,11 +57,6 @@ class CensoEnf8Activity : AppCompatActivity() {
         val formatoFecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val formatoHora  = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
-        val fechaStr = formatoFecha.format(ahora)
-        val horaStr  = formatoHora.format(ahora)
-
-        // Construir cat_palma_id: lote_id + linea(3 dígitos) + palma(2 dígitos)
-
         val registro = CensoEnfRegistro(
             censo             = censo.toLongOrNull() ?: 0L,
             linea             = linea.toIntOrNull() ?: 0,
@@ -72,21 +68,23 @@ class CensoEnf8Activity : AppCompatActivity() {
             sanEnfermedadesId = enfermedadId,
             sanEventoEnfId    = eventoId,
             evaluador         = worker.code.toIntOrNull() ?: 0,
-            fecha             = fechaStr,
-            hora              = horaStr,
-            actualizacion     = fechaStr,
+            fecha             = formatoFecha.format(ahora),
+            hora              = formatoHora.format(ahora),
+            actualizacion     = formatoFecha.format(ahora),
             latitud           = SessionManager.getLastLatitude(this),
             longitud          = SessionManager.getLastLongitude(this),
             id                = UUID.randomUUID().toString(),
             equipo            = SessionManager.getEquipoId(this)
         )
 
-        // TODO: guardar en SQLite local
-        Toast.makeText(
-            this,
-            "✅ Registro guardado\nID: ${registro.id}",
-            Toast.LENGTH_LONG
-        ).show()
+        // Guardar en SQLite local
+        try {
+            DatabaseHelper(this).guardarCensoEnf(registro)
+            Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "❌ Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
 
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
