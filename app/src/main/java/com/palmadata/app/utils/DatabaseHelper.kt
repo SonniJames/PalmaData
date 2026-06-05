@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 5  // incrementado por nueva tabla polinizacion
+        const val DB_VERSION = 6
 
         const val T_PLANTACIONES     = "plantaciones"
         const val T_TRABAJADORES     = "trabajadores"
@@ -22,10 +22,10 @@ class DatabaseHelper(context: Context) :
         const val T_CENSO_ENF        = "censo_enfermedades"
         const val T_TRATAMIENTOS     = "tratamientos"
         const val T_POLINIZACION     = "polinizacion"
+        const val T_POLEN            = "polen_inicial_final"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        // ── Maestros ──────────────────────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_SECTORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, plantacion_id INTEGER NOT NULL)")
@@ -33,8 +33,6 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_ENFERMEDADES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
-
-        // ── Campo ─────────────────────────────────────────────────────────────
         db.execSQL("""
             CREATE TABLE $T_CENSO_ENF (
                 id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL,
@@ -70,12 +68,22 @@ class DatabaseHelper(context: Context) :
                 equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
             )
         """)
+        db.execSQL("""
+            CREATE TABLE $T_POLEN (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha TEXT NOT NULL,
+                inicial REAL DEFAULT 0,
+                final REAL DEFAULT 0,
+                trabajador INTEGER NOT NULL,
+                sincronizado INTEGER DEFAULT 0
+            )
+        """)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
-            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION).forEach {
+            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION, T_POLEN).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
@@ -219,6 +227,22 @@ class DatabaseHelper(context: Context) :
     fun getPolinizacionPendientes(): List<Map<String, Any>> = getPendientes(T_POLINIZACION)
     fun eliminarPolinizacion(id: String) = writableDatabase.delete(T_POLINIZACION, "id = ?", arrayOf(id))
     fun contarPolinizacionPendientes(): Int = contarPendientes(T_POLINIZACION)
+
+    // ── Campo: polen inicial final ────────────────────────────────────────────
+
+    fun guardarPolen(r: com.palmadata.app.polen.PolenInicialFinalRegistro) {
+        writableDatabase.insert(T_POLEN, null, ContentValues().apply {
+            put("fecha", r.fecha)
+            put("inicial", r.inicial)
+            put("final", r.final)
+            put("trabajador", r.trabajador)
+            put("sincronizado", 0)
+        })
+    }
+
+    fun getPolenPendientes(): List<Map<String, Any>> = getPendientes(T_POLEN)
+    fun eliminarPolen(id: String) = writableDatabase.delete(T_POLEN, "id = ?", arrayOf(id))
+    fun contarPolenPendientes(): Int = contarPendientes(T_POLEN)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

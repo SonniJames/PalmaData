@@ -29,6 +29,10 @@ object SyncManager {
             val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id ->
                 db.eliminarPolinizacion(id)
             }
+            // Polen usa id numérico autoincremental
+            val subidosPolen = subirPendientes(baseUrl, "polen_inicial_final", db.getPolenPendientes()) { id ->
+                db.eliminarPolen(id)
+            }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
@@ -60,6 +64,7 @@ object SyncManager {
                     "Censo enfermedades" to subidosCenso,
                     "Tratamientos"       to subidosTrat,
                     "Polinización"       to subidosPoli,
+                    "Polen inicial/final" to subidosPolen,
                     "Plantaciones"       to plantaciones.size,
                     "Trabajadores"       to trabajadores.size,
                     "Sectores"           to sectores.size,

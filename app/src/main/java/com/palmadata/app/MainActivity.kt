@@ -2,6 +2,7 @@ package com.palmadata.app
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -21,6 +22,8 @@ import com.palmadata.app.data.model.Worker
 import com.palmadata.app.databinding.ActivityMainBinding
 import com.palmadata.app.databinding.DialogSelectWorkerBinding
 import com.palmadata.app.databinding.DialogInformacionLocalBinding
+import com.palmadata.app.databinding.DialogPolenInicialFinalBinding
+import com.palmadata.app.polen.PolenInicialFinalRegistro
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
@@ -32,6 +35,9 @@ import com.palmadata.app.utils.TrackStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -114,6 +120,22 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (module.id == "polen_inicial_final") {
+            if (!SessionManager.hasWorker(this)) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
+                    .setMessage(getString(R.string.no_worker_message))
+                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ ->
+                        dialog.dismiss(); showWorkerSelector()
+                    }
+                    .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
+                    .show()
+                return
+            }
+            showPolenInicialFinal()
+            return
+        }
+
         if (!SessionManager.hasWorker(this)) {
             MaterialAlertDialogBuilder(this)
                 .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
@@ -193,9 +215,7 @@ class MainActivity : AppCompatActivity() {
     // ── SINCRONIZAR ───────────────────────────────────────────────────────────
 
     private fun setupSincronizar() {
-        binding.btnSincronizar.setOnClickListener {
-            sincronizarDatos()
-        }
+        binding.btnSincronizar.setOnClickListener { sincronizarDatos() }
     }
 
     private fun sincronizarDatos() {
@@ -229,6 +249,71 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ── Polen inicial/final ───────────────────────────────────────────────────
+
+    private fun showPolenInicialFinal() {
+        val dialogBinding = DialogPolenInicialFinalBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this, R.style.WorkerDialogTheme)
+            .setView(dialogBinding.root)
+            .create()
+
+        // Fecha por defecto: hoy
+        val fmtFecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val fmtMostrar = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        var fechaSeleccionada = fmtFecha.format(Date())
+        dialogBinding.btnFecha.text = fmtMostrar.format(Date())
+
+        // Selector de fecha
+        dialogBinding.btnFecha.setOnClickListener {
+            val cal = Calendar.getInstance()
+            DatePickerDialog(this,
+                { _, year, month, day ->
+                    cal.set(year, month, day)
+                    fechaSeleccionada = fmtFecha.format(cal.time)
+                    dialogBinding.btnFecha.text = fmtMostrar.format(cal.time)
+                },
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        dialogBinding.btnCancelar.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnGuardar.setOnClickListener {
+            val worker = SessionManager.getCurrentWorker(this)
+            if (worker == null) {
+                Toast.makeText(this, "Error: no hay trabajador en sesión", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val inicialStr = dialogBinding.etPolenInicial.text.toString().trim()
+            val finalStr   = dialogBinding.etPolenFinal.text.toString().trim()
+
+            if (inicialStr.isEmpty() || finalStr.isEmpty()) {
+                dialog.dismiss()
+                return@setOnClickListener
+            }
+
+            val registro = PolenInicialFinalRegistro(
+                fecha      = fechaSeleccionada,
+                inicial    = inicialStr.toDoubleOrNull() ?: 0.0,
+                final      = finalStr.toDoubleOrNull() ?: 0.0,
+                trabajador = worker.code.toIntOrNull() ?: 0
+            )
+
+            try {
+                db.guardarPolen(registro)
+                Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            } catch (e: Exception) {
+                Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        dialog.show()
+    }
+
     // ── Información local ─────────────────────────────────────────────────────
 
     private fun showInformacionLocal() {
@@ -238,10 +323,11 @@ class MainActivity : AppCompatActivity() {
             .create()
 
         dialogBinding.tvUltimaSincronizacion.text = SyncManager.getUltimaSincronizacion(this)
-        dialogBinding.tvTracks.text = TrackStorage.contarTracks(this).toString()
-        dialogBinding.tvCensoEnf.text = db.contarCensoEnfPendientes().toString()
-        dialogBinding.tvPolinizacion.text = db.contarPolinizacionPendientes().toString()
-        dialogBinding.tvTratamientos.text = db.contarTratamientosPendientes().toString()
+        dialogBinding.tvTracks.text               = TrackStorage.contarTracks(this).toString()
+        dialogBinding.tvCensoEnf.text             = db.contarCensoEnfPendientes().toString()
+        dialogBinding.tvPolinizacion.text         = db.contarPolinizacionPendientes().toString()
+        dialogBinding.tvTratamientos.text         = db.contarTratamientosPendientes().toString()
+        dialogBinding.tvPolen.text                = db.contarPolenPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()
