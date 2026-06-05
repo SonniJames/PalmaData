@@ -11,7 +11,8 @@ object ModuleRegistry {
         AppModule(id = "censo_enfermedades", name = "Censo enfermedades", iconResId = R.drawable.censo_enfermedades, destinationClass = CensoEnfermedadesActivity::class.java),
         AppModule(id = "polinizacion",       name = "Polinización",       iconResId = R.drawable.polinizacion,       destinationClass = PolinizacionActivity::class.java),
         AppModule(id = "tratamientos",       name = "Tratamientos",       iconResId = R.drawable.tratamientos,       destinationClass = TratamientosActivity::class.java),
-        AppModule(id = "informacion_local",  name = "Información local",  iconResId = R.drawable.informacion_local,  destinationClass = null)
+        AppModule(id = "informacion_local",  name = "Información local",  iconResId = R.drawable.informacion_local,  destinationClass = null),
+        AppModule(id = "polen_inicial_final",name = "Polen inicial final",iconResId = R.drawable.polen_inicial_final,destinationClass = null)
     )
 }
 
