@@ -241,7 +241,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvTracks.text = TrackStorage.contarTracks(this).toString()
         dialogBinding.tvCensoEnf.text = db.contarCensoEnfPendientes().toString()
         dialogBinding.tvPolinizacion.text = "0"
-        dialogBinding.tvTratamientos.text = "0"
+        dialogBinding.tvTratamientos.text = db.contarTratamientosPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()

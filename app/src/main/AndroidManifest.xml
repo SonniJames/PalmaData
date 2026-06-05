@@ -46,6 +46,18 @@
         <activity android:name=".censo_enfermedades.CensoEnf7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnf8Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnf0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Tratamientos -->
+        <activity android:name=".tratamientos.TratamientosActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat7Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat8Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat9Activity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>
