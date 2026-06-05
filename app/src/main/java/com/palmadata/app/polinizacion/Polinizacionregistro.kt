@@ -1,0 +1,30 @@
+package com.palmadata.app.polinizacion
+
+data class PolinizacionRegistro(
+    val id: String,
+    val fecha: String,
+    val hora: String,
+    val linea: Int,
+    val palma: Int,
+    val catLoteId: Long,
+    val catPalmaId: Long = 0L,
+    val catPlantacionId: Int,
+    val polinizador: Int,
+    val aplicacion1: Int,
+    val aplicacion2: Int,
+    val aplicacion3: Int,
+    val observaciones: String,
+    val latitud: Double,
+    val longitud: Double,
+    val equipo: String,
+    val androgena: Int = 0,
+    val buenas: Int = 0,
+    val ayudadas: Int = 0,
+    val dobles: Int = 0,
+    val polenInicial: Double = 0.0,
+    val polenFinal: Double = 0.0,
+    val parada: Double = 0.0,
+    val ordenSupervision: Long = 0L,
+    val lote: String? = null,
+    val loteAlias: String? = null
+)

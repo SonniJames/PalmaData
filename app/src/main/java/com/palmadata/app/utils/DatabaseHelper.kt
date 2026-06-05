@@ -10,20 +10,22 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 4
+        const val DB_VERSION = 5  // incrementado por nueva tabla polinizacion
 
-        const val T_PLANTACIONES       = "plantaciones"
-        const val T_TRABAJADORES       = "trabajadores"
-        const val T_SECTORES           = "sectores"
-        const val T_LOTES              = "lotes"
-        const val T_ENFERMEDADES       = "enfermedades"
-        const val T_EVENTOS            = "eventos"
-        const val T_TRATAMIENTOS_EVT   = "tratamientos_eventos"
-        const val T_CENSO_ENF          = "censo_enfermedades"
-        const val T_TRATAMIENTOS       = "tratamientos"
+        const val T_PLANTACIONES     = "plantaciones"
+        const val T_TRABAJADORES     = "trabajadores"
+        const val T_SECTORES         = "sectores"
+        const val T_LOTES            = "lotes"
+        const val T_ENFERMEDADES     = "enfermedades"
+        const val T_EVENTOS          = "eventos"
+        const val T_TRATAMIENTOS_EVT = "tratamientos_eventos"
+        const val T_CENSO_ENF        = "censo_enfermedades"
+        const val T_TRATAMIENTOS     = "tratamientos"
+        const val T_POLINIZACION     = "polinizacion"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
+        // ── Maestros ──────────────────────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_SECTORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, plantacion_id INTEGER NOT NULL)")
@@ -31,6 +33,8 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_ENFERMEDADES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+
+        // ── Campo ─────────────────────────────────────────────────────────────
         db.execSQL("""
             CREATE TABLE $T_CENSO_ENF (
                 id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL,
@@ -54,12 +58,24 @@ class DatabaseHelper(context: Context) :
                 cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
             )
         """)
+        db.execSQL("""
+            CREATE TABLE $T_POLINIZACION (
+                id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL,
+                linea INTEGER NOT NULL, palma INTEGER NOT NULL,
+                cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0,
+                cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL,
+                aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0,
+                aplicacion3 INTEGER DEFAULT 0, observaciones TEXT,
+                latitud REAL NOT NULL, longitud REAL NOT NULL,
+                equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
+            )
+        """)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
-            T_CENSO_ENF, T_TRATAMIENTOS).forEach {
+            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
@@ -164,12 +180,10 @@ class DatabaseHelper(context: Context) :
 
     fun guardarTratamiento(r: com.palmadata.app.tratamientos.TratamientoRegistro) {
         writableDatabase.insert(T_TRATAMIENTOS, null, ContentValues().apply {
-            put("id", r.id)
-            put("san_evento_trat_id", r.sanEventoTratId)
+            put("id", r.id); put("san_evento_trat_id", r.sanEventoTratId)
             put("aux_trabajador_id", r.auxTrabajadorId)
             put("fecha", r.fecha); put("hora", r.hora)
-            put("cat_lote_id", r.catLoteId)
-            put("cat_palma_id", r.catPalmaId)
+            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
             put("cat_plantacion_id", r.catPlantacionId)
             put("linea", r.linea); put("palma", r.palma)
             put("san_enfermedades_id", r.sanEnfermedadesId)
@@ -184,6 +198,27 @@ class DatabaseHelper(context: Context) :
     fun getTratamientosPendientes(): List<Map<String, Any>> = getPendientes(T_TRATAMIENTOS)
     fun eliminarTratamiento(id: String) = writableDatabase.delete(T_TRATAMIENTOS, "id = ?", arrayOf(id))
     fun contarTratamientosPendientes(): Int = contarPendientes(T_TRATAMIENTOS)
+
+    // ── Campo: polinizacion ───────────────────────────────────────────────────
+
+    fun guardarPolinizacion(r: com.palmadata.app.polinizacion.PolinizacionRegistro) {
+        writableDatabase.insert(T_POLINIZACION, null, ContentValues().apply {
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
+            put("linea", r.linea); put("palma", r.palma)
+            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
+            put("cat_plantacion_id", r.catPlantacionId)
+            put("polinizador", r.polinizador)
+            put("aplicacion1", r.aplicacion1); put("aplicacion2", r.aplicacion2)
+            put("aplicacion3", r.aplicacion3)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("equipo", r.equipo); put("sincronizado", 0)
+        })
+    }
+
+    fun getPolinizacionPendientes(): List<Map<String, Any>> = getPendientes(T_POLINIZACION)
+    fun eliminarPolinizacion(id: String) = writableDatabase.delete(T_POLINIZACION, "id = ?", arrayOf(id))
+    fun contarPolinizacionPendientes(): Int = contarPendientes(T_POLINIZACION)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -211,11 +246,12 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) }
     }
 
-    // ── Consultas maestros ────────────────────────────────────────────────────
+    // ── Maestros: consultar ───────────────────────────────────────────────────
 
     fun getPlantaciones() = getPares(T_PLANTACIONES)
     fun getTrabajadores() = getPares(T_TRABAJADORES)
     fun getEnfermedades() = getPares(T_ENFERMEDADES)
+
     fun getTratamientosEventos(): List<Pair<Int, String>> {
         val result = mutableListOf<Pair<Int, String>>()
         val cursor = readableDatabase.query(T_TRATAMIENTOS_EVT, null, null, null, null, null, "codigo")

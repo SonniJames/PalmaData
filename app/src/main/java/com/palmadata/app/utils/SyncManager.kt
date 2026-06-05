@@ -26,6 +26,9 @@ object SyncManager {
             val subidosTrat = subirPendientes(baseUrl, "tratamientos", db.getTratamientosPendientes()) { id ->
                 db.eliminarTratamiento(id)
             }
+            val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id ->
+                db.eliminarPolinizacion(id)
+            }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
@@ -56,6 +59,7 @@ object SyncManager {
                 detalles = mapOf(
                     "Censo enfermedades" to subidosCenso,
                     "Tratamientos"       to subidosTrat,
+                    "Polinización"       to subidosPoli,
                     "Plantaciones"       to plantaciones.size,
                     "Trabajadores"       to trabajadores.size,
                     "Sectores"           to sectores.size,

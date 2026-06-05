@@ -240,7 +240,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvUltimaSincronizacion.text = SyncManager.getUltimaSincronizacion(this)
         dialogBinding.tvTracks.text = TrackStorage.contarTracks(this).toString()
         dialogBinding.tvCensoEnf.text = db.contarCensoEnfPendientes().toString()
-        dialogBinding.tvPolinizacion.text = "0"
+        dialogBinding.tvPolinizacion.text = db.contarPolinizacionPendientes().toString()
         dialogBinding.tvTratamientos.text = db.contarTratamientosPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
