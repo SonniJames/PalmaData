@@ -29,9 +29,11 @@ object SyncManager {
             val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id ->
                 db.eliminarPolinizacion(id)
             }
-            // Polen usa id numérico autoincremental
             val subidosPolen = subirPendientes(baseUrl, "polen_inicial_final", db.getPolenPendientes()) { id ->
                 db.eliminarPolen(id)
+            }
+            val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id ->
+                db.eliminarStrategus(id)
             }
 
             // ── Descargar maestros ────────────────────────────────────────────
@@ -61,17 +63,18 @@ object SyncManager {
             ResultadoSync(
                 exitoso  = true,
                 detalles = mapOf(
-                    "Censo enfermedades" to subidosCenso,
-                    "Tratamientos"       to subidosTrat,
-                    "Polinización"       to subidosPoli,
+                    "Censo enfermedades"  to subidosCenso,
+                    "Tratamientos"        to subidosTrat,
+                    "Polinización"        to subidosPoli,
                     "Polen inicial/final" to subidosPolen,
-                    "Plantaciones"       to plantaciones.size,
-                    "Trabajadores"       to trabajadores.size,
-                    "Sectores"           to sectores.size,
-                    "Lotes"              to lotes.size,
-                    "Enfermedades"       to enfermedades.size,
-                    "Eventos"            to eventos.size,
-                    "Trat. eventos"      to tratEventos.size
+                    "Sanstrategus"        to subidosStrategus,
+                    "Plantaciones"        to plantaciones.size,
+                    "Trabajadores"        to trabajadores.size,
+                    "Sectores"            to sectores.size,
+                    "Lotes"               to lotes.size,
+                    "Enfermedades"        to enfermedades.size,
+                    "Eventos"             to eventos.size,
+                    "Trat. eventos"       to tratEventos.size
                 )
             )
         } catch (e: Exception) {

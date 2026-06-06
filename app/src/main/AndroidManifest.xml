@@ -67,6 +67,16 @@
         <activity android:name=".polinizacion.Poli4Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".polinizacion.Poli5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".polinizacion.Poli6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Sanstrategus -->
+        <activity android:name=".strategus.StrategusActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.Strategus7Activity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>

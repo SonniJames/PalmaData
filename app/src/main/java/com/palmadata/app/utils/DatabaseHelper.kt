@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 6
+        const val DB_VERSION = 7
 
         const val T_PLANTACIONES     = "plantaciones"
         const val T_TRABAJADORES     = "trabajadores"
@@ -23,6 +23,7 @@ class DatabaseHelper(context: Context) :
         const val T_TRATAMIENTOS     = "tratamientos"
         const val T_POLINIZACION     = "polinizacion"
         const val T_POLEN            = "polen_inicial_final"
+        const val T_STRATEGUS        = "sanstrategus"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -71,11 +72,20 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""
             CREATE TABLE $T_POLEN (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fecha TEXT NOT NULL,
-                inicial REAL DEFAULT 0,
-                final REAL DEFAULT 0,
-                trabajador INTEGER NOT NULL,
+                fecha TEXT NOT NULL, inicial REAL DEFAULT 0,
+                final REAL DEFAULT 0, trabajador INTEGER NOT NULL,
                 sincronizado INTEGER DEFAULT 0
+            )
+        """)
+        db.execSQL("""
+            CREATE TABLE $T_STRATEGUS (
+                id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL,
+                cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL,
+                palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0,
+                galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL,
+                evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL,
+                observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL,
+                equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
             )
         """)
     }
@@ -83,7 +93,8 @@ class DatabaseHelper(context: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
-            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION, T_POLEN).forEach {
+            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION,
+            T_POLEN, T_STRATEGUS).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
@@ -232,10 +243,8 @@ class DatabaseHelper(context: Context) :
 
     fun guardarPolen(r: com.palmadata.app.polen.PolenInicialFinalRegistro) {
         writableDatabase.insert(T_POLEN, null, ContentValues().apply {
-            put("fecha", r.fecha)
-            put("inicial", r.inicial)
-            put("final", r.final)
-            put("trabajador", r.trabajador)
+            put("fecha", r.fecha); put("inicial", r.inicial)
+            put("final", r.final); put("trabajador", r.trabajador)
             put("sincronizado", 0)
         })
     }
@@ -243,6 +252,26 @@ class DatabaseHelper(context: Context) :
     fun getPolenPendientes(): List<Map<String, Any>> = getPendientes(T_POLEN)
     fun eliminarPolen(id: String) = writableDatabase.delete(T_POLEN, "id = ?", arrayOf(id))
     fun contarPolenPendientes(): Int = contarPendientes(T_POLEN)
+
+    // ── Campo: sanstrategus ───────────────────────────────────────────────────
+
+    fun guardarStrategus(r: com.palmadata.app.strategus.StrategusRegistro) {
+        writableDatabase.insert(T_STRATEGUS, null, ContentValues().apply {
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
+            put("cat_lote_id", r.catLoteId); put("linea", r.linea)
+            put("palma", r.palma); put("cat_palma_id", r.catPalmaId)
+            put("galerias", r.galerias); put("censo", r.censo)
+            put("evaluador", r.evaluador)
+            put("cat_plantacion_id", r.catPlantacionId)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("equipo", r.equipo); put("sincronizado", 0)
+        })
+    }
+
+    fun getStrateguspendientes(): List<Map<String, Any>> = getPendientes(T_STRATEGUS)
+    fun eliminarStrategus(id: String) = writableDatabase.delete(T_STRATEGUS, "id = ?", arrayOf(id))
+    fun contarStrateguspendientes(): Int = contarPendientes(T_STRATEGUS)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
