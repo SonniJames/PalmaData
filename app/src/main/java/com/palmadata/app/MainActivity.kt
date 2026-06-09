@@ -328,6 +328,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvPolinizacion.text         = db.contarPolinizacionPendientes().toString()
         dialogBinding.tvTratamientos.text         = db.contarTratamientosPendientes().toString()
         dialogBinding.tvPolen.text                = db.contarPolenPendientes().toString()
+        dialogBinding.tvStrategus.text            = db.contarStrateguspendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()
