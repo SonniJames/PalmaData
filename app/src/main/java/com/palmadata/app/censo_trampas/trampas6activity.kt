@@ -25,7 +25,7 @@ class Trampas6Activity : AppCompatActivity() {
         val machos        = intent.getStringExtra("machos") ?: "0"
         val hembras       = intent.getStringExtra("hembras") ?: "0"
         val sanTipoTrampa = intent.getIntExtra("san_tipo_trampa", 0)
-        val feromona      = intent.getIntExtra("feromona", 0)
+        val feromona = intent.getStringExtra("feromona") ?: "no"
         val atrayente     = intent.getIntExtra("atrayente", 0)
 
         binding.etObservaciones.addTextChangedListener(object : TextWatcher {
@@ -42,7 +42,7 @@ class Trampas6Activity : AppCompatActivity() {
     private fun guardarRegistro(
         plantacionId: Int, lectura: String, trampaId: Int,
         machos: String, hembras: String, sanTipoTrampa: Int,
-        feromona: Int, atrayente: Int
+        feromona: String, atrayente: Int
     ) {
         val worker = SessionManager.getCurrentWorker(this)
         if (worker == null) {
