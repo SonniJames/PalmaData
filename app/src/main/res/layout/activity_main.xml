@@ -117,6 +117,39 @@
         android:clipToPadding="false"
         android:scrollbars="vertical" />
 
+    <!-- ===== INFORMACIÓN LOCAL ===== -->
+    <LinearLayout
+        android:id="@+id/btnInformacionLocal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_gravity="center_horizontal"
+        android:padding="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="0dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/informacion_local_2"
+            android:scaleType="fitCenter"
+            android:contentDescription="Información local" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Información local"
+            android:textSize="11sp"
+            android:textColor="@color/text_primary"
+            android:gravity="center"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
     <!-- ===== BOTÓN SINCRONIZAR ===== -->
     <Button
         android:id="@+id/btnSincronizar"

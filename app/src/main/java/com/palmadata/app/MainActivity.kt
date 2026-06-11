@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         setupModulesGrid()
         setupWorkerSelector()
         setupSincronizar()
+        setupInformacionLocal()
         SessionManager.clearWorker(this)
         locationHelper.stopLocationUpdates()
         handleGpsPermissions()
@@ -79,6 +80,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (SessionManager.hasWorker(this) && locationHelper.hasPermissions()) {
             locationHelper.startLocationUpdates()
+        }
+    }
+
+    private fun setupInformacionLocal() {
+        binding.btnInformacionLocal.setOnClickListener {
+            showInformacionLocal()
         }
     }
 
@@ -115,10 +122,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onModuleClicked(module: AppModule) {
-        if (module.id == "informacion_local") {
-            showInformacionLocal()
-            return
-        }
 
         if (module.id == "polen_inicial_final") {
             if (!SessionManager.hasWorker(this)) {
