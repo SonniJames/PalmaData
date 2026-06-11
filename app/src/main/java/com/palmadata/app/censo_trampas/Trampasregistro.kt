@@ -12,7 +12,7 @@ data class TrampasRegistro(
     val sanTipoTrampa: Int,
     val catPlantacionId: Int,
     val atrayente: Int,
-    val feromona: Int,
+    val feromona: String,
     val observaciones: String,
     val equipo: String
 )

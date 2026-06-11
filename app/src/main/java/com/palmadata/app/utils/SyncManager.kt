@@ -37,6 +37,9 @@ object SyncManager {
             val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id ->
                 db.eliminarStrategus(id)
             }
+            val subidosTrampas = subirPendientes(baseUrl, "censo_trampas", db.getTrampasPendientes()) { id ->
+                db.eliminarTrampa(id)
+            }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
@@ -60,6 +63,9 @@ object SyncManager {
             val tratEventos = fetchLista(baseUrl, "tratamientos_eventos") { obj -> Pair(obj.getInt("id"), obj.getString("codigo")) }
             db.reemplazarTratamientosEventos(tratEventos)
 
+            val trampas = fetchLista(baseUrl, "trampas") { obj -> Pair(obj.getInt("id"), obj.getString("codigo")) }
+            db.reemplazarTrampas(trampas)
+
             guardarFechaSincronizacion(context)
 
             ResultadoSync(
@@ -71,13 +77,15 @@ object SyncManager {
                     "Polinización"        to subidosPoli,
                     "Polen inicial/final" to subidosPolen,
                     "Sanstrategus"        to subidosStrategus,
+                    "Censo trampas"       to subidosTrampas,
                     "Plantaciones"        to plantaciones.size,
                     "Trabajadores"        to trabajadores.size,
                     "Sectores"            to sectores.size,
                     "Lotes"               to lotes.size,
                     "Enfermedades"        to enfermedades.size,
                     "Eventos"             to eventos.size,
-                    "Trat. eventos"       to tratEventos.size
+                    "Trat. eventos"       to tratEventos.size,
+                    "Trampas"             to trampas.size
                 )
             )
         } catch (e: Exception) {
@@ -85,37 +93,28 @@ object SyncManager {
         }
     }
 
-    // ── Subir tracks en lote ──────────────────────────────────────────────────
-
     private fun subirTracks(baseUrl: String, context: Context): Int {
         return try {
             val prefs = context.getSharedPreferences("palma_tracks", Context.MODE_PRIVATE)
             val json  = prefs.getString("tracks_pendientes", "[]") ?: "[]"
             val array = JSONArray(json)
             if (array.length() == 0) return 0
-
             val url        = URL("$baseUrl/tracks")
             val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 15_000
-            connection.readTimeout    = 15_000
-            connection.requestMethod  = "POST"
-            connection.doOutput       = true
+            connection.connectTimeout = 15_000; connection.readTimeout = 15_000
+            connection.requestMethod = "POST"; connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.connect()
             connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
-
             val code     = connection.responseCode
             val response = connection.inputStream.bufferedReader().readText()
             connection.disconnect()
-
             if (code == 200 && !JSONObject(response).has("error")) {
                 prefs.edit().putString("tracks_pendientes", "[]").apply()
                 array.length()
             } else 0
         } catch (e: Exception) { 0 }
     }
-
-    // ── Subir registros uno por uno ───────────────────────────────────────────
 
     private fun subirPendientes(baseUrl: String, endpoint: String, pendientes: List<Map<String, Any>>, onExito: (String) -> Unit): Int {
         var subidos = 0
@@ -144,8 +143,6 @@ object SyncManager {
         } catch (e: Exception) { false }
     }
 
-    // ── Descargar lista del servidor ──────────────────────────────────────────
-
     private fun <T> fetchLista(baseUrl: String, endpoint: String, mapper: (JSONObject) -> T): List<T> {
         val url = URL("$baseUrl/$endpoint")
         val connection = url.openConnection() as HttpURLConnection
@@ -157,8 +154,6 @@ object SyncManager {
         val array = JSONArray(response)
         return (0 until array.length()).map { mapper(array.getJSONObject(it)) }
     }
-
-    // ── Fecha última sincronización ───────────────────────────────────────────
 
     private const val PREFS_SYNC    = "palma_sync"
     private const val KEY_LAST_SYNC = "ultima_sincronizacion"

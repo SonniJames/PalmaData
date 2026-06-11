@@ -21,7 +21,7 @@ class Trampas5Activity : AppCompatActivity() {
 
         binding.btnAccion.setOnClickListener {
             val sanTipoTrampa = if (binding.cbFeromona.isChecked) 1 else 0
-            val feromona      = if (binding.cbCambioFeromona.isChecked) 1 else 0
+            val feromona      = if (binding.cbCambioFeromona.isChecked) "si" else "no"
             val atrayente     = if (binding.cbCambioAtrayente.isChecked) 1 else 0
 
             startActivity(Intent(this, Trampas6Activity::class.java).also {

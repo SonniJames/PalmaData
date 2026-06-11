@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 7
+        const val DB_VERSION = 8
 
         const val T_PLANTACIONES     = "plantaciones"
         const val T_TRABAJADORES     = "trabajadores"
@@ -24,6 +24,8 @@ class DatabaseHelper(context: Context) :
         const val T_POLINIZACION     = "polinizacion"
         const val T_POLEN            = "polen_inicial_final"
         const val T_STRATEGUS        = "sanstrategus"
+        const val T_TRAMPAS_MAESTRO  = "trampas"
+        const val T_TRAMPAS          = "censo_trampas"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -34,160 +36,66 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_ENFERMEDADES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
-        db.execSQL("""
-            CREATE TABLE $T_CENSO_ENF (
-                id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL,
-                hora TEXT NOT NULL, evaluador INTEGER NOT NULL,
-                san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL,
-                observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL,
-                cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0,
-                cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL,
-                longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
-            )
-        """)
-        db.execSQL("""
-            CREATE TABLE $T_TRATAMIENTOS (
-                id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL,
-                aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL,
-                hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL,
-                cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0,
-                linea INTEGER NOT NULL, palma INTEGER NOT NULL,
-                san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL,
-                observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL,
-                cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
-            )
-        """)
-        db.execSQL("""
-            CREATE TABLE $T_POLINIZACION (
-                id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL,
-                linea INTEGER NOT NULL, palma INTEGER NOT NULL,
-                cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0,
-                cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL,
-                aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0,
-                aplicacion3 INTEGER DEFAULT 0, observaciones TEXT,
-                latitud REAL NOT NULL, longitud REAL NOT NULL,
-                equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
-            )
-        """)
-        db.execSQL("""
-            CREATE TABLE $T_POLEN (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fecha TEXT NOT NULL, inicial REAL DEFAULT 0,
-                final REAL DEFAULT 0, trabajador INTEGER NOT NULL,
-                sincronizado INTEGER DEFAULT 0
-            )
-        """)
-        db.execSQL("""
-            CREATE TABLE $T_STRATEGUS (
-                id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL,
-                cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL,
-                palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0,
-                galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL,
-                evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL,
-                observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL,
-                equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0
-            )
-        """)
+        db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona INTEGER DEFAULT 0, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION,
-            T_POLEN, T_STRATEGUS).forEach {
+            T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
     }
-
-    // ── Maestros: insertar ────────────────────────────────────────────────────
 
     fun reemplazarPlantaciones(lista: List<Pair<Int, String>>) = reemplazarPares(T_PLANTACIONES, lista)
     fun reemplazarTrabajadores(lista: List<Pair<Int, String>>) = reemplazarPares(T_TRABAJADORES, lista)
     fun reemplazarEnfermedades(lista: List<Pair<Int, String>>) = reemplazarPares(T_ENFERMEDADES, lista)
 
     private fun reemplazarPares(tabla: String, lista: List<Pair<Int, String>>) {
-        val db = writableDatabase
-        db.beginTransaction()
-        try {
-            db.delete(tabla, null, null)
-            lista.forEach { (id, nombre) ->
-                db.insert(tabla, null, ContentValues().apply { put("id", id); put("nombre", nombre) })
-            }
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(tabla, null, null); lista.forEach { (id, nombre) -> db.insert(tabla, null, ContentValues().apply { put("id", id); put("nombre", nombre) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarSectores(lista: List<Triple<Int, String, Int>>) {
-        val db = writableDatabase
-        db.beginTransaction()
-        try {
-            db.delete(T_SECTORES, null, null)
-            lista.forEach { (id, nombre, plantacionId) ->
-                db.insert(T_SECTORES, null, ContentValues().apply {
-                    put("id", id); put("nombre", nombre); put("plantacion_id", plantacionId)
-                })
-            }
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_SECTORES, null, null); lista.forEach { (id, nombre, plantacionId) -> db.insert(T_SECTORES, null, ContentValues().apply { put("id", id); put("nombre", nombre); put("plantacion_id", plantacionId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarLotes(lista: List<Triple<Int, String, Int>>) {
-        val db = writableDatabase
-        db.beginTransaction()
-        try {
-            db.delete(T_LOTES, null, null)
-            lista.forEach { (id, nombre, sectorId) ->
-                db.insert(T_LOTES, null, ContentValues().apply {
-                    put("id", id); put("nombre", nombre); put("sector_id", sectorId)
-                })
-            }
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_LOTES, null, null); lista.forEach { (id, nombre, sectorId) -> db.insert(T_LOTES, null, ContentValues().apply { put("id", id); put("nombre", nombre); put("sector_id", sectorId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarEventos(lista: List<Triple<Int, String, Int>>) {
-        val db = writableDatabase
-        db.beginTransaction()
-        try {
-            db.delete(T_EVENTOS, null, null)
-            lista.forEach { (id, codigo, enfId) ->
-                db.insert(T_EVENTOS, null, ContentValues().apply {
-                    put("id", id); put("codigo", codigo); put("enfermedad_id", enfId)
-                })
-            }
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_EVENTOS, null, null); lista.forEach { (id, codigo, enfId) -> db.insert(T_EVENTOS, null, ContentValues().apply { put("id", id); put("codigo", codigo); put("enfermedad_id", enfId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarTratamientosEventos(lista: List<Pair<Int, String>>) {
-        val db = writableDatabase
-        db.beginTransaction()
-        try {
-            db.delete(T_TRATAMIENTOS_EVT, null, null)
-            lista.forEach { (id, codigo) ->
-                db.insert(T_TRATAMIENTOS_EVT, null, ContentValues().apply {
-                    put("id", id); put("codigo", codigo)
-                })
-            }
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_TRATAMIENTOS_EVT, null, null); lista.forEach { (id, codigo) -> db.insert(T_TRATAMIENTOS_EVT, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
-    // ── Campo: censo enfermedades ─────────────────────────────────────────────
+    fun reemplazarTrampas(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_TRAMPAS_MAESTRO, null, null); lista.forEach { (id, codigo) -> db.insert(T_TRAMPAS_MAESTRO, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
 
     fun guardarCensoEnf(r: com.palmadata.app.censo_enfermedades.CensoEnfRegistro) {
         writableDatabase.insert(T_CENSO_ENF, null, ContentValues().apply {
-            put("id", r.id); put("censo", r.censo); put("fecha", r.fecha)
-            put("hora", r.hora); put("evaluador", r.evaluador)
-            put("san_evento_enf_id", r.sanEventoEnfId)
-            put("san_enfermedades_id", r.sanEnfermedadesId)
-            put("observaciones", r.observaciones); put("linea", r.linea)
-            put("palma", r.palma); put("cat_lote_id", r.catLoteId)
-            put("cat_palma_id", r.catPalmaId)
-            put("cat_plantacion_id", r.catPlantacionId)
-            put("latitud", r.latitud); put("longitud", r.longitud)
-            put("equipo", r.equipo); put("sincronizado", 0)
+            put("id", r.id); put("censo", r.censo); put("fecha", r.fecha); put("hora", r.hora); put("evaluador", r.evaluador)
+            put("san_evento_enf_id", r.sanEventoEnfId); put("san_enfermedades_id", r.sanEnfermedadesId)
+            put("observaciones", r.observaciones); put("linea", r.linea); put("palma", r.palma)
+            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId); put("cat_plantacion_id", r.catPlantacionId)
+            put("latitud", r.latitud); put("longitud", r.longitud); put("equipo", r.equipo); put("sincronizado", 0)
         })
     }
 
@@ -195,22 +103,14 @@ class DatabaseHelper(context: Context) :
     fun eliminarCensoEnf(id: String) = writableDatabase.delete(T_CENSO_ENF, "id = ?", arrayOf(id))
     fun contarCensoEnfPendientes(): Int = contarPendientes(T_CENSO_ENF)
 
-    // ── Campo: tratamientos ───────────────────────────────────────────────────
-
     fun guardarTratamiento(r: com.palmadata.app.tratamientos.TratamientoRegistro) {
         writableDatabase.insert(T_TRATAMIENTOS, null, ContentValues().apply {
-            put("id", r.id); put("san_evento_trat_id", r.sanEventoTratId)
-            put("aux_trabajador_id", r.auxTrabajadorId)
-            put("fecha", r.fecha); put("hora", r.hora)
-            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
-            put("cat_plantacion_id", r.catPlantacionId)
-            put("linea", r.linea); put("palma", r.palma)
-            put("san_enfermedades_id", r.sanEnfermedadesId)
-            put("san_evento_enf_id", r.sanEventoEnfId)
-            put("observaciones", r.observaciones)
-            put("latitud", r.latitud); put("longitud", r.longitud)
-            put("cantidad", r.cantidad)
-            put("equipo", r.equipo); put("sincronizado", 0)
+            put("id", r.id); put("san_evento_trat_id", r.sanEventoTratId); put("aux_trabajador_id", r.auxTrabajadorId)
+            put("fecha", r.fecha); put("hora", r.hora); put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
+            put("cat_plantacion_id", r.catPlantacionId); put("linea", r.linea); put("palma", r.palma)
+            put("san_enfermedades_id", r.sanEnfermedadesId); put("san_evento_enf_id", r.sanEventoEnfId)
+            put("observaciones", r.observaciones); put("latitud", r.latitud); put("longitud", r.longitud)
+            put("cantidad", r.cantidad); put("equipo", r.equipo); put("sincronizado", 0)
         })
     }
 
@@ -218,20 +118,13 @@ class DatabaseHelper(context: Context) :
     fun eliminarTratamiento(id: String) = writableDatabase.delete(T_TRATAMIENTOS, "id = ?", arrayOf(id))
     fun contarTratamientosPendientes(): Int = contarPendientes(T_TRATAMIENTOS)
 
-    // ── Campo: polinizacion ───────────────────────────────────────────────────
-
     fun guardarPolinizacion(r: com.palmadata.app.polinizacion.PolinizacionRegistro) {
         writableDatabase.insert(T_POLINIZACION, null, ContentValues().apply {
-            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
-            put("linea", r.linea); put("palma", r.palma)
-            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
-            put("cat_plantacion_id", r.catPlantacionId)
-            put("polinizador", r.polinizador)
-            put("aplicacion1", r.aplicacion1); put("aplicacion2", r.aplicacion2)
-            put("aplicacion3", r.aplicacion3)
-            put("observaciones", r.observaciones)
-            put("latitud", r.latitud); put("longitud", r.longitud)
-            put("equipo", r.equipo); put("sincronizado", 0)
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora); put("linea", r.linea); put("palma", r.palma)
+            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId); put("cat_plantacion_id", r.catPlantacionId)
+            put("polinizador", r.polinizador); put("aplicacion1", r.aplicacion1); put("aplicacion2", r.aplicacion2)
+            put("aplicacion3", r.aplicacion3); put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud); put("equipo", r.equipo); put("sincronizado", 0)
         })
     }
 
@@ -239,13 +132,10 @@ class DatabaseHelper(context: Context) :
     fun eliminarPolinizacion(id: String) = writableDatabase.delete(T_POLINIZACION, "id = ?", arrayOf(id))
     fun contarPolinizacionPendientes(): Int = contarPendientes(T_POLINIZACION)
 
-    // ── Campo: polen inicial final ────────────────────────────────────────────
-
     fun guardarPolen(r: com.palmadata.app.polen.PolenInicialFinalRegistro) {
         writableDatabase.insert(T_POLEN, null, ContentValues().apply {
-            put("fecha", r.fecha); put("inicial", r.inicial)
-            put("final", r.final); put("trabajador", r.trabajador)
-            put("sincronizado", 0)
+            put("fecha", r.fecha); put("inicial", r.inicial); put("final", r.final)
+            put("trabajador", r.trabajador); put("sincronizado", 0)
         })
     }
 
@@ -253,18 +143,13 @@ class DatabaseHelper(context: Context) :
     fun eliminarPolen(id: String) = writableDatabase.delete(T_POLEN, "id = ?", arrayOf(id))
     fun contarPolenPendientes(): Int = contarPendientes(T_POLEN)
 
-    // ── Campo: sanstrategus ───────────────────────────────────────────────────
-
     fun guardarStrategus(r: com.palmadata.app.strategus.StrategusRegistro) {
         writableDatabase.insert(T_STRATEGUS, null, ContentValues().apply {
             put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
-            put("cat_lote_id", r.catLoteId); put("linea", r.linea)
-            put("palma", r.palma); put("cat_palma_id", r.catPalmaId)
-            put("galerias", r.galerias); put("censo", r.censo)
-            put("evaluador", r.evaluador)
-            put("cat_plantacion_id", r.catPlantacionId)
-            put("observaciones", r.observaciones)
-            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("cat_lote_id", r.catLoteId); put("linea", r.linea); put("palma", r.palma)
+            put("cat_palma_id", r.catPalmaId); put("galerias", r.galerias); put("censo", r.censo)
+            put("evaluador", r.evaluador); put("cat_plantacion_id", r.catPlantacionId)
+            put("observaciones", r.observaciones); put("latitud", r.latitud); put("longitud", r.longitud)
             put("equipo", r.equipo); put("sincronizado", 0)
         })
     }
@@ -273,7 +158,21 @@ class DatabaseHelper(context: Context) :
     fun eliminarStrategus(id: String) = writableDatabase.delete(T_STRATEGUS, "id = ?", arrayOf(id))
     fun contarStrateguspendientes(): Int = contarPendientes(T_STRATEGUS)
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    fun guardarTrampa(r: com.palmadata.app.trampas.TrampasRegistro) {
+        writableDatabase.insert(T_TRAMPAS, null, ContentValues().apply {
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
+            put("lectura", r.lectura); put("censador", r.censador)
+            put("machos", r.machos); put("hembras", r.hembras)
+            put("san_trampa_id", r.sanTrampaId); put("san_tipo_trampa", r.sanTipoTrampa)
+            put("cat_plantacion_id", r.catPlantacionId)
+            put("atrayente", r.atrayente); put("feromona", r.feromona)
+            put("observaciones", r.observaciones); put("equipo", r.equipo); put("sincronizado", 0)
+        })
+    }
+
+    fun getTrampasPendientes(): List<Map<String, Any>> = getPendientes(T_TRAMPAS)
+    fun eliminarTrampa(id: String) = writableDatabase.delete(T_TRAMPAS, "id = ?", arrayOf(id))
+    fun contarTrampasPendientes(): Int = contarPendientes(T_TRAMPAS)
 
     private fun getPendientes(tabla: String): List<Map<String, Any>> {
         val result = mutableListOf<Map<String, Any>>()
@@ -299,8 +198,6 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) }
     }
 
-    // ── Maestros: consultar ───────────────────────────────────────────────────
-
     fun getPlantaciones() = getPares(T_PLANTACIONES)
     fun getTrabajadores() = getPares(T_TRABAJADORES)
     fun getEnfermedades() = getPares(T_ENFERMEDADES)
@@ -308,6 +205,13 @@ class DatabaseHelper(context: Context) :
     fun getTratamientosEventos(): List<Pair<Int, String>> {
         val result = mutableListOf<Pair<Int, String>>()
         val cursor = readableDatabase.query(T_TRATAMIENTOS_EVT, null, null, null, null, null, "codigo")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getTrampas(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_TRAMPAS_MAESTRO, null, null, null, null, null, "codigo")
         cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
         return result
     }
