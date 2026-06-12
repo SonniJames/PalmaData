@@ -282,6 +282,14 @@
                             android:textColor="@color/palma_green_dark" />
                     </LinearLayout>
 
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginTop="2dp" android:layout_marginBottom="2dp"/>
+
+                    <!-- Muestreo plagas -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp" android:paddingBottom="4dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Muestreo plagas:" android:textSize="13sp" android:textColor="@color/text_primary" />
+                        <TextView android:id="@+id/tvPlagas" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" />
+                    </LinearLayout>
+
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

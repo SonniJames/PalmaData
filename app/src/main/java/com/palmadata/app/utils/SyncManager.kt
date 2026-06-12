@@ -21,25 +21,13 @@ object SyncManager {
         return try {
             // ── Subir pendientes ──────────────────────────────────────────────
             val subidosTracks = subirTracks(baseUrl, context)
-
-            val subidosCenso = subirPendientes(baseUrl, "censo_enfermedades", db.getCensoEnfPendientes()) { id ->
-                db.eliminarCensoEnf(id)
-            }
-            val subidosTrat = subirPendientes(baseUrl, "tratamientos", db.getTratamientosPendientes()) { id ->
-                db.eliminarTratamiento(id)
-            }
-            val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id ->
-                db.eliminarPolinizacion(id)
-            }
-            val subidosPolen = subirPendientes(baseUrl, "polen_inicial_final", db.getPolenPendientes()) { id ->
-                db.eliminarPolen(id)
-            }
-            val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id ->
-                db.eliminarStrategus(id)
-            }
-            val subidosTrampas = subirPendientes(baseUrl, "censo_trampas", db.getTrampasPendientes()) { id ->
-                db.eliminarTrampa(id)
-            }
+            val subidosCenso = subirPendientes(baseUrl, "censo_enfermedades", db.getCensoEnfPendientes()) { id -> db.eliminarCensoEnf(id) }
+            val subidosTrat = subirPendientes(baseUrl, "tratamientos", db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
+            val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
+            val subidosPolen = subirPendientes(baseUrl, "polen_inicial_final", db.getPolenPendientes()) { id -> db.eliminarPolen(id) }
+            val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id -> db.eliminarStrategus(id) }
+            val subidosTrampas = subirPendientes(baseUrl, "censo_trampas", db.getTrampasPendientes()) { id -> db.eliminarTrampa(id) }
+            val subidosPlagas = subirPendientes(baseUrl, "muestreo_plagas", db.getPlagasPendientes()) { id -> db.eliminarPlagas(id) }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
@@ -66,6 +54,12 @@ object SyncManager {
             val trampas = fetchLista(baseUrl, "trampas") { obj -> Pair(obj.getInt("id"), obj.getString("codigo")) }
             db.reemplazarTrampas(trampas)
 
+            val insectos = fetchLista(baseUrl, "insectos") { obj -> Pair(obj.getInt("id"), obj.getString("insecto")) }
+            db.reemplazarInsectos(insectos)
+
+            val estadosInsecto = fetchLista(baseUrl, "estados_insecto") { obj -> Triple(obj.getInt("id"), obj.getString("estado"), obj.getInt("insecto_id")) }
+            db.reemplazarEstadosInsecto(estadosInsecto)
+
             guardarFechaSincronizacion(context)
 
             ResultadoSync(
@@ -78,6 +72,7 @@ object SyncManager {
                     "Polen inicial/final" to subidosPolen,
                     "Sanstrategus"        to subidosStrategus,
                     "Censo trampas"       to subidosTrampas,
+                    "Muestreo plagas"     to subidosPlagas,
                     "Plantaciones"        to plantaciones.size,
                     "Trabajadores"        to trabajadores.size,
                     "Sectores"            to sectores.size,
@@ -85,7 +80,9 @@ object SyncManager {
                     "Enfermedades"        to enfermedades.size,
                     "Eventos"             to eventos.size,
                     "Trat. eventos"       to tratEventos.size,
-                    "Trampas"             to trampas.size
+                    "Trampas"             to trampas.size,
+                    "Insectos"            to insectos.size,
+                    "Estados insecto"     to estadosInsecto.size
                 )
             )
         } catch (e: Exception) {

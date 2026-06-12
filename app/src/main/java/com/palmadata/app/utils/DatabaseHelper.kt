@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 8
+        const val DB_VERSION = 9
 
         const val T_PLANTACIONES     = "plantaciones"
         const val T_TRABAJADORES     = "trabajadores"
@@ -26,6 +26,9 @@ class DatabaseHelper(context: Context) :
         const val T_STRATEGUS        = "sanstrategus"
         const val T_TRAMPAS_MAESTRO  = "trampas"
         const val T_TRAMPAS          = "censo_trampas"
+        const val T_INSECTOS         = "insectos"
+        const val T_ESTADOS_INSECTO  = "estados_insecto"
+        const val T_PLAGAS           = "muestreo_plagas"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -37,19 +40,23 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona INTEGER DEFAULT 0, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona TEXT, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION,
-            T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS).forEach {
+            T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS,
+            T_INSECTOS, T_ESTADOS_INSECTO, T_PLAGAS).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
@@ -87,6 +94,16 @@ class DatabaseHelper(context: Context) :
     fun reemplazarTrampas(lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_TRAMPAS_MAESTRO, null, null); lista.forEach { (id, codigo) -> db.insert(T_TRAMPAS_MAESTRO, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarInsectos(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_INSECTOS, null, null); lista.forEach { (id, insecto) -> db.insert(T_INSECTOS, null, ContentValues().apply { put("id", id); put("insecto", insecto) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarEstadosInsecto(lista: List<Triple<Int, String, Int>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_ESTADOS_INSECTO, null, null); lista.forEach { (id, estado, insectoId) -> db.insert(T_ESTADOS_INSECTO, null, ContentValues().apply { put("id", id); put("estado", estado); put("insecto_id", insectoId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun guardarCensoEnf(r: com.palmadata.app.censo_enfermedades.CensoEnfRegistro) {
@@ -174,6 +191,26 @@ class DatabaseHelper(context: Context) :
     fun eliminarTrampa(id: String) = writableDatabase.delete(T_TRAMPAS, "id = ?", arrayOf(id))
     fun contarTrampasPendientes(): Int = contarPendientes(T_TRAMPAS)
 
+    fun guardarPlagas(r: com.palmadata.app.plagas.PlagasRegistro) {
+        writableDatabase.insert(T_PLAGAS, null, ContentValues().apply {
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
+            put("lectura", r.lectura); put("linea", r.linea); put("palma", r.palma)
+            put("cat_lote_id", r.catLoteId); put("cat_palma_id", r.catPalmaId)
+            put("cat_plantacion_id", r.catPlantacionId); put("evaluador", r.evaluador)
+            put("insecto_id", r.insectoId); put("estado_insecto_id", r.estadoInsectoId)
+            put("cantidad", r.cantidad); put("niv_foliar", r.nivFoliar)
+            put("defol5", r.defol5); put("defol13", r.defol13); put("defol21", r.defol21)
+            put("defol29", r.defol29); put("defol37", r.defol37)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("equipo", r.equipo); put("sincronizado", 0)
+        })
+    }
+
+    fun getPlagasPendientes(): List<Map<String, Any>> = getPendientes(T_PLAGAS)
+    fun eliminarPlagas(id: String) = writableDatabase.delete(T_PLAGAS, "id = ?", arrayOf(id))
+    fun contarPlagasPendientes(): Int = contarPendientes(T_PLAGAS)
+
     private fun getPendientes(tabla: String): List<Map<String, Any>> {
         val result = mutableListOf<Map<String, Any>>()
         val cursor = readableDatabase.query(tabla, null, "sincronizado = 0", null, null, null, "fecha ASC")
@@ -212,6 +249,20 @@ class DatabaseHelper(context: Context) :
     fun getTrampas(): List<Pair<Int, String>> {
         val result = mutableListOf<Pair<Int, String>>()
         val cursor = readableDatabase.query(T_TRAMPAS_MAESTRO, null, null, null, null, null, "codigo")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getInsectos(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_INSECTOS, null, null, null, null, null, "insecto")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getEstadosInsecto(insectoId: Int): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_ESTADOS_INSECTO, null, "insecto_id = ?", arrayOf(insectoId.toString()), null, null, "estado")
         cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
         return result
     }
