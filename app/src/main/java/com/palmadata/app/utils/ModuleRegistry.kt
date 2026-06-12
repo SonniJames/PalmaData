@@ -17,7 +17,8 @@ object ModuleRegistry {
         AppModule(id = "polen_inicial_final",name = "Polen inicial final",iconResId = R.drawable.polen_inicial_final,destinationClass = null),
         AppModule(id = "sanstrategus",       name = "Sanstrategus",       iconResId = R.drawable.strategus,          destinationClass = StrategusActivity::class.java),
         AppModule(id = "censo_trampas",      name = "Censo trampas",      iconResId = R.drawable.censo_trampas,      destinationClass = TrampasActivity::class.java),
-        AppModule(id = "muestreo_plagas",    name = "Muestreo plagas",    iconResId = R.drawable.muestreo_plagas,     destinationClass = PlagasActivity::class.java),
+        AppModule(id = "muestreo_plagas",    name = "Muestreo plagas",    iconResId = R.drawable.muestreo_plagas,    destinationClass = PlagasActivity::class.java),
+        AppModule(id = "super_cosecha",      name = "Supervisión cosecha",iconResId = R.drawable.super_cosecha,      destinationClass = null),
     )
 }
 
