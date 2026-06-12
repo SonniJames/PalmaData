@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 9
+        const val DB_VERSION = 10
 
         const val T_PLANTACIONES     = "plantaciones"
         const val T_TRABAJADORES     = "trabajadores"
@@ -29,6 +29,7 @@ class DatabaseHelper(context: Context) :
         const val T_INSECTOS         = "insectos"
         const val T_ESTADOS_INSECTO  = "estados_insecto"
         const val T_PLAGAS           = "muestreo_plagas"
+        const val T_SUPER_COSECHA    = "super_cosecha"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -49,6 +50,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona TEXT, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador INTEGER DEFAULT 0, recolector INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -56,15 +58,33 @@ class DatabaseHelper(context: Context) :
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION,
             T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS,
-            T_INSECTOS, T_ESTADOS_INSECTO, T_PLAGAS).forEach {
+            T_INSECTOS, T_ESTADOS_INSECTO, T_PLAGAS, T_SUPER_COSECHA).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
     }
 
     fun reemplazarPlantaciones(lista: List<Pair<Int, String>>) = reemplazarPares(T_PLANTACIONES, lista)
-    fun reemplazarTrabajadores(lista: List<Pair<Int, String>>) = reemplazarPares(T_TRABAJADORES, lista)
+    fun reemplazarTrabajadores(lista: List<Triple<Int, String, Int>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try {
+            db.delete(T_TRABAJADORES, null, null)
+            lista.forEach { (id, nombre, supervisor) ->
+                db.insert(T_TRABAJADORES, null, ContentValues().apply {
+                    put("id", id); put("nombre", nombre); put("supervisor", supervisor)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
     fun reemplazarEnfermedades(lista: List<Pair<Int, String>>) = reemplazarPares(T_ENFERMEDADES, lista)
+
+    fun getTrabajadoresConSupervisor(): List<Triple<Int, String, Int>> {
+        val result = mutableListOf<Triple<Int, String, Int>>()
+        val cursor = readableDatabase.query(T_TRABAJADORES, null, null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Triple(it.getInt(0), it.getString(1), it.getInt(2))) }
+        return result
+    }
 
     private fun reemplazarPares(tabla: String, lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
@@ -211,6 +231,27 @@ class DatabaseHelper(context: Context) :
     fun eliminarPlagas(id: String) = writableDatabase.delete(T_PLAGAS, "id = ?", arrayOf(id))
     fun contarPlagasPendientes(): Int = contarPendientes(T_PLAGAS)
 
+    fun guardarSuperCosecha(r: com.palmadata.app.supercosecha.SuperCosechaRegistro) {
+        writableDatabase.insert(T_SUPER_COSECHA, null, ContentValues().apply {
+            put("id_unico", r.idUnico); put("fecha", r.fecha); put("hora", r.hora)
+            put("supervisor", r.supervisor); put("cortador", r.cortador); put("recolector", r.recolector)
+            put("linea", r.linea); put("palma", r.palma); put("ciclo", r.ciclo)
+            put("cat_lote_id", r.catLoteId); put("cat_plantacion_id", r.catPlantacionId)
+            put("racimos_recogidos", r.racimosRecogidos); put("racimos_verdes", r.racimosVerdes)
+            put("racimos_sobremaduros", r.racimossobremaduros); put("racimos_podridos", r.racimosPodridos)
+            put("racimossinrecoger", r.racimossinrecoger); put("racimossincortar", r.racimossincortar)
+            put("racimorobado", r.racimorobado); put("hojasmalacomo", r.hojasmalacomo)
+            put("hojacolgando", r.hojacolgando); put("frutoplato", r.frutoplato)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("equipo", r.equipo); put("sincronizado", 0)
+        })
+    }
+
+    fun getSuperCosechaPendientes(): List<Map<String, Any>> = getPendientes(T_SUPER_COSECHA)
+    fun eliminarSuperCosecha(id: String) = writableDatabase.delete(T_SUPER_COSECHA, "id_unico = ?", arrayOf(id))
+    fun contarSuperCosechaPendientes(): Int = contarPendientes(T_SUPER_COSECHA)
+
     private fun getPendientes(tabla: String): List<Map<String, Any>> {
         val result = mutableListOf<Map<String, Any>>()
         val cursor = readableDatabase.query(tabla, null, "sincronizado = 0", null, null, null, "fecha ASC")
@@ -236,7 +277,7 @@ class DatabaseHelper(context: Context) :
     }
 
     fun getPlantaciones() = getPares(T_PLANTACIONES)
-    fun getTrabajadores() = getPares(T_TRABAJADORES)
+    fun getTrabajadores() = getPares(T_PLANTACIONES)
     fun getEnfermedades() = getPares(T_ENFERMEDADES)
 
     fun getTratamientosEventos(): List<Pair<Int, String>> {

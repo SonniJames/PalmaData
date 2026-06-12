@@ -100,6 +100,17 @@
         <activity android:name=".plagas.Plagas9Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".plagas.Plagas10Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".plagas.Plagas11Activity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Supervisión cosecha -->
+        <activity android:name=".supercosecha.SuperCosechaActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha7Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha8Activity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>

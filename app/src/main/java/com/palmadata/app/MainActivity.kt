@@ -24,6 +24,7 @@ import com.palmadata.app.databinding.DialogSelectWorkerBinding
 import com.palmadata.app.databinding.DialogInformacionLocalBinding
 import com.palmadata.app.databinding.DialogPolenInicialFinalBinding
 import com.palmadata.app.polen.PolenInicialFinalRegistro
+import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
@@ -39,6 +40,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -151,6 +153,31 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (module.id == "supervision_cosecha") {
+            if (!SessionManager.hasWorker(this)) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
+                    .setMessage(getString(R.string.no_worker_message))
+                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
+                    .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
+                    .show()
+                return
+            }
+            val worker = SessionManager.getCurrentWorker(this)
+            if (worker?.supervisor != 1) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("⚠️ Acceso restringido")
+                    .setMessage("Seleccione un trabajador que sea supervisor")
+                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
+                    .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
+                    .show()
+                return
+            }
+            // continuar al módulo
+            startActivity(Intent(this, SuperCosechaActivity::class.java))
+            return
+        }
+
         if (module.destinationClass == null) {
             Toast.makeText(this, "Módulo '${module.name}' próximamente disponible", Toast.LENGTH_SHORT).show()
             return
@@ -166,7 +193,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showWorkerSelector() {
-        val trabajadores = db.getTrabajadores()
+        val trabajadores = db.getTrabajadoresConSupervisor()
 
         val dialogBinding = DialogSelectWorkerBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(this, R.style.WorkerDialogTheme)
@@ -181,9 +208,10 @@ class MainActivity : AppCompatActivity() {
             val adapter = WorkerAdapter { nombreSeleccionado ->
                 val worker = trabajadores.first { it.second == nombreSeleccionado }
                 onWorkerSelected(Worker(
-                    id   = worker.first.toString(),
-                    name = worker.second,
-                    code = worker.first.toString()
+                    id         = worker.first.toString(),
+                    name       = worker.second,
+                    code       = worker.first.toString(),
+                    supervisor = worker.third
                 ))
                 dialog.dismiss()
             }
@@ -334,6 +362,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvStrategus.text            = db.contarStrateguspendientes().toString()
         dialogBinding.tvTrampas.text              = db.contarTrampasPendientes().toString()
         dialogBinding.tvPlagas.text               = db.contarPlagasPendientes().toString()
+        dialogBinding.tvSuperCosecha.text = db.contarSuperCosechaPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()

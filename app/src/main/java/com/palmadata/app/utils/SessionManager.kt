@@ -16,6 +16,8 @@ object SessionManager {
     private const val KEY_LAST_LON    = "last_longitude"
     private const val KEY_EQUIPO_ID   = "equipo_id"
 
+    private const val KEY_WORKER_SUPERVISOR = "current_worker_supervisor"
+
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -39,7 +41,8 @@ object SessionManager {
         return Worker(
             id   = id,
             name = p.getString(KEY_WORKER_NAME, "") ?: "",
-            code = p.getString(KEY_WORKER_CODE, "") ?: ""
+            code = p.getString(KEY_WORKER_CODE, "") ?: "",
+            supervisor = p.getInt(KEY_WORKER_SUPERVISOR, 0)
         )
     }
 
@@ -48,6 +51,7 @@ object SessionManager {
             .putString(KEY_WORKER_ID,   worker.id)
             .putString(KEY_WORKER_NAME, worker.name)
             .putString(KEY_WORKER_CODE, worker.code)
+            .putInt(KEY_WORKER_SUPERVISOR,   worker.supervisor)
             .apply()
     }
 
@@ -56,6 +60,7 @@ object SessionManager {
             .remove(KEY_WORKER_ID)
             .remove(KEY_WORKER_NAME)
             .remove(KEY_WORKER_CODE)
+            .remove(KEY_WORKER_SUPERVISOR)
             .apply()
     }
 

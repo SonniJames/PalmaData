@@ -28,12 +28,14 @@ object SyncManager {
             val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id -> db.eliminarStrategus(id) }
             val subidosTrampas = subirPendientes(baseUrl, "censo_trampas", db.getTrampasPendientes()) { id -> db.eliminarTrampa(id) }
             val subidosPlagas = subirPendientes(baseUrl, "muestreo_plagas", db.getPlagasPendientes()) { id -> db.eliminarPlagas(id) }
+            // Super cosecha usa id_unico como clave
+            val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha", db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
             db.reemplazarPlantaciones(plantaciones)
 
-            val trabajadores = fetchLista(baseUrl, "trabajadores") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
+            val trabajadores = fetchLista(baseUrl, "trabajadores") { obj -> Triple(obj.getInt("id"), obj.getString("nombre"), obj.optInt("supervisor", 0)) }
             db.reemplazarTrabajadores(trabajadores)
 
             val sectores = fetchLista(baseUrl, "sectores") { obj -> Triple(obj.getInt("id"), obj.getString("nombre"), obj.getInt("plantacion_id")) }
@@ -73,6 +75,7 @@ object SyncManager {
                     "Sanstrategus"        to subidosStrategus,
                     "Censo trampas"       to subidosTrampas,
                     "Muestreo plagas"     to subidosPlagas,
+                    "Super cosecha"       to subidosSuperCosecha,
                     "Plantaciones"        to plantaciones.size,
                     "Trabajadores"        to trabajadores.size,
                     "Sectores"            to sectores.size,
@@ -113,11 +116,16 @@ object SyncManager {
         } catch (e: Exception) { 0 }
     }
 
-    private fun subirPendientes(baseUrl: String, endpoint: String, pendientes: List<Map<String, Any>>, onExito: (String) -> Unit): Int {
+    private fun subirPendientes(
+        baseUrl: String, endpoint: String,
+        pendientes: List<Map<String, Any>>,
+        idKey: String = "id",
+        onExito: (String) -> Unit
+    ): Int {
         var subidos = 0
         pendientes.forEach { registro ->
             if (subirRegistro(baseUrl, endpoint, registro)) {
-                onExito(registro["id"].toString())
+                onExito(registro[idKey].toString())
                 subidos++
             }
         }
