@@ -144,31 +144,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (module.id == "supervision_cosecha") {
-            if (!SessionManager.hasWorker(this)) {
-                MaterialAlertDialogBuilder(this)
-                    .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
-                    .setMessage(getString(R.string.no_worker_message))
-                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
-                    .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
-                    .show()
-                return
-            }
-            val worker = SessionManager.getCurrentWorker(this)
-            if (worker?.supervisor != 1) {
-                MaterialAlertDialogBuilder(this)
-                    .setTitle("⚠️ Acceso restringido")
-                    .setMessage("Seleccione un trabajador que sea supervisor")
-                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
-                    .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
-                    .show()
-                return
-            }
-            startActivity(Intent(this, SuperCosechaActivity::class.java))
-            return
-        }
-
-        // Check general para todos los demás módulos
         if (!SessionManager.hasWorker(this)) {
             MaterialAlertDialogBuilder(this)
                 .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
@@ -243,6 +218,7 @@ class MainActivity : AppCompatActivity() {
         else requestLocationPermissions()
         Toast.makeText(this, "Trabajador: ${worker.name}", Toast.LENGTH_SHORT).show()
     }
+
 
     // ── SINCRONIZAR ───────────────────────────────────────────────────────────
 
