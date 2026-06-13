@@ -125,31 +125,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun onModuleClicked(module: AppModule) {
 
+        if (module.id == "informacion_local") {
+            showInformacionLocal()
+            return
+        }
+
         if (module.id == "polen_inicial_final") {
             if (!SessionManager.hasWorker(this)) {
                 MaterialAlertDialogBuilder(this)
                     .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
                     .setMessage(getString(R.string.no_worker_message))
-                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ ->
-                        dialog.dismiss(); showWorkerSelector()
-                    }
+                    .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
                     .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
                     .show()
                 return
             }
             showPolenInicialFinal()
-            return
-        }
-
-        if (!SessionManager.hasWorker(this)) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
-                .setMessage(getString(R.string.no_worker_message))
-                .setPositiveButton(getString(R.string.select_worker)) { dialog, _ ->
-                    dialog.dismiss(); showWorkerSelector()
-                }
-                .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
-                .show()
             return
         }
 
@@ -173,8 +164,18 @@ class MainActivity : AppCompatActivity() {
                     .show()
                 return
             }
-            // continuar al módulo
             startActivity(Intent(this, SuperCosechaActivity::class.java))
+            return
+        }
+
+        // Check general para todos los demás módulos
+        if (!SessionManager.hasWorker(this)) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("⚠️ ${getString(R.string.no_worker_warning)}")
+                .setMessage(getString(R.string.no_worker_message))
+                .setPositiveButton(getString(R.string.select_worker)) { dialog, _ -> dialog.dismiss(); showWorkerSelector() }
+                .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
+                .show()
             return
         }
 
