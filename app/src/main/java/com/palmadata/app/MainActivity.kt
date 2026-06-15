@@ -24,6 +24,7 @@ import com.palmadata.app.databinding.DialogSelectWorkerBinding
 import com.palmadata.app.databinding.DialogInformacionLocalBinding
 import com.palmadata.app.databinding.DialogPolenInicialFinalBinding
 import com.palmadata.app.polen.PolenInicialFinalRegistro
+import com.palmadata.app.maquinaria.MaquinariaActivity
 import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
@@ -141,6 +142,11 @@ class MainActivity : AppCompatActivity() {
                 return
             }
             showPolenInicialFinal()
+            return
+        }
+
+        if (module.id == "maquinaria") {
+            startActivity(Intent(this, MaquinariaActivity::class.java))
             return
         }
 
@@ -339,7 +345,8 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvStrategus.text            = db.contarStrateguspendientes().toString()
         dialogBinding.tvTrampas.text              = db.contarTrampasPendientes().toString()
         dialogBinding.tvPlagas.text               = db.contarPlagasPendientes().toString()
-        dialogBinding.tvSuperCosecha.text = db.contarSuperCosechaPendientes().toString()
+        dialogBinding.tvSuperCosecha.text         = db.contarSuperCosechaPendientes().toString()
+        dialogBinding.tvMaquinaria.text           = db.contarMaquinariaPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()

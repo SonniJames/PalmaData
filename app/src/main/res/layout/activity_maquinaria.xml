@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/grid_background">
+
+    <!-- Header -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="72dp"
+        android:orientation="horizontal" android:background="@color/header_background"
+        android:gravity="center_vertical" android:paddingStart="16dp" android:paddingEnd="16dp" android:elevation="6dp">
+        <ImageView android:layout_width="52dp" android:layout_height="52dp" android:src="@drawable/logo_palma" android:scaleType="fitCenter" android:contentDescription="Logo" />
+        <View android:layout_width="12dp" android:layout_height="match_parent" />
+        <ImageView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:src="@drawable/texto_palma_data" android:scaleType="fitStart" android:adjustViewBounds="true" android:contentDescription="PalmaData" />
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="48dp"
+        android:text="MAQUINARIA" android:gravity="center" android:textSize="16sp"
+        android:textColor="@color/text_secondary" android:background="@color/white" android:elevation="2dp" />
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+
+            <!-- PLANTACIÓN -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="PLANTACIÓN" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvPlantacion" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="center_vertical" android:hint="Seleccionar plantación"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- MÁQUINA -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="MÁQUINA" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvMaquina" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="center_vertical" android:hint="Seleccionar máquina"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- IMPLEMENTO -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="IMPLEMENTO" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvImplemento" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="center_vertical" android:hint="Seleccionar implemento"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- TRABAJADOR -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="TRABAJADOR" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <AutoCompleteTextView android:id="@+id/acTrabajador"
+                android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:hint="Buscar trabajador..." android:textSize="15sp"
+                android:textColor="@color/text_primary" android:textColorHint="@color/divider"
+                android:inputType="textPersonName" android:completionThreshold="1" />
+
+            <!-- LABOR -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="LABOR" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvLabor" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="center_vertical" android:hint="Seleccionar labor"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- HORÓMETRO INICIAL -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="HORÓMETRO INICIAL" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <EditText android:id="@+id/etHorometroInicial" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:hint="0.0" android:textSize="15sp" android:inputType="numberDecimal" />
+
+            <!-- KILOMETRAJE INICIAL -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="KILOMETRAJE INICIAL" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <EditText android:id="@+id/etKilometroInicial" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:hint="0.0" android:textSize="15sp" android:inputType="numberDecimal" />
+
+            <!-- COMBUSTIBLE -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="COMBUSTIBLE" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <EditText android:id="@+id/etCombustible" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:hint="0.0" android:textSize="15sp" android:inputType="numberDecimal" />
+
+            <!-- ASIGNAR LOTES -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="ASIGNAR LOTES" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvLotes" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="52dp" android:background="@color/white" android:paddingStart="12dp"
+                android:paddingEnd="12dp" android:paddingTop="14dp" android:paddingBottom="14dp"
+                android:gravity="center_vertical" android:hint="Seleccionar lotes"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- OBSERVACIONES -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="OBSERVACIONES" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <EditText android:id="@+id/etObservaciones" android:layout_width="match_parent" android:layout_height="80dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="top|start" android:hint="Observaciones (opcional)" android:textSize="15sp"
+                android:inputType="textMultiLine|textCapSentences" android:maxLength="255" />
+
+            <!-- UNIDAD -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="UNIDAD" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <TextView android:id="@+id/tvUnidad" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:gravity="center_vertical" android:hint="Seleccionar unidad (opcional)"
+                android:textSize="15sp" android:textColor="@color/text_primary" android:textColorHint="@color/divider" />
+
+            <!-- CANTIDAD -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="CANTIDAD" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="12dp" android:layout_marginBottom="2dp" />
+            <EditText android:id="@+id/etCantidad" android:layout_width="match_parent" android:layout_height="52dp"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:hint="0.0 (opcional)" android:textSize="15sp" android:inputType="numberDecimal" />
+
+            <View android:layout_width="match_parent" android:layout_height="16dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Botón INICIAR / FINALIZAR -->
+    <Button android:id="@+id/btnIniciarFinalizar"
+        android:layout_width="match_parent" android:layout_height="60dp"
+        android:layout_margin="16dp" android:text="INICIAR LABOR"
+        android:textSize="16sp" android:textStyle="bold"
+        android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+
+</LinearLayout>

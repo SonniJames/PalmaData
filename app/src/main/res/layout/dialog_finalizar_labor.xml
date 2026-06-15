@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="20dp" android:background="@color/white">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="HORÓMETRO FINAL" android:textSize="11sp" android:textColor="@color/text_secondary"
+        android:layout_marginBottom="4dp" />
+    <EditText android:id="@+id/etHorometroFinal" android:layout_width="match_parent" android:layout_height="52dp"
+        android:background="@color/grid_background" android:paddingStart="12dp" android:paddingEnd="12dp"
+        android:hint="0.0" android:textSize="15sp" android:inputType="numberDecimal" />
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="KILOMETRAJE FINAL" android:textSize="11sp" android:textColor="@color/text_secondary"
+        android:layout_marginTop="16dp" android:layout_marginBottom="4dp" />
+    <EditText android:id="@+id/etKilometroFinal" android:layout_width="match_parent" android:layout_height="52dp"
+        android:background="@color/grid_background" android:paddingStart="12dp" android:paddingEnd="12dp"
+        android:hint="0.0" android:textSize="15sp" android:inputType="numberDecimal" />
+
+    <Button android:id="@+id/btnGuardarFinal" android:layout_width="match_parent" android:layout_height="56dp"
+        android:layout_marginTop="24dp" android:text="FINALIZAR LABOR" android:textSize="15sp"
+        android:textStyle="bold" android:backgroundTint="#D32F2F" android:textColor="@color/white" />
+</LinearLayout>

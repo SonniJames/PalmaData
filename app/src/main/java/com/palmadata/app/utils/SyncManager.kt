@@ -20,16 +20,16 @@ object SyncManager {
 
         return try {
             // ── Subir pendientes ──────────────────────────────────────────────
-            val subidosTracks = subirTracks(baseUrl, context)
-            val subidosCenso = subirPendientes(baseUrl, "censo_enfermedades", db.getCensoEnfPendientes()) { id -> db.eliminarCensoEnf(id) }
-            val subidosTrat = subirPendientes(baseUrl, "tratamientos", db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
-            val subidosPoli = subirPendientes(baseUrl, "polinizacion", db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
-            val subidosPolen = subirPendientes(baseUrl, "polen_inicial_final", db.getPolenPendientes()) { id -> db.eliminarPolen(id) }
-            val subidosStrategus = subirPendientes(baseUrl, "sanstrategus", db.getStrateguspendientes()) { id -> db.eliminarStrategus(id) }
-            val subidosTrampas = subirPendientes(baseUrl, "censo_trampas", db.getTrampasPendientes()) { id -> db.eliminarTrampa(id) }
-            val subidosPlagas = subirPendientes(baseUrl, "muestreo_plagas", db.getPlagasPendientes()) { id -> db.eliminarPlagas(id) }
-            // Super cosecha usa id_unico como clave
-            val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha", db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
+            val subidosTracks       = subirTracks(baseUrl, context)
+            val subidosCenso        = subirPendientes(baseUrl, "censo_enfermedades",  db.getCensoEnfPendientes())     { id -> db.eliminarCensoEnf(id) }
+            val subidosTrat         = subirPendientes(baseUrl, "tratamientos",         db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
+            val subidosPoli         = subirPendientes(baseUrl, "polinizacion",         db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
+            val subidosPolen        = subirPendientes(baseUrl, "polen_inicial_final",  db.getPolenPendientes())        { id -> db.eliminarPolen(id) }
+            val subidosStrategus    = subirPendientes(baseUrl, "sanstrategus",         db.getStrateguspendientes())    { id -> db.eliminarStrategus(id) }
+            val subidosTrampas      = subirPendientes(baseUrl, "censo_trampas",        db.getTrampasPendientes())      { id -> db.eliminarTrampa(id) }
+            val subidosPlagas       = subirPendientes(baseUrl, "muestreo_plagas",      db.getPlagasPendientes())       { id -> db.eliminarPlagas(id) }
+            val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha",        db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
+            val subidosMaquinaria   = subirPendientes(baseUrl, "maquinaria_sesion",    db.getMaquinariaPendientes(),   idKey = "id_unico") { id -> db.eliminarMaquinaria(id) }
 
             // ── Descargar maestros ────────────────────────────────────────────
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
@@ -62,6 +62,18 @@ object SyncManager {
             val estadosInsecto = fetchLista(baseUrl, "estados_insecto") { obj -> Triple(obj.getInt("id"), obj.getString("estado"), obj.getInt("insecto_id")) }
             db.reemplazarEstadosInsecto(estadosInsecto)
 
+            val maquinaria = fetchLista(baseUrl, "maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
+            db.reemplazarMaquinaria(maquinaria)
+
+            val implementos = fetchLista(baseUrl, "implementos") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
+            db.reemplazarImplementos(implementos)
+
+            val labores = fetchLista(baseUrl, "labores_maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
+            db.reemplazarLaboresMaquinaria(labores)
+
+            val unidades = fetchLista(baseUrl, "unidades_maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
+            db.reemplazarUnidadesMaquinaria(unidades)
+
             guardarFechaSincronizacion(context)
 
             ResultadoSync(
@@ -76,6 +88,7 @@ object SyncManager {
                     "Censo trampas"       to subidosTrampas,
                     "Muestreo plagas"     to subidosPlagas,
                     "Super cosecha"       to subidosSuperCosecha,
+                    "Maquinaria"          to subidosMaquinaria,
                     "Plantaciones"        to plantaciones.size,
                     "Trabajadores"        to trabajadores.size,
                     "Sectores"            to sectores.size,
@@ -85,7 +98,11 @@ object SyncManager {
                     "Trat. eventos"       to tratEventos.size,
                     "Trampas"             to trampas.size,
                     "Insectos"            to insectos.size,
-                    "Estados insecto"     to estadosInsecto.size
+                    "Estados insecto"     to estadosInsecto.size,
+                    "Máquinas"            to maquinaria.size,
+                    "Implementos"         to implementos.size,
+                    "Labores"             to labores.size,
+                    "Unidades"            to unidades.size
                 )
             )
         } catch (e: Exception) {

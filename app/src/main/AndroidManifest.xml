@@ -111,6 +111,8 @@
         <activity android:name=".supercosecha.SuperCosecha6Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha8Activity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Maquinaria -->
+        <activity android:name=".maquinaria.MaquinariaActivity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>
