@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -26,6 +27,7 @@ import com.palmadata.app.databinding.DialogPolenInicialFinalBinding
 import com.palmadata.app.polen.PolenInicialFinalRegistro
 import com.palmadata.app.maquinaria.MaquinariaActivity
 import com.palmadata.app.supercosecha.SuperCosechaActivity
+import com.palmadata.app.service.TrackingService
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
@@ -56,10 +58,23 @@ class MainActivity : AppCompatActivity() {
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
-            if (SessionManager.hasWorker(this)) locationHelper.startLocationUpdates()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                requestBackgroundLocationPermission()
+            } else {
+                iniciarTrackingService()
+            }
         } else {
             Toast.makeText(this, getString(R.string.gps_permission_denied), Toast.LENGTH_LONG).show()
         }
+    }
+
+    private val backgroundLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // Sin importar si lo concede o no, arrancamos el servicio.
+        // Sin el permiso de background, Android puede limitar las actualizaciones
+        // cuando la app esté minimizada, pero el servicio sigue activo en foreground.
+        iniciarTrackingService()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,14 +90,20 @@ class MainActivity : AppCompatActivity() {
         setupSincronizar()
         setupInformacionLocal()
         SessionManager.clearWorker(this)
-        locationHelper.stopLocationUpdates()
         handleGpsPermissions()
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (SessionManager.hasWorker(this) && locationHelper.hasPermissions()) {
-            locationHelper.startLocationUpdates()
+    override fun onStart() {
+        super.onStart()
+        if (locationHelper.hasPermissions()) {
+            iniciarTrackingService()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing) {
+            detenerTrackingService()
         }
     }
 
@@ -92,9 +113,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        locationHelper.stopLocationUpdates()
+    // ── Tracking Service (background) ───────────────────────────────────────
+
+    private fun iniciarTrackingService() {
+        val intent = Intent(this, TrackingService::class.java)
+        intent.action = TrackingService.ACTION_START
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun detenerTrackingService() {
+        val intent = Intent(this, TrackingService::class.java)
+        intent.action = TrackingService.ACTION_STOP
+        startService(intent)
     }
 
     // ── GPS ──────────────────────────────────────────────────────────────────
@@ -111,7 +145,6 @@ class MainActivity : AppCompatActivity() {
             },
             onTrackGuardado = null
         )
-        if (locationHelper.hasPermissions()) locationHelper.startLocationUpdates()
     }
 
     // ── Grid de módulos ──────────────────────────────────────────────────────
@@ -220,8 +253,7 @@ class MainActivity : AppCompatActivity() {
         SessionManager.setCurrentWorker(this, worker)
         binding.tvWorkerSelector.text = "${getString(R.string.worker_selected_prefix)}${worker.name}"
         binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_set))
-        if (locationHelper.hasPermissions()) locationHelper.startLocationUpdates()
-        else requestLocationPermissions()
+        if (!locationHelper.hasPermissions()) requestLocationPermissions()
         Toast.makeText(this, "Trabajador: ${worker.name}", Toast.LENGTH_SHORT).show()
     }
 
@@ -357,7 +389,7 @@ class MainActivity : AppCompatActivity() {
     private fun handleGpsPermissions() {
         when {
             locationHelper.hasPermissions() -> {
-                if (SessionManager.hasWorker(this)) locationHelper.startLocationUpdates()
+                iniciarTrackingService()
             }
             !SessionManager.wasGpsPermissionRequested(this) -> {
                 MaterialAlertDialogBuilder(this)
@@ -381,5 +413,11 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
         )
+    }
+
+    private fun requestBackgroundLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            backgroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
     }
 }
