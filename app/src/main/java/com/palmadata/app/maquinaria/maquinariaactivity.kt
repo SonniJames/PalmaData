@@ -149,6 +149,7 @@ class MaquinariaActivity : AppCompatActivity() {
         fechaInicial = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(ahora)
         horaInicial  = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(ahora)
         laborIniciada = true
+        SessionManager.setTrabajadorMaquinariaActivo(this, trabajadorId)
 
         // Bloquear campos
         binding.tvPlantacion.isEnabled = false
@@ -223,6 +224,7 @@ class MaquinariaActivity : AppCompatActivity() {
         )
         try {
             db.guardarMaquinaria(registro)
+            SessionManager.clearTrabajadorMaquinariaActivo(this)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             finish()
         } catch (e: Exception) {

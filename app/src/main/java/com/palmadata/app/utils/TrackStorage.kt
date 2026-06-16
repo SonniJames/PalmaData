@@ -6,15 +6,10 @@ import com.palmadata.app.data.model.TrackMovil
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * Almacenamiento temporal de tracks en SharedPreferences.
- * En Etapa 4 esto se reemplazará con SQLite + subida al DataLake.
- */
 object TrackStorage {
 
     private const val PREFS_NAME  = "palma_tracks"
     private const val KEY_TRACKS  = "tracks_pendientes"
-    private const val MAX_TRACKS  = 5000  // límite para no llenar la memoria
     private const val TAG         = "TrackStorage"
 
     fun guardarTrack(context: Context, track: TrackMovil) {
@@ -22,12 +17,6 @@ object TrackStorage {
             val prefs  = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val actual = prefs.getString(KEY_TRACKS, "[]") ?: "[]"
             val array  = JSONArray(actual)
-
-            // Límite de seguridad
-            if (array.length() >= MAX_TRACKS) {
-                Log.w(TAG, "Límite de tracks alcanzado (${MAX_TRACKS})")
-                return
-            }
 
             val obj = JSONObject().apply {
                 put("x",               track.x)

@@ -47,15 +47,20 @@ class LocationHelper(
     fun enHorarioLaboral(): Boolean {
         val cal  = Calendar.getInstance()
         val hora = cal.get(Calendar.HOUR_OF_DAY)
-        val dia  = cal.get(Calendar.DAY_OF_WEEK)
-        return dia != Calendar.SUNDAY && hora in 6..14
+        return hora in 6..14
     }
 
     private fun construirTrack(location: Location): TrackMovil {
         val ahora    = Date()
         val fmtFecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val fmtHora  = SimpleDateFormat("HH:mm:ss",   Locale.getDefault())
-        val worker   = SessionManager.getCurrentWorker(context)
+
+        val trabajadorMaquinaria = SessionManager.getTrabajadorMaquinariaActivo(context)
+        val trabajadorFinal = if (trabajadorMaquinaria > 0) {
+            trabajadorMaquinaria
+        } else {
+            SessionManager.getCurrentWorker(context)?.code?.toIntOrNull() ?: 0
+        }
 
         return TrackMovil(
             x            = location.latitude,
@@ -66,7 +71,7 @@ class LocationHelper(
             proveedor    = "fused",
             fecha        = fmtFecha.format(ahora),
             hora         = fmtHora.format(ahora),
-            trabajador   = worker?.code?.toIntOrNull() ?: 0,
+            trabajador   = trabajadorFinal,
             plantacionId = 0L,
             formulario   = 0,
             idunico      = UUID.randomUUID().toString(),

@@ -17,6 +17,7 @@ object SessionManager {
     private const val KEY_EQUIPO_ID   = "equipo_id"
 
     private const val KEY_WORKER_SUPERVISOR = "current_worker_supervisor"
+    private const val KEY_MAQUINARIA_TRABAJADOR_ACTIVO = "maquinaria_trabajador_activo"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -65,6 +66,19 @@ object SessionManager {
     }
 
     fun hasWorker(context: Context): Boolean = getCurrentWorker(context) != null
+
+    // ── Trabajador activo en Maquinaria ───────────────────────────────────────
+
+    fun setTrabajadorMaquinariaActivo(context: Context, trabajadorId: Int) {
+        prefs(context).edit().putInt(KEY_MAQUINARIA_TRABAJADOR_ACTIVO, trabajadorId).apply()
+    }
+
+    fun clearTrabajadorMaquinariaActivo(context: Context) {
+        prefs(context).edit().remove(KEY_MAQUINARIA_TRABAJADOR_ACTIVO).apply()
+    }
+
+    fun getTrabajadorMaquinariaActivo(context: Context): Int =
+        prefs(context).getInt(KEY_MAQUINARIA_TRABAJADOR_ACTIVO, 0)
 
     // ── GPS ───────────────────────────────────────────────────────────────────
 
