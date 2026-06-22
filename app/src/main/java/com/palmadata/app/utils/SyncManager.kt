@@ -89,20 +89,20 @@ object SyncManager {
                     "Muestreo plagas"     to subidosPlagas,
                     "Super cosecha"       to subidosSuperCosecha,
                     "Maquinaria"          to subidosMaquinaria,
-                    //"Plantaciones"        to plantaciones.size,
-                    //"Trabajadores"        to trabajadores.size,
-                    //"Sectores"            to sectores.size,
-                    //"Lotes"               to lotes.size,
-                    //"Enfermedades"        to enfermedades.size,
-                    //"Eventos"             to eventos.size,
-                    //"Trat. eventos"       to tratEventos.size,
-                    //"Trampas"             to trampas.size,
-                    //"Insectos"            to insectos.size,
-                    //"Estados insecto"     to estadosInsecto.size,
-                    //"Máquinas"            to maquinaria.size,
-                    //"Implementos"         to implementos.size,
-                    //"Labores"             to labores.size,
-                    //"Unidades"            to unidades.size
+                    "Plantaciones"        to plantaciones.size,
+                    "Trabajadores"        to trabajadores.size,
+                    "Sectores"            to sectores.size,
+                    "Lotes"               to lotes.size,
+                    "Enfermedades"        to enfermedades.size,
+                    "Eventos"             to eventos.size,
+                    "Trat. eventos"       to tratEventos.size,
+                    "Trampas"             to trampas.size,
+                    "Insectos"            to insectos.size,
+                    "Estados insecto"     to estadosInsecto.size,
+                    "Máquinas"            to maquinaria.size,
+                    "Implementos"         to implementos.size,
+                    "Labores"             to labores.size,
+                    "Unidades"            to unidades.size
                 )
             )
         } catch (e: Exception) {
@@ -112,24 +112,40 @@ object SyncManager {
 
     private fun subirTracks(baseUrl: String, context: Context): Int {
         return try {
-            val prefs = context.getSharedPreferences("palma_tracks", Context.MODE_PRIVATE)
-            val json  = prefs.getString("tracks_pendientes", "[]") ?: "[]"
-            val array = JSONArray(json)
-            if (array.length() == 0) return 0
-            val url        = URL("$baseUrl/tracks")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 15_000; connection.readTimeout = 15_000
-            connection.requestMethod = "POST"; connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.connect()
-            connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
-            val code     = connection.responseCode
-            val response = connection.inputStream.bufferedReader().readText()
-            connection.disconnect()
-            if (code == 200 && !JSONObject(response).has("error")) {
-                prefs.edit().putString("tracks_pendientes", "[]").apply()
-                array.length()
-            } else 0
+            val db = DatabaseHelper(context)
+            val pendientes = db.getTracksPendientes()
+            if (pendientes.isEmpty()) return 0
+
+            // Subir en lotes de 200 para no saturar la red
+            val tamanoLote = 200
+            var subidosTotal = 0
+            pendientes.chunked(tamanoLote).forEach { lote ->
+                try {
+                    val array = JSONArray()
+                    val ids = mutableListOf<Long>()
+                    lote.forEach { track ->
+                        array.put(JSONObject(track.filter { it.key != "sincronizado" && it.key != "id" }))
+                        ids.add((track["id"] as? Long) ?: 0L)
+                    }
+                    val url = URL("$baseUrl/tracks")
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.connectTimeout = 15_000; connection.readTimeout = 15_000
+                    connection.requestMethod = "POST"; connection.doOutput = true
+                    connection.setRequestProperty("Content-Type", "application/json")
+                    connection.connect()
+                    connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
+                    val code = connection.responseCode
+                    val response = connection.inputStream.bufferedReader().readText()
+                    connection.disconnect()
+                    if (code == 200 && !JSONObject(response).has("error")) {
+                        db.marcarTracksSincronizados(ids)
+                        subidosTotal += lote.size
+                    }
+                } catch (e: Exception) { /* continúa con siguiente lote */ }
+            }
+            // Limpiar los ya sincronizados
+            if (subidosTotal > 0) db.eliminarTracksSincronizados()
+            subidosTotal
         } catch (e: Exception) { 0 }
     }
 

@@ -10,7 +10,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 11
+        const val DB_VERSION = 12
 
         const val T_PLANTACIONES       = "plantaciones"
         const val T_TRABAJADORES       = "trabajadores"
@@ -35,6 +35,7 @@ class DatabaseHelper(context: Context) :
         const val T_LABORES_MAQUINARIA = "labores_maquinaria"
         const val T_UNIDADES_MAQUINARIA= "unidades_maquinaria"
         const val T_MAQUINARIA_SESION  = "maquinaria_sesion"
+        const val T_TRACKS             = "tracks_movil"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -52,6 +53,28 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_IMPLEMENTOS (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_LABORES_MAQUINARIA (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_UNIDADES_MAQUINARIA (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        db.execSQL("""CREATE TABLE $T_TRACKS (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idunico TEXT NOT NULL,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            velocidad REAL DEFAULT 0,
+            precision REAL DEFAULT 0,
+            sentido REAL DEFAULT 0,
+            proveedor TEXT,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            trabajador INTEGER DEFAULT 0,
+            plantacion_id INTEGER DEFAULT 0,
+            formulario INTEGER DEFAULT 0,
+            equipo TEXT,
+            maquina INTEGER DEFAULT 0,
+            labormaquina INTEGER DEFAULT 0,
+            lote_id INTEGER DEFAULT 0,
+            procesado INTEGER DEFAULT 0,
+            sesionmaquinaria TEXT,
+            sincronizado INTEGER DEFAULT 0
+        )""")
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -70,7 +93,7 @@ class DatabaseHelper(context: Context) :
             T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS,
             T_INSECTOS, T_ESTADOS_INSECTO, T_PLAGAS, T_SUPER_COSECHA,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
-            T_UNIDADES_MAQUINARIA, T_MAQUINARIA_SESION).forEach {
+            T_UNIDADES_MAQUINARIA, T_MAQUINARIA_SESION, T_TRACKS).forEach {
             db.execSQL("DROP TABLE IF EXISTS $it")
         }
         onCreate(db)
@@ -147,6 +170,77 @@ class DatabaseHelper(context: Context) :
     fun reemplazarUnidadesMaquinaria(lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_UNIDADES_MAQUINARIA, null, null); lista.forEach { (id, descripcion) -> db.insert(T_UNIDADES_MAQUINARIA, null, ContentValues().apply { put("id", id); put("descripcion", descripcion) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    // ── Tracks movil ──────────────────────────────────────────────────────────
+
+    fun guardarTrack(track: com.palmadata.app.data.model.TrackMovil) {
+        writableDatabase.insert(T_TRACKS, null, ContentValues().apply {
+            put("idunico",         track.idunico)
+            put("x",               track.x)
+            put("y",               track.y)
+            put("velocidad",       track.velocidad)
+            put("precision",       track.precision)
+            put("sentido",         track.sentido)
+            put("proveedor",       track.proveedor)
+            put("fecha",           track.fecha)
+            put("hora",            track.hora)
+            put("trabajador",      track.trabajador)
+            put("plantacion_id",   track.plantacionId)
+            put("formulario",      track.formulario)
+            put("equipo",          track.equipo)
+            put("maquina",         track.maquina)
+            put("labormaquina",    track.laborMaquina)
+            put("lote_id",         track.loteId)
+            put("procesado",       track.procesado)
+            put("sesionmaquinaria",track.sesionMaquinaria)
+            put("sincronizado",    0)
+        })
+    }
+
+    fun getTracksPendientes(): List<Map<String, Any>> {
+        val result = mutableListOf<Map<String, Any>>()
+        val cursor = readableDatabase.query(T_TRACKS, null, "sincronizado = 0", null, null, null, "id ASC")
+        cursor.use {
+            while (it.moveToNext()) {
+                val map = mutableMapOf<String, Any>()
+                for (i in 0 until it.columnCount) {
+                    map[it.getColumnName(i)] = when (it.getType(i)) {
+                        android.database.Cursor.FIELD_TYPE_INTEGER -> it.getLong(i)
+                        android.database.Cursor.FIELD_TYPE_FLOAT   -> it.getDouble(i)
+                        else -> it.getString(i) ?: ""
+                    }
+                }
+                result.add(map)
+            }
+        }
+        return result
+    }
+
+    fun eliminarTracksSincronizados() {
+        writableDatabase.delete(T_TRACKS, "sincronizado = 1", null)
+    }
+
+    fun marcarTracksSincronizados(ids: List<Long>) {
+        if (ids.isEmpty()) return
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            ids.forEach { id ->
+                val cv = ContentValues().apply { put("sincronizado", 1) }
+                db.update(T_TRACKS, cv, "id = ?", arrayOf(id.toString()))
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun contarTracksPendientes(): Int {
+        val cursor = readableDatabase.rawQuery("SELECT COUNT(*) FROM $T_TRACKS WHERE sincronizado = 0", null)
+        cursor.use { it.moveToFirst(); return it.getInt(0) }
+    }
+
+    fun limpiarTracks() {
+        writableDatabase.delete(T_TRACKS, null, null)
     }
 
     // ── Guardar registros de campo ────────────────────────────────────────────

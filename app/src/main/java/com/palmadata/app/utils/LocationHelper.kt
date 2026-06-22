@@ -47,7 +47,7 @@ class LocationHelper(
     fun enHorarioLaboral(): Boolean {
         val cal  = Calendar.getInstance()
         val hora = cal.get(Calendar.HOUR_OF_DAY)
-        return hora in 6..13
+        return hora in 6..15
     }
 
     private fun construirTrack(location: Location): TrackMovil {
