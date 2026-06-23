@@ -50,6 +50,7 @@ class LocationHelper(
         return hora in 6..15
     }
 
+
     private fun construirTrack(location: Location): TrackMovil {
         val ahora    = Date()
         val fmtFecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
