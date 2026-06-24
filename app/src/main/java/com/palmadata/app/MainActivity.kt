@@ -68,6 +68,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun solicitarExcluirOptimizacionBateria() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(android.os.PowerManager::class.java)
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            }
+        }
+    }
+
     private val backgroundLocationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
@@ -91,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         setupInformacionLocal()
         SessionManager.clearWorker(this)
         handleGpsPermissions()
+        solicitarExcluirOptimizacionBateria()
     }
 
     override fun onStart() {
