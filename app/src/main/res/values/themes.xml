@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.PalmaData" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/palma_green_dark</item>
         <item name="colorPrimaryVariant">@color/palma_green_medium</item>
@@ -8,6 +8,7 @@
         <item name="colorOnSecondary">@color/black</item>
         <item name="android:statusBarColor">@color/status_bar_color</item>
         <item name="android:windowBackground">@color/grid_background</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:ignore="NewApi">true</item>
     </style>
 
     <style name="WorkerDialogTheme" parent="Theme.MaterialComponents.Light.Dialog">
