@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivityCensoEnf8Binding
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
@@ -77,18 +76,17 @@ class CensoEnf8Activity : AppCompatActivity() {
             equipo            = SessionManager.getEquipoId(this)
         )
 
-        // Guardar en SQLite local
         try {
             DatabaseHelper(this).guardarCensoEnf(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+            val opcionesIntent = Intent(this, CensoEnfOpcionesActivity::class.java)
+            opcionesIntent.putExtra("plantacion_id", plantacionId)
+            opcionesIntent.putExtra("lote_id",       loteId)
+            opcionesIntent.putExtra("censo",         censo)
+            startActivity(opcionesIntent)
+            finish()
         } catch (e: Exception) {
             Toast.makeText(this, "❌ Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
-            return
         }
-
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        startActivity(intent)
-        finish()
     }
 }

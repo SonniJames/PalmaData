@@ -57,6 +57,7 @@
         <activity android:name=".censo_enfermedades.CensoEnf7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnf8Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnf0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".censo_enfermedades.CensoEnfOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Tratamientos -->
         <activity android:name=".tratamientos.TratamientosActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat0Activity" android:exported="false" android:screenOrientation="portrait" />
