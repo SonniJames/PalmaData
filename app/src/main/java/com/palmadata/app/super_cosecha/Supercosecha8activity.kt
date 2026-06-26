@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivitySuperCosecha8Binding
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
@@ -20,23 +19,23 @@ class SuperCosecha8Activity : AppCompatActivity() {
         binding = ActivitySuperCosecha8Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val plantacionId      = intent.getIntExtra("plantacion_id", 0)
-        val loteId            = intent.getIntExtra("lote_id", 0)
-        val ciclo             = intent.getStringExtra("ciclo") ?: "0"
-        val cortadorId        = intent.getIntExtra("cortador_id", 0)
-        val recolectorId      = intent.getIntExtra("recolector_id", 0)
-        val linea             = intent.getStringExtra("linea") ?: ""
-        val palma             = intent.getStringExtra("palma") ?: ""
-        val racimosRecogidos  = intent.getIntExtra("racimos_recogidos", 0)
-        val racimosVerdes     = intent.getIntExtra("racimos_verdes", 0)
+        val plantacionId        = intent.getIntExtra("plantacion_id", 0)
+        val loteId              = intent.getIntExtra("lote_id", 0)
+        val ciclo               = intent.getStringExtra("ciclo") ?: "0"
+        val cortadorId          = intent.getIntExtra("cortador_id", 0)
+        val recolectorId        = intent.getIntExtra("recolector_id", 0)
+        val linea               = intent.getStringExtra("linea") ?: ""
+        val palma               = intent.getStringExtra("palma") ?: ""
+        val racimosRecogidos    = intent.getIntExtra("racimos_recogidos", 0)
+        val racimosVerdes       = intent.getIntExtra("racimos_verdes", 0)
         val racimossobremaduros = intent.getIntExtra("racimos_sobremaduros", 0)
-        val racimosPodridos   = intent.getIntExtra("racimos_podridos", 0)
-        val racimossinrecoger = intent.getIntExtra("racimossinrecoger", 0)
-        val racimossincortar  = intent.getIntExtra("racimossincortar", 0)
-        val racimorobado      = intent.getIntExtra("racimorobado", 0)
-        val hojasmalacomo     = intent.getIntExtra("hojasmalacomo", 0)
-        val hojacolgando      = intent.getIntExtra("hojacolgando", 0)
-        val frutoplato        = intent.getIntExtra("frutoplato", 0)
+        val racimosPodridos     = intent.getIntExtra("racimos_podridos", 0)
+        val racimossinrecoger   = intent.getIntExtra("racimossinrecoger", 0)
+        val racimossincortar    = intent.getIntExtra("racimossincortar", 0)
+        val racimorobado        = intent.getIntExtra("racimorobado", 0)
+        val hojasmalacomo       = intent.getIntExtra("hojasmalacomo", 0)
+        val hojacolgando        = intent.getIntExtra("hojacolgando", 0)
+        val frutoplato          = intent.getIntExtra("frutoplato", 0)
 
         binding.etObservaciones.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -90,11 +89,16 @@ class SuperCosecha8Activity : AppCompatActivity() {
         try {
             DatabaseHelper(this).guardarSuperCosecha(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+            val opcionesIntent = Intent(this, SuperCosechaOpcionesActivity::class.java)
+            opcionesIntent.putExtra("plantacion_id",  plantacionId)
+            opcionesIntent.putExtra("lote_id",        loteId)
+            opcionesIntent.putExtra("ciclo",          ciclo)
+            opcionesIntent.putExtra("cortador_id",    cortadorId)
+            opcionesIntent.putExtra("recolector_id",  recolectorId)
+            startActivity(opcionesIntent)
+            finish()
         } catch (e: Exception) {
-            Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show(); return
+            Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        startActivity(intent); finish()
     }
 }

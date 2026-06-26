@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/grid_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:orientation="horizontal"
+        android:background="@color/header_background"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:elevation="6dp">
+
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/logo_palma"
+            android:scaleType="fitCenter"
+            android:contentDescription="Logo" />
+
+        <View android:layout_width="12dp" android:layout_height="match_parent" />
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="26dp"
+            android:layout_weight="1"
+            android:src="@drawable/texto_palma_data"
+            android:scaleType="fitStart"
+            android:adjustViewBounds="true"
+            android:contentDescription="PalmaData" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="REGISTRO GUARDADO"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:letterSpacing="0.1"
+        android:background="@color/white"
+        android:elevation="2dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✅ Registro guardado exitosamente"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="48dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="¿Qué desea hacer ahora?"
+            android:gravity="center"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btnSiguienteTrampa"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="16dp"
+            android:text="SIGUIENTE TRAMPA"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/palma_green_dark"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btnModulos"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:text="MÓDULOS"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/text_secondary"
+            android:textColor="@color/white" />
+
+    </LinearLayout>
+
+</LinearLayout>

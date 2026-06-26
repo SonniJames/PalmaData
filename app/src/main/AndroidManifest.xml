@@ -70,6 +70,7 @@
         <activity android:name=".tratamientos.Trat7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat8Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat9Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.TratOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Polinización -->
         <activity android:name=".polinizacion.PolinizacionActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".polinizacion.Poli0Activity" android:exported="false" android:screenOrientation="portrait" />
@@ -79,6 +80,7 @@
         <activity android:name=".polinizacion.Poli4Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".polinizacion.Poli5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".polinizacion.Poli6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".polinizacion.PoliOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Sanstrategus -->
         <activity android:name=".strategus.StrategusActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".strategus.Strategus0Activity" android:exported="false" android:screenOrientation="portrait" />
@@ -89,6 +91,7 @@
         <activity android:name=".strategus.Strategus5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".strategus.Strategus6Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".strategus.Strategus7Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".strategus.StrategusOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Censo trampas -->
         <activity android:name=".trampas.TrampasActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".trampas.Trampas0Activity" android:exported="false" android:screenOrientation="portrait" />
@@ -98,6 +101,7 @@
         <activity android:name=".trampas.Trampas4Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".trampas.Trampas5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".trampas.Trampas6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".trampas.TrampasOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Muestreo plagas -->
         <activity android:name=".plagas.PlagasActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".plagas.Plagas0Activity" android:exported="false" android:screenOrientation="portrait" />
@@ -112,6 +116,7 @@
         <activity android:name=".plagas.Plagas9Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".plagas.Plagas10Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".plagas.Plagas11Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".plagas.PlagasOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Supervisión cosecha -->
         <activity android:name=".supercosecha.SuperCosechaActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha0Activity" android:exported="false" android:screenOrientation="portrait" />
@@ -123,6 +128,7 @@
         <activity android:name=".supercosecha.SuperCosecha6Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha8Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosechaOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Maquinaria -->
         <activity android:name=".maquinaria.MaquinariaActivity" android:exported="false" android:screenOrientation="portrait" />
     </application>

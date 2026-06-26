@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivityTrampas6Binding
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
@@ -25,7 +24,7 @@ class Trampas6Activity : AppCompatActivity() {
         val machos        = intent.getStringExtra("machos") ?: "0"
         val hembras       = intent.getStringExtra("hembras") ?: "0"
         val sanTipoTrampa = intent.getIntExtra("san_tipo_trampa", 0)
-        val feromona = intent.getStringExtra("feromona") ?: "no"
+        val feromona      = intent.getStringExtra("feromona") ?: "no"
         val atrayente     = intent.getIntExtra("atrayente", 0)
 
         binding.etObservaciones.addTextChangedListener(object : TextWatcher {
@@ -73,14 +72,13 @@ class Trampas6Activity : AppCompatActivity() {
         try {
             DatabaseHelper(this).guardarTrampa(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+            val opcionesIntent = Intent(this, TrampasOpcionesActivity::class.java)
+            opcionesIntent.putExtra("plantacion_id", plantacionId)
+            opcionesIntent.putExtra("lectura",       lectura)
+            startActivity(opcionesIntent)
+            finish()
         } catch (e: Exception) {
             Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
-            return
         }
-
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        startActivity(intent)
-        finish()
     }
 }

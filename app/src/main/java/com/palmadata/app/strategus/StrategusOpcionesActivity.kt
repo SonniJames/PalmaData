@@ -1,16 +1,16 @@
-package com.palmadata.app.censo_enfermedades
+package com.palmadata.app.strategus
 
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.MainActivity
-import com.palmadata.app.databinding.ActivityCensoEnfOpcionesBinding
+import com.palmadata.app.databinding.ActivityStrategusOpcionesBinding
 
-class CensoEnfOpcionesActivity : AppCompatActivity() {
+class StrategusOpcionesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val binding = ActivityCensoEnfOpcionesBinding.inflate(layoutInflater)
+        val binding = ActivityStrategusOpcionesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         val plantacionId = intent.getIntExtra("plantacion_id", 0)
@@ -18,7 +18,7 @@ class CensoEnfOpcionesActivity : AppCompatActivity() {
         val censo        = intent.getStringExtra("censo") ?: ""
 
         binding.btnLineaPalma.setOnClickListener {
-            val intent = Intent(this, CensoEnf4Activity::class.java)
+            val intent = Intent(this, Strategus4Activity::class.java)
             intent.putExtra("plantacion_id", plantacionId)
             intent.putExtra("lote_id",       loteId)
             intent.putExtra("censo",         censo)
@@ -26,7 +26,6 @@ class CensoEnfOpcionesActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
-
 
         binding.btnModulos.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)

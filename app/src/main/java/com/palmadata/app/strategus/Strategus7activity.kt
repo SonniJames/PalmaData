@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivityStrategus7Binding
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
@@ -25,13 +24,11 @@ class Strategus7Activity : AppCompatActivity() {
         val linea        = intent.getStringExtra("linea") ?: ""
         val palma        = intent.getStringExtra("palma") ?: ""
         val galerias     = intent.getStringExtra("galerias") ?: "0"
-
         binding.etObservaciones.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { binding.tvContador.text = "${s?.length ?: 0}/255" }
         })
-
         binding.btnGuardar.setOnClickListener {
             guardarRegistro(plantacionId, loteId, censo, linea, palma, galerias)
         }
@@ -49,7 +46,6 @@ class Strategus7Activity : AppCompatActivity() {
         val ahora    = Date()
         val fmtFecha = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val fmtHora  = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-
         val registro = StrategusRegistro(
             id              = UUID.randomUUID().toString(),
             fecha           = fmtFecha.format(ahora),
@@ -67,18 +63,17 @@ class Strategus7Activity : AppCompatActivity() {
             longitud        = SessionManager.getLastLongitude(this),
             equipo          = SessionManager.getEquipoId(this)
         )
-
         try {
             DatabaseHelper(this).guardarStrategus(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
+            val opcionesIntent = Intent(this, StrategusOpcionesActivity::class.java)
+            opcionesIntent.putExtra("plantacion_id", plantacionId)
+            opcionesIntent.putExtra("lote_id",       loteId)
+            opcionesIntent.putExtra("censo",         censo)
+            startActivity(opcionesIntent)
+            finish()
         } catch (e: Exception) {
             Toast.makeText(this, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
-            return
         }
-
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        startActivity(intent)
-        finish()
     }
 }
