@@ -104,7 +104,12 @@ class MainActivity : AppCompatActivity() {
         setupWorkerSelector()
         setupSincronizar()
         setupInformacionLocal()
-        SessionManager.clearWorker(this)
+        //SessionManager.clearWorker(this)
+        val workerActual = SessionManager.getCurrentWorker(this)
+        if (workerActual != null) {
+            binding.tvWorkerSelector.text = "${getString(R.string.worker_selected_prefix)}${workerActual.name}"
+            binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_set))
+        }
         handleGpsPermissions()
         solicitarExcluirOptimizacionBateria()
     }
@@ -283,6 +288,11 @@ class MainActivity : AppCompatActivity() {
     private fun sincronizarDatos() {
         binding.btnSincronizar.isEnabled = false
         binding.btnSincronizar.text = "Sincronizando..."
+
+        val hora = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        if (hora >= 12) {
+            detenerTrackingService()
+        }
 
         lifecycleScope.launch {
             val resultado = withContext(Dispatchers.IO) {
