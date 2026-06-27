@@ -21,6 +21,7 @@ class Trampas2Activity : AppCompatActivity() {
         binding = ActivityTrampas2Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
+
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
         val lectura          = intent.getStringExtra("lectura") ?: ""

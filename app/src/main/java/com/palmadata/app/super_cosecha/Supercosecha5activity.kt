@@ -13,6 +13,9 @@ class SuperCosecha5Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySuperCosecha5Binding.inflate(layoutInflater)
         setContentView(binding.root)
+        valorActual = ""
+        actualizarDisplay()
+
         val plantacionId  = intent.getIntExtra("plantacion_id", 0)
         val loteId        = intent.getIntExtra("lote_id", 0)
         val ciclo         = intent.getStringExtra("ciclo") ?: "0"

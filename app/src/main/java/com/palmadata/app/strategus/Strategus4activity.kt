@@ -13,6 +13,9 @@ class Strategus4Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityStrategus4Binding.inflate(layoutInflater)
         setContentView(binding.root)
+        valorActual = ""
+        actualizarDisplay()
+
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
         val sectorId         = intent.getIntExtra("sector_id", 0)
