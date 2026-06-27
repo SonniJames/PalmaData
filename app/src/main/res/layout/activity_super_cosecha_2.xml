@@ -8,5 +8,27 @@
         <ImageView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:src="@drawable/texto_palma_data" android:scaleType="fitStart" android:adjustViewBounds="true" android:contentDescription="PalmaData" />
     </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="LOTES" android:gravity="center" android:textSize="16sp" android:textColor="@color/text_secondary" android:background="@color/white" android:elevation="2dp" />
+    <EditText
+        android:id="@+id/etBuscadorLotes"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="🔍 Buscar lote..."
+        android:textSize="14sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/white"
+        android:inputType="text"
+        android:imeOptions="actionSearch"
+        android:maxLines="1" />
+    <TextView
+        android:id="@+id/tvNoLotes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sin resultados"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:paddingTop="16dp"
+        android:visibility="gone" />
     <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvLotes" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:paddingTop="8dp" android:clipToPadding="false" />
 </LinearLayout>

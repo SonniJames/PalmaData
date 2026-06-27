@@ -2,6 +2,9 @@ package com.palmadata.app.strategus
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.palmadata.app.databinding.ActivityStrategus2Binding
@@ -33,5 +36,14 @@ class Strategus2Activity : AppCompatActivity() {
         binding.rvLotes.layoutManager = LinearLayoutManager(this)
         binding.rvLotes.adapter = adapter
         adapter.submitList(lotes.map { it.second })
+
+        binding.etBuscadorLotes.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                adapter.filter(s.toString())
+                binding.tvNoLotes.visibility = if (adapter.isEmpty()) View.VISIBLE else View.GONE
+            }
+        })
     }
 }

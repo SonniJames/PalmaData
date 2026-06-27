@@ -111,18 +111,59 @@ class MaquinariaActivity : AppCompatActivity() {
     private fun mostrarDialogoLotes() {
         val todosLotes = db.getTodosLotes()
         if (todosLotes.isEmpty()) { Toast.makeText(this, "Sin datos. Sincronice primero.", Toast.LENGTH_SHORT).show(); return }
-        val nombres = todosLotes.map { it.second }.toTypedArray()
-        val seleccionados = BooleanArray(todosLotes.size) { i -> lotesSeleccionados.any { it.first == todosLotes[i].first } }
+
+        // IDs seleccionados actualmente
+        val idsSeleccionados = lotesSeleccionados.map { it.first }.toMutableSet()
+
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_lista_buscador, null)
+        val etBuscar = view.findViewById<EditText>(R.id.etBuscar)
+        val lv = view.findViewById<ListView>(R.id.lvOpciones)
+
+        var lotesFiltrados = todosLotes.toMutableList()
+
+        val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, lotesFiltrados.map { it.second }.toMutableList()) {}
+        lv.adapter = adapter
+        lv.choiceMode = ListView.CHOICE_MODE_MULTIPLE
+
+        // Marcar los ya seleccionados
+        fun actualizarChecks() {
+            lotesFiltrados.forEachIndexed { i, lote ->
+                lv.setItemChecked(i, idsSeleccionados.contains(lote.first))
+            }
+        }
+        actualizarChecks()
+
+        lv.setOnItemClickListener { _, _, position, _ ->
+            val lote = lotesFiltrados[position]
+            if (idsSeleccionados.contains(lote.first)) {
+                idsSeleccionados.remove(lote.first)
+            } else {
+                idsSeleccionados.add(lote.first)
+            }
+        }
+
+        etBuscar.addTextChangedListener { s ->
+            lotesFiltrados = todosLotes.filter { it.second.contains(s.toString(), ignoreCase = true) }.toMutableList()
+            adapter.clear()
+            adapter.addAll(lotesFiltrados.map { it.second })
+            adapter.notifyDataSetChanged()
+            actualizarChecks()
+        }
+
         AlertDialog.Builder(this)
             .setTitle("Asignar lotes")
-            .setMultiChoiceItems(nombres, seleccionados) { _, which, isChecked -> seleccionados[which] = isChecked }
+            .setView(view)
             .setPositiveButton("Aceptar") { _, _ ->
                 lotesSeleccionados.clear()
-                todosLotes.forEachIndexed { i, lote -> if (seleccionados[i]) lotesSeleccionados.add(lote) }
-                binding.tvLotes.text = if (lotesSeleccionados.isEmpty()) "Seleccionar lotes" else lotesSeleccionados.joinToString(", ") { it.second }
+                todosLotes.forEach { lote ->
+                    if (idsSeleccionados.contains(lote.first)) lotesSeleccionados.add(lote)
+                }
+                binding.tvLotes.text = if (lotesSeleccionados.isEmpty()) "Seleccionar lotes"
+                else lotesSeleccionados.joinToString(", ") { it.second }
                 verificarCamposObligatorios()
             }
             .setNegativeButton("Cancelar", null)
+            .create()
             .show()
     }
 
