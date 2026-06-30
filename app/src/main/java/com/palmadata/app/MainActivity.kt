@@ -81,6 +81,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupLimpiarWorker() {
+        actualizarEstadoLimpiarWorker()
+        binding.tvLimpiarWorker.setOnClickListener {
+            if (SessionManager.hasWorker(this)) {
+                SessionManager.clearWorker(this)
+                binding.tvWorkerSelector.text = getString(R.string.worker_not_selected)
+                binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_not_set))
+                actualizarEstadoLimpiarWorker()
+                Toast.makeText(this, "Trabajador limpiado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun actualizarEstadoLimpiarWorker() {
+        val hayTrabajador = SessionManager.hasWorker(this)
+        binding.tvLimpiarWorker.alpha = if (hayTrabajador) 1.0f else 0.4f
+        binding.tvLimpiarWorker.isEnabled = hayTrabajador
+    }
     private val backgroundLocationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
@@ -102,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         setupLocationHelper()
         setupModulesGrid()
         setupWorkerSelector()
+        setupLimpiarWorker()
         setupSincronizar()
         setupInformacionLocal()
         //SessionManager.clearWorker(this)
@@ -226,6 +245,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupWorkerSelector() {
         binding.tvWorkerSelector.setOnClickListener { showWorkerSelector() }
+        actualizarEstadoLimpiarWorker()
     }
 
     private fun showWorkerSelector() {
@@ -274,6 +294,7 @@ class MainActivity : AppCompatActivity() {
         SessionManager.setCurrentWorker(this, worker)
         binding.tvWorkerSelector.text = "${getString(R.string.worker_selected_prefix)}${worker.name}"
         binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_set))
+        actualizarEstadoLimpiarWorker()
         if (!locationHelper.hasPermissions()) requestLocationPermissions()
         Toast.makeText(this, "Trabajador: ${worker.name}", Toast.LENGTH_SHORT).show()
     }

@@ -1,124 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="@color/white"
-    android:minWidth="320dp">
+    android:background="@color/white">
 
-    <!-- Título -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="POLEN INICIAL / FINAL"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="@color/palma_green_dark"
-        android:gravity="center"
-        android:layout_marginBottom="20dp" />
-
-    <!-- Fecha -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Fecha"
-        android:textSize="13sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="4dp" />
-
-    <Button
-        android:id="@+id/btnFecha"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="Seleccionar fecha"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary"
-        android:backgroundTint="@color/grid_background"
-        android:layout_marginBottom="16dp"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-    <!-- Polen inicial -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Polen inicial"
-        android:textSize="13sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="4dp" />
-
-    <EditText
-        android:id="@+id/etPolenInicial"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Ingrese valor"
-        android:textSize="16sp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/divider"
-        android:background="@color/grid_background"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:inputType="numberDecimal"
-        android:layout_marginBottom="16dp" />
-
-    <!-- Polen final -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Polen final"
-        android:textSize="13sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="4dp" />
-
-    <EditText
-        android:id="@+id/etPolenFinal"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Ingrese valor"
-        android:textSize="16sp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/divider"
-        android:background="@color/grid_background"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:inputType="numberDecimal"
-        android:layout_marginBottom="24dp" />
-
-    <!-- Botones -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:minWidth="320dp">
+
+        <!-- Título -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="POLEN INICIAL / FINAL"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/palma_green_dark"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Fecha -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fecha"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
 
         <Button
-            android:id="@+id/btnCancelar"
-            android:layout_width="0dp"
+            android:id="@+id/btnFecha"
+            android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="CANCELAR"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:backgroundTint="@color/white"
-            android:layout_marginEnd="8dp"
-            android:minWidth="0dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:text="Seleccionar fecha"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/grid_background"
+            android:layout_marginBottom="16dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
-        <Button
-            android:id="@+id/btnGuardar"
-            android:layout_width="0dp"
+        <!-- Polen inicial -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Polen inicial"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etPolenInicial"
+            android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_weight="1"
-            android:text="GUARDAR"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:backgroundTint="@color/palma_green_dark"
-            android:minWidth="0dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp" />
+            android:hint="Ingrese valor"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/divider"
+            android:background="@color/grid_background"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:inputType="numberDecimal"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Polen final -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Polen final"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etPolenFinal"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="Ingrese valor"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/divider"
+            android:background="@color/grid_background"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:inputType="numberDecimal"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Botones -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelar"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="CANCELAR"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:backgroundTint="@color/white"
+                android:layout_marginEnd="8dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+            <Button
+                android:id="@+id/btnGuardar"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="GUARDAR"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/palma_green_dark"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-</LinearLayout>
+</ScrollView>
