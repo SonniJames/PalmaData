@@ -28,9 +28,16 @@ class LocationHelper(
         setWaitForAccurateLocation(false)
     }.build()
 
+    // Filtro de precisión — descarta puntos con accuracy peor a 30 metros
+    private val MAX_ACCURACY_METROS = 30f
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val location: Location = result.lastLocation ?: return
+
+            // Descartar puntos con mala precisión GPS
+            if (location.accuracy > MAX_ACCURACY_METROS) return
+
             SessionManager.saveLastLocation(context, location.latitude, location.longitude)
             onLocationUpdate(location.latitude, location.longitude)
 
@@ -49,7 +56,6 @@ class LocationHelper(
         val hora = cal.get(Calendar.HOUR_OF_DAY)
         return hora in 6..15
     }
-
 
     private fun construirTrack(location: Location): TrackMovil {
         val ahora    = Date()

@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.palmadata.app.MainActivity
 import com.palmadata.app.R
@@ -17,6 +18,7 @@ import com.palmadata.app.utils.LocationHelper
 class TrackingService : Service() {
 
     private lateinit var locationHelper: LocationHelper
+    private var wakeLock: PowerManager.WakeLock? = null
 
     companion object {
         const val CHANNEL_ID = "palmadata_tracking_channel"
@@ -43,12 +45,30 @@ class TrackingService : Service() {
             }
             else -> {
                 iniciarComoForeground()
+                adquirirWakeLock()
                 if (locationHelper.hasPermissions()) {
                     locationHelper.startLocationUpdates()
                 }
             }
         }
         return START_STICKY
+    }
+
+    private fun adquirirWakeLock() {
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "PalmaData::TrackingWakeLock"
+        ).also {
+            it.acquire(10 * 60 * 60 * 1000L) // máximo 10 horas (toda la jornada)
+        }
+    }
+
+    private fun liberarWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) it.release()
+        }
+        wakeLock = null
     }
 
     private fun iniciarComoForeground() {
@@ -93,12 +113,14 @@ class TrackingService : Service() {
 
     private fun detenerServicio() {
         locationHelper.stopLocationUpdates()
+        liberarWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onDestroy() {
         locationHelper.stopLocationUpdates()
+        liberarWakeLock()
         super.onDestroy()
     }
 
