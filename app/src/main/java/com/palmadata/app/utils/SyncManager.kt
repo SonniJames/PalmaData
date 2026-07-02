@@ -117,7 +117,7 @@ object SyncManager {
             if (pendientes.isEmpty()) return 0
 
             // Subir en lotes de 200 para no saturar la red
-            val tamanoLote = 200
+            val tamanoLote = 300
             var subidosTotal = 0
             pendientes.chunked(tamanoLote).forEach { lote ->
                 try {
