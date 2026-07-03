@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        db = DatabaseHelper(this)
+        db = DatabaseHelper.getInstance(this)
 
         setupLocationHelper()
         setupModulesGrid()
@@ -166,9 +166,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun detenerTrackingService() {
-        val intent = Intent(this, TrackingService::class.java)
-        intent.action = TrackingService.ACTION_STOP
-        startService(intent)
+        stopService(Intent(this, TrackingService::class.java))
     }
 
     // ── GPS ──────────────────────────────────────────────────────────────────

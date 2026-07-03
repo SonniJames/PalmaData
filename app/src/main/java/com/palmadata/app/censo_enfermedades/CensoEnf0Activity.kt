@@ -17,7 +17,7 @@ class CensoEnf0Activity : AppCompatActivity() {
         binding = ActivityCensoEnf0Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val db           = DatabaseHelper(this)
+        val db           = DatabaseHelper.getInstance(this)
         val plantaciones = db.getPlantaciones()
 
         val adapter = WorkerAdapter { nombreSeleccionado ->

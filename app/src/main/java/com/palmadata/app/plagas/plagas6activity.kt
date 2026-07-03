@@ -31,7 +31,7 @@ class Plagas6Activity : AppCompatActivity() {
         val linea = intent.getStringExtra("linea") ?: ""
         val palma = intent.getStringExtra("palma") ?: ""
 
-        insectos = DatabaseHelper(this).getInsectos()
+        insectos = DatabaseHelper.getInstance(this).getInsectos()
         adapter = WorkerAdapter { nombre ->
             val insecto = insectos.first { it.second == nombre }
             startActivity(Intent(this, Plagas7Activity::class.java).also {

@@ -27,7 +27,7 @@ class CensoEnf6Activity : AppCompatActivity() {
         val linea            = intent.getStringExtra("linea") ?: ""
         val palma            = intent.getStringExtra("palma") ?: ""
 
-        val db           = DatabaseHelper(this)
+        val db           = DatabaseHelper.getInstance(this)
         val enfermedades = db.getEnfermedades()
 
         val adapter = WorkerAdapter { nombreEnf ->

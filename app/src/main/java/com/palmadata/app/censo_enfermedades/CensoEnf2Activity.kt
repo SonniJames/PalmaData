@@ -25,7 +25,7 @@ class CensoEnf2Activity : AppCompatActivity() {
         val sectorId         = intent.getIntExtra("sector_id", 0)
         val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
 
-        val db    = DatabaseHelper(this)
+        val db    = DatabaseHelper.getInstance(this)
         val lotes = db.getLotesPorSector(sectorId)
 
         val adapter = WorkerAdapter { nombreSeleccionado ->

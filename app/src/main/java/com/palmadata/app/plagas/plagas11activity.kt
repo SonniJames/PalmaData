@@ -75,7 +75,7 @@ class Plagas11Activity : AppCompatActivity() {
             equipo          = SessionManager.getEquipoId(this)
         )
         try {
-            DatabaseHelper(this).guardarPlagas(registro)
+            DatabaseHelper.getInstance(this).guardarPlagas(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, PlagasOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

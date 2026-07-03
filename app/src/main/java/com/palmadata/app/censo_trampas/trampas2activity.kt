@@ -26,7 +26,7 @@ class Trampas2Activity : AppCompatActivity() {
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
         val lectura          = intent.getStringExtra("lectura") ?: ""
 
-        trampas = DatabaseHelper(this).getTrampas()
+        trampas = DatabaseHelper.getInstance(this).getTrampas()
 
         adapter = WorkerAdapter { codigo ->
             val trampa = trampas.first { it.second == codigo }

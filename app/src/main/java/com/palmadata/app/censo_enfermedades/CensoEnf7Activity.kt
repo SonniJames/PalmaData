@@ -29,7 +29,7 @@ class CensoEnf7Activity : AppCompatActivity() {
         val enfermedadId     = intent.getIntExtra("enfermedadId", 0)
         val enfermedadNombre = intent.getStringExtra("enfermedadNombre") ?: ""
 
-        val db     = DatabaseHelper(this)
+        val db     = DatabaseHelper.getInstance(this)
         val eventos = db.getEventosPorEnfermedad(enfermedadId)
 
         val adapter = WorkerAdapter { nombreEvento ->

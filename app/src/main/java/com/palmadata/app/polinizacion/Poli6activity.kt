@@ -71,7 +71,7 @@ class Poli6Activity : AppCompatActivity() {
         )
 
         try {
-            DatabaseHelper(this).guardarPolinizacion(registro)
+            DatabaseHelper.getInstance(this).guardarPolinizacion(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, PoliOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

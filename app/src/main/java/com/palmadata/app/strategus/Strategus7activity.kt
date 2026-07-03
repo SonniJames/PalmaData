@@ -64,7 +64,7 @@ class Strategus7Activity : AppCompatActivity() {
             equipo          = SessionManager.getEquipoId(this)
         )
         try {
-            DatabaseHelper(this).guardarStrategus(registro)
+            DatabaseHelper.getInstance(this).guardarStrategus(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, StrategusOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

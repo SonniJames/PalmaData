@@ -77,7 +77,7 @@ class CensoEnf8Activity : AppCompatActivity() {
         )
 
         try {
-            DatabaseHelper(this).guardarCensoEnf(registro)
+            DatabaseHelper.getInstance(this).guardarCensoEnf(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, CensoEnfOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

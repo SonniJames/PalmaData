@@ -16,7 +16,7 @@ object SyncManager {
 
     fun sincronizar(context: Context): ResultadoSync {
         val baseUrl = ServerConfig.getBaseUrl(context)
-        val db      = DatabaseHelper(context)
+        val db      = DatabaseHelper.getInstance(context)
 
         return try {
             // ── Subir pendientes ──────────────────────────────────────────────
@@ -112,7 +112,7 @@ object SyncManager {
 
     private fun subirTracks(baseUrl: String, context: Context): Int {
         return try {
-            val db = DatabaseHelper(context)
+            val db = DatabaseHelper.getInstance(context)
             val pendientes = db.getTracksPendientes()
             if (pendientes.isEmpty()) return 0
 

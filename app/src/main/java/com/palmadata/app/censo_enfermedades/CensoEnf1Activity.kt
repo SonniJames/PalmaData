@@ -20,7 +20,7 @@ class CensoEnf1Activity : AppCompatActivity() {
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
 
-        val db      = DatabaseHelper(this)
+        val db      = DatabaseHelper.getInstance(this)
         val sectores = db.getSectoresPorPlantacion(plantacionId)
 
         val adapter = WorkerAdapter { nombreSeleccionado ->

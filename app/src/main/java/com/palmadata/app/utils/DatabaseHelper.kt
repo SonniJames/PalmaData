@@ -12,6 +12,15 @@ class DatabaseHelper(context: Context) :
         const val DB_NAME    = "palma_data.db"
         const val DB_VERSION = 12
 
+        @Volatile
+        private var instancia: DatabaseHelper? = null
+
+        fun getInstance(context: Context): DatabaseHelper {
+            return instancia ?: synchronized(this) {
+                instancia ?: DatabaseHelper(context.applicationContext).also { instancia = it }
+            }
+        }
+
         const val T_PLANTACIONES       = "plantaciones"
         const val T_TRABAJADORES       = "trabajadores"
         const val T_SECTORES           = "sectores"
@@ -87,16 +96,61 @@ class DatabaseHelper(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        listOf(T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
+        // ── Tablas maestras: siempre se pueden recrear (no tienen datos de campo) ──
+        listOf(
+            T_PLANTACIONES, T_TRABAJADORES, T_SECTORES, T_LOTES,
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
-            T_CENSO_ENF, T_TRATAMIENTOS, T_POLINIZACION,
-            T_POLEN, T_STRATEGUS, T_TRAMPAS_MAESTRO, T_TRAMPAS,
-            T_INSECTOS, T_ESTADOS_INSECTO, T_PLAGAS, T_SUPER_COSECHA,
+            T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
-            T_UNIDADES_MAQUINARIA, T_MAQUINARIA_SESION, T_TRACKS).forEach {
-            db.execSQL("DROP TABLE IF EXISTS $it")
+            T_UNIDADES_MAQUINARIA
+        ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
+
+        // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
+        // v11 → v12: se agregó tabla tracks_movil
+        if (oldVersion < 12) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS $T_TRACKS (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                idunico TEXT NOT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                velocidad REAL DEFAULT 0,
+                precision REAL DEFAULT 0,
+                sentido REAL DEFAULT 0,
+                proveedor TEXT,
+                fecha TEXT NOT NULL,
+                hora TEXT NOT NULL,
+                trabajador INTEGER DEFAULT 0,
+                plantacion_id INTEGER DEFAULT 0,
+                formulario INTEGER DEFAULT 0,
+                equipo TEXT,
+                maquina INTEGER DEFAULT 0,
+                labormaquina INTEGER DEFAULT 0,
+                lote_id INTEGER DEFAULT 0,
+                procesado INTEGER DEFAULT 0,
+                sesionmaquinaria TEXT,
+                sincronizado INTEGER DEFAULT 0
+            )""")
         }
-        onCreate(db)
+
+        // Aquí van futuras migraciones:
+        // if (oldVersion < 13) { db.execSQL("ALTER TABLE $T_CENSO_ENF ADD COLUMN nueva_columna TEXT") }
+        // if (oldVersion < 14) { ... }
+
+        // ── Recrear tablas maestras ───────────────────────────────────────────
+        db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, supervisor INTEGER DEFAULT 0)")
+        db.execSQL("CREATE TABLE $T_SECTORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, plantacion_id INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE $T_LOTES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, sector_id INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE $T_ENFERMEDADES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE $T_MAQUINARIA_MAESTRO (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_IMPLEMENTOS (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_LABORES_MAQUINARIA (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_UNIDADES_MAQUINARIA (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
     }
 
     // ── Reemplazar maestros ───────────────────────────────────────────────────

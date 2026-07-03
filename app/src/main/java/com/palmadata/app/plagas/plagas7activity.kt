@@ -33,7 +33,7 @@ class Plagas7Activity : AppCompatActivity() {
         val insectoId = intent.getIntExtra("insecto_id", 0)
         val insectoNombre = intent.getStringExtra("insecto_nombre") ?: ""
 
-        estados = DatabaseHelper(this).getEstadosInsecto(insectoId)
+        estados = DatabaseHelper.getInstance(this).getEstadosInsecto(insectoId)
         adapter = WorkerAdapter { nombre ->
             val estado = estados.first { it.second == nombre }
             startActivity(Intent(this, Plagas8Activity::class.java).also {

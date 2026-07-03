@@ -37,7 +37,7 @@ class MaquinariaActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMaquinariaBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        db = DatabaseHelper(this)
+        db = DatabaseHelper.getInstance(this)
 
         setupCamposSeleccion()
         setupTrabajadorAutoComplete()

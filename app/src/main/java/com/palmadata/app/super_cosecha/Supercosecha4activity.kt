@@ -26,7 +26,7 @@ class SuperCosecha4Activity : AppCompatActivity() {
         val loteNombre       = intent.getStringExtra("lote_nombre") ?: ""
         val ciclo            = intent.getStringExtra("ciclo") ?: "0"
 
-        trabajadores = DatabaseHelper(this).getTrabajadoresConSupervisor()
+        trabajadores = DatabaseHelper.getInstance(this).getTrabajadoresConSupervisor()
         val nombres = trabajadores.map { it.second }
 
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombres)

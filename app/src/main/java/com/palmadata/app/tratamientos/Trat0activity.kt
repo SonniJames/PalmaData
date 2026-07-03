@@ -14,7 +14,7 @@ class Trat0Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityTrat0Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        val plantaciones = DatabaseHelper(this).getPlantaciones()
+        val plantaciones = DatabaseHelper.getInstance(this).getPlantaciones()
         val adapter = WorkerAdapter { nombre ->
             val p = plantaciones.first { it.second == nombre }
             val i = Intent(this, Trat1Activity::class.java)

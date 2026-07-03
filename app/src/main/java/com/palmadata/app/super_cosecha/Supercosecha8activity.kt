@@ -87,7 +87,7 @@ class SuperCosecha8Activity : AppCompatActivity() {
             equipo              = SessionManager.getEquipoId(this)
         )
         try {
-            DatabaseHelper(this).guardarSuperCosecha(registro)
+            DatabaseHelper.getInstance(this).guardarSuperCosecha(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, SuperCosechaOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id",  plantacionId)

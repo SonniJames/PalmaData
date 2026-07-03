@@ -14,7 +14,7 @@ class Plagas0Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPlagas0Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        val plantaciones = DatabaseHelper(this).getPlantaciones()
+        val plantaciones = DatabaseHelper.getInstance(this).getPlantaciones()
         val adapter = WorkerAdapter { nombre ->
             val p = plantaciones.first { it.second == nombre }
             startActivity(Intent(this, Plagas1Activity::class.java).also {

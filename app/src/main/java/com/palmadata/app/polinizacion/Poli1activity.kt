@@ -16,7 +16,7 @@ class Poli1Activity : AppCompatActivity() {
         setContentView(binding.root)
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
-        val sectores = DatabaseHelper(this).getSectoresPorPlantacion(plantacionId)
+        val sectores = DatabaseHelper.getInstance(this).getSectoresPorPlantacion(plantacionId)
         val adapter = WorkerAdapter { nombre ->
             val s = sectores.first { it.second == nombre }
             startActivity(Intent(this, Poli2Activity::class.java).also {

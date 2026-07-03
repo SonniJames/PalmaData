@@ -22,7 +22,7 @@ class Trat5Activity : AppCompatActivity() {
         val loteNombre       = intent.getStringExtra("lote_nombre") ?: ""
         val linea            = intent.getStringExtra("linea") ?: ""
         val palma            = intent.getStringExtra("palma") ?: ""
-        val tratamientos = DatabaseHelper(this).getTratamientosEventos()
+        val tratamientos = DatabaseHelper.getInstance(this).getTratamientosEventos()
         val adapter = WorkerAdapter { codigo ->
             val t = tratamientos.first { it.second == codigo }
             val i = Intent(this, Trat6Activity::class.java)

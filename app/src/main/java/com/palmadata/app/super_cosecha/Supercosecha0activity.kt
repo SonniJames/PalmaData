@@ -14,7 +14,7 @@ class SuperCosecha0Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySuperCosecha0Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        val plantaciones = DatabaseHelper(this).getPlantaciones()
+        val plantaciones = DatabaseHelper.getInstance(this).getPlantaciones()
         val adapter = WorkerAdapter { nombre ->
             val p = plantaciones.first { it.second == nombre }
             startActivity(Intent(this, SuperCosecha1Activity::class.java).also {

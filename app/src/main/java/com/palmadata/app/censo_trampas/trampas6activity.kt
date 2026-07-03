@@ -70,7 +70,7 @@ class Trampas6Activity : AppCompatActivity() {
         )
 
         try {
-            DatabaseHelper(this).guardarTrampa(registro)
+            DatabaseHelper.getInstance(this).guardarTrampa(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, TrampasOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

@@ -26,7 +26,7 @@ class Trat7Activity : AppCompatActivity() {
         val tratamientoCodigo = intent.getStringExtra("tratamiento_codigo") ?: ""
         val enfermedadId      = intent.getIntExtra("enfermedad_id", 0)
         val enfermedadNombre  = intent.getStringExtra("enfermedad_nombre") ?: ""
-        val eventos = DatabaseHelper(this).getEventosPorEnfermedad(enfermedadId)
+        val eventos = DatabaseHelper.getInstance(this).getEventosPorEnfermedad(enfermedadId)
         val adapter = WorkerAdapter { codigo ->
             val e = eventos.first { it.second == codigo }
             val i = Intent(this, Trat8Activity::class.java)

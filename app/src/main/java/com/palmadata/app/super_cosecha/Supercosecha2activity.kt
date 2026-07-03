@@ -21,7 +21,7 @@ class SuperCosecha2Activity : AppCompatActivity() {
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
         val sectorId         = intent.getIntExtra("sector_id", 0)
         val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
-        val lotes = DatabaseHelper(this).getLotesPorSector(sectorId)
+        val lotes = DatabaseHelper.getInstance(this).getLotesPorSector(sectorId)
         val adapter = WorkerAdapter { nombre ->
             val l = lotes.first { it.second == nombre }
             startActivity(Intent(this, SuperCosecha3Activity::class.java).also {

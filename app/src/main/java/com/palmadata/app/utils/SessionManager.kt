@@ -91,14 +91,14 @@ object SessionManager {
 
     fun saveLastLocation(context: Context, lat: Double, lon: Double) {
         prefs(context).edit()
-            .putFloat(KEY_LAST_LAT, lat.toFloat())
-            .putFloat(KEY_LAST_LON, lon.toFloat())
+            .putLong(KEY_LAST_LAT, java.lang.Double.doubleToRawLongBits(lat))
+            .putLong(KEY_LAST_LON, java.lang.Double.doubleToRawLongBits(lon))
             .apply()
     }
 
     fun getLastLatitude(context: Context): Double =
-        prefs(context).getFloat(KEY_LAST_LAT, 0f).toDouble()
+        java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LAT, 0L))
 
     fun getLastLongitude(context: Context): Double =
-        prefs(context).getFloat(KEY_LAST_LON, 0f).toDouble()
+        java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LON, 0L))
 }

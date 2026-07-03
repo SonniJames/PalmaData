@@ -68,7 +68,7 @@ class Trat9Activity : AppCompatActivity() {
             equipo            = SessionManager.getEquipoId(this)
         )
         try {
-            DatabaseHelper(this).guardarTratamiento(registro)
+            DatabaseHelper.getInstance(this).guardarTratamiento(registro)
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             val opcionesIntent = Intent(this, TratOpcionesActivity::class.java)
             opcionesIntent.putExtra("plantacion_id", plantacionId)

@@ -10,7 +10,7 @@ object TrackStorage {
 
     fun guardarTrack(context: Context, track: TrackMovil) {
         try {
-            DatabaseHelper(context).guardarTrack(track)
+            DatabaseHelper.getInstance(context).guardarTrack(track)
             Log.d(TAG, "Track guardado — ${track.fecha} ${track.hora}")
         } catch (e: Exception) {
             Log.e(TAG, "Error guardando track: ${e.message}")
@@ -19,7 +19,7 @@ object TrackStorage {
 
     fun contarTracks(context: Context): Int {
         return try {
-            DatabaseHelper(context).contarTracksPendientes()
+            DatabaseHelper.getInstance(context).contarTracksPendientes()
         } catch (e: Exception) {
             Log.e(TAG, "Error contando tracks: ${e.message}")
             0
@@ -28,7 +28,7 @@ object TrackStorage {
 
     fun limpiarTracks(context: Context) {
         try {
-            DatabaseHelper(context).limpiarTracks()
+            DatabaseHelper.getInstance(context).limpiarTracks()
         } catch (e: Exception) {
             Log.e(TAG, "Error limpiando tracks: ${e.message}")
         }
