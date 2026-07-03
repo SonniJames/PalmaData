@@ -29,7 +29,7 @@ class LocationHelper(
     }.build()
 
     // Filtro de precisión — descarta puntos con accuracy peor a 30 metros
-    private val MAX_ACCURACY_METROS = 13f
+    private val MAX_ACCURACY_METROS = 20f
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {

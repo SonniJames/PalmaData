@@ -12,8 +12,8 @@ object SessionManager {
     private const val KEY_WORKER_NAME = "current_worker_name"
     private const val KEY_WORKER_CODE = "current_worker_code"
     private const val KEY_GPS_REQUESTED = "gps_permission_requested"
-    private const val KEY_LAST_LAT    = "last_latitude"
-    private const val KEY_LAST_LON    = "last_longitude"
+    private const val KEY_LAST_LAT    = "last_latitude_v2"
+    private const val KEY_LAST_LON    = "last_longitude_v2"
     private const val KEY_EQUIPO_ID   = "equipo_id"
 
     private const val KEY_WORKER_SUPERVISOR = "current_worker_supervisor"
