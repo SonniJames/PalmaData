@@ -18,20 +18,22 @@ object SyncManager {
         val baseUrl = ServerConfig.getBaseUrl(context)
         val db      = DatabaseHelper.getInstance(context)
 
-        return try {
-            // ── Subir pendientes ──────────────────────────────────────────────
-            val subidosTracks       = subirTracks(baseUrl, context)
-            val subidosCenso        = subirPendientes(baseUrl, "censo_enfermedades",  db.getCensoEnfPendientes())     { id -> db.eliminarCensoEnf(id) }
-            val subidosTrat         = subirPendientes(baseUrl, "tratamientos",         db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
-            val subidosPoli         = subirPendientes(baseUrl, "polinizacion",         db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
-            val subidosPolen        = subirPendientes(baseUrl, "polen_inicial_final",  db.getPolenPendientes())        { id -> db.eliminarPolen(id) }
-            val subidosStrategus    = subirPendientes(baseUrl, "sanstrategus",         db.getStrateguspendientes())    { id -> db.eliminarStrategus(id) }
-            val subidosTrampas      = subirPendientes(baseUrl, "censo_trampas",        db.getTrampasPendientes())      { id -> db.eliminarTrampa(id) }
-            val subidosPlagas       = subirPendientes(baseUrl, "muestreo_plagas",      db.getPlagasPendientes())       { id -> db.eliminarPlagas(id) }
-            val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha",        db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
-            val subidosMaquinaria   = subirPendientes(baseUrl, "maquinaria_sesion",    db.getMaquinariaPendientes(),   idKey = "id_unico") { id -> db.eliminarMaquinaria(id) }
+        // ── Subir pendientes ──────────────────────────────────────────────────
+        // Se hace ANTES del try de maestros para que los tracks subidos
+        // no se pierdan aunque falle la descarga de maestros después
+        val subidosTracks       = subirTracks(baseUrl, context)
+        val subidosCenso        = subirPendientes(baseUrl, "censo_enfermedades",  db.getCensoEnfPendientes())     { id -> db.eliminarCensoEnf(id) }
+        val subidosTrat         = subirPendientes(baseUrl, "tratamientos",         db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
+        val subidosPoli         = subirPendientes(baseUrl, "polinizacion",         db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
+        val subidosPolen        = subirPendientes(baseUrl, "polen_inicial_final",  db.getPolenPendientes())        { id -> db.eliminarPolen(id) }
+        val subidosStrategus    = subirPendientes(baseUrl, "sanstrategus",         db.getStrateguspendientes())    { id -> db.eliminarStrategus(id) }
+        val subidosTrampas      = subirPendientes(baseUrl, "censo_trampas",        db.getTrampasPendientes())      { id -> db.eliminarTrampa(id) }
+        val subidosPlagas       = subirPendientes(baseUrl, "muestreo_plagas",      db.getPlagasPendientes())       { id -> db.eliminarPlagas(id) }
+        val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha",        db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
+        val subidosMaquinaria   = subirPendientes(baseUrl, "maquinaria_sesion",    db.getMaquinariaPendientes(),   idKey = "id_unico") { id -> db.eliminarMaquinaria(id) }
 
-            // ── Descargar maestros ────────────────────────────────────────────
+        // ── Descargar maestros ────────────────────────────────────────────────
+        return try {
             val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
             db.reemplazarPlantaciones(plantaciones)
 
@@ -88,25 +90,27 @@ object SyncManager {
                     "Censo trampas"       to subidosTrampas,
                     "Muestreo plagas"     to subidosPlagas,
                     "Super cosecha"       to subidosSuperCosecha,
-                    "Maquinaria"          to subidosMaquinaria,
-                    //"Plantaciones"        to plantaciones.size,
-                    //"Trabajadores"        to trabajadores.size,
-                    //"Sectores"            to sectores.size,
-                    //"Lotes"               to lotes.size,
-                    //"Enfermedades"        to enfermedades.size,
-                    //"Eventos"             to eventos.size,
-                    //"Trat. eventos"       to tratEventos.size,
-                    //"Trampas"             to trampas.size,
-                    //"Insectos"            to insectos.size,
-                    //"Estados insecto"     to estadosInsecto.size,
-                    //"Máquinas"            to maquinaria.size,
-                    //"Implementos"         to implementos.size,
-                    //"Labores"             to labores.size,
-                    //"Unidades"            to unidades.size
+                    "Maquinaria"          to subidosMaquinaria
                 )
             )
         } catch (e: Exception) {
-            ResultadoSync(exitoso = false, mensaje = e.message ?: "Error desconocido")
+            // Los registros ya subidos se conservan — solo falló la descarga de maestros
+            ResultadoSync(
+                exitoso = false,
+                mensaje = "Registros subidos correctamente pero falló la descarga de datos: ${e.message}",
+                detalles = mapOf(
+                    "Tracks"              to subidosTracks,
+                    "Censo enfermedades"  to subidosCenso,
+                    "Tratamientos"        to subidosTrat,
+                    "Polinización"        to subidosPoli,
+                    "Polen inicial/final" to subidosPolen,
+                    "Sanstrategus"        to subidosStrategus,
+                    "Censo trampas"       to subidosTrampas,
+                    "Muestreo plagas"     to subidosPlagas,
+                    "Super cosecha"       to subidosSuperCosecha,
+                    "Maquinaria"          to subidosMaquinaria
+                )
+            )
         }
     }
 
@@ -116,7 +120,6 @@ object SyncManager {
             val pendientes = db.getTracksPendientes()
             if (pendientes.isEmpty()) return 0
 
-            // Subir en lotes de 200 para no saturar la red
             val tamanoLote = 300
             var subidosTotal = 0
             pendientes.chunked(tamanoLote).forEach { lote ->
@@ -129,21 +132,26 @@ object SyncManager {
                     }
                     val url = URL("$baseUrl/tracks")
                     val connection = url.openConnection() as HttpURLConnection
-                    connection.connectTimeout = 15_000; connection.readTimeout = 15_000
-                    connection.requestMethod = "POST"; connection.doOutput = true
+                    connection.connectTimeout = 15_000
+                    connection.readTimeout    = 15_000
+                    connection.requestMethod  = "POST"
+                    connection.doOutput       = true
                     connection.setRequestProperty("Content-Type", "application/json")
                     connection.connect()
                     connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
                     val code = connection.responseCode
-                    val response = connection.inputStream.bufferedReader().readText()
+                    // ── FIX: usar errorStream para respuestas de error ──────────
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    val response = stream?.bufferedReader()?.readText() ?: "{}"
                     connection.disconnect()
-                    if (code == 200 && !JSONObject(response).has("error")) {
+                    if (code == 200) {
                         db.marcarTracksSincronizados(ids)
                         subidosTotal += lote.size
                     }
-                } catch (e: Exception) { /* continúa con siguiente lote */ }
+                    // Si el servidor rechaza el lote (4xx/5xx), continúa con el siguiente
+                    // sin crashear. Esos tracks quedan pendientes para el próximo intento.
+                } catch (e: Exception) { /* timeout u otro error de red — continúa */ }
             }
-            // Limpiar los ya sincronizados
             if (subidosTotal > 0) db.eliminarTracksSincronizados()
             subidosTotal
         } catch (e: Exception) { 0 }
@@ -169,13 +177,17 @@ object SyncManager {
         return try {
             val url = URL("$baseUrl/$endpoint")
             val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 10_000; connection.readTimeout = 10_000
-            connection.requestMethod = "POST"; connection.doOutput = true
+            connection.connectTimeout = 10_000
+            connection.readTimeout    = 10_000
+            connection.requestMethod  = "POST"
+            connection.doOutput       = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.connect()
             connection.outputStream.bufferedWriter().use { it.write(JSONObject(registro).toString()) }
             val code = connection.responseCode
-            val response = connection.inputStream.bufferedReader().readText()
+            // ── FIX: usar errorStream para respuestas de error ──────────────
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader()?.readText() ?: "{}"
             connection.disconnect()
             code == 200 && !JSONObject(response).has("error")
         } catch (e: Exception) { false }
@@ -184,8 +196,10 @@ object SyncManager {
     private fun <T> fetchLista(baseUrl: String, endpoint: String, mapper: (JSONObject) -> T): List<T> {
         val url = URL("$baseUrl/$endpoint")
         val connection = url.openConnection() as HttpURLConnection
-        connection.connectTimeout = 10_000; connection.readTimeout = 10_000
-        connection.requestMethod = "GET"; connection.connect()
+        connection.connectTimeout = 10_000
+        connection.readTimeout    = 10_000
+        connection.requestMethod  = "GET"
+        connection.connect()
         if (connection.responseCode != 200) throw Exception("Error en /$endpoint: ${connection.responseCode}")
         val response = connection.inputStream.bufferedReader().readText()
         connection.disconnect()

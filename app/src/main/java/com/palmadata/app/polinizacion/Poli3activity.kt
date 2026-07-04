@@ -16,6 +16,10 @@ class Poli3Activity : AppCompatActivity() {
         binding = ActivityPoli3Binding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        aplicacion1 = 0
+        aplicacion2 = 0
+        aplicacion3 = 0
+
         val plantacionId     = intent.getIntExtra("plantacion_id", 0)
         val plantacionNombre = intent.getStringExtra("plantacion_nombre") ?: ""
         val sectorId         = intent.getIntExtra("sector_id", 0)
@@ -25,15 +29,10 @@ class Poli3Activity : AppCompatActivity() {
 
         actualizarDisplays()
 
-        // Primera
         binding.btnMas1.setOnClickListener { aplicacion1++; actualizarDisplays() }
         binding.btnMenos1.setOnClickListener { if (aplicacion1 > 0) { aplicacion1--; actualizarDisplays() } }
-
-        // Segunda
         binding.btnMas2.setOnClickListener { aplicacion2++; actualizarDisplays() }
         binding.btnMenos2.setOnClickListener { if (aplicacion2 > 0) { aplicacion2--; actualizarDisplays() } }
-
-        // Tercera
         binding.btnMas3.setOnClickListener { aplicacion3++; actualizarDisplays() }
         binding.btnMenos3.setOnClickListener { if (aplicacion3 > 0) { aplicacion3--; actualizarDisplays() } }
 
@@ -50,6 +49,15 @@ class Poli3Activity : AppCompatActivity() {
                 it.putExtra("aplicacion3", aplicacion3)
             })
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        aplicacion1 = 0
+        aplicacion2 = 0
+        aplicacion3 = 0
+        actualizarDisplays()
     }
 
     private fun actualizarDisplays() {

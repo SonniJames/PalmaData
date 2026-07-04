@@ -305,19 +305,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sincronizarDatos() {
+        // Diálogo de carga — bloquea interacción mientras sincroniza
+        val progressLayout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            setPadding(80, 60, 80, 60)
+        }
+        val progressBar = android.widget.ProgressBar(this)
+        val tvSincronizando = android.widget.TextView(this).apply {
+            text = "Sincronizando..."
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 24, 0, 0)
+            textSize = 15f
+        }
+        progressLayout.addView(progressBar)
+        progressLayout.addView(tvSincronizando)
+
+        val dialogCargando = MaterialAlertDialogBuilder(this)
+            .setView(progressLayout)
+            .setCancelable(false)
+            .create()
+        dialogCargando.show()
+
         binding.btnSincronizar.isEnabled = false
         binding.btnSincronizar.text = "Sincronizando..."
 
         val hora = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        if (hora >= 12) {
-            detenerTrackingService()
-        }
+        if (hora >= 12) detenerTrackingService()
 
         lifecycleScope.launch {
             val resultado = withContext(Dispatchers.IO) {
                 SyncManager.sincronizar(this@MainActivity)
             }
 
+            dialogCargando.dismiss()
             binding.btnSincronizar.isEnabled = true
             binding.btnSincronizar.text = "SINCRONIZAR"
 
@@ -331,9 +352,12 @@ class MainActivity : AppCompatActivity() {
                     .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
                     .show()
             } else {
+                val detalle = if (resultado.detalles.isNotEmpty()) {
+                    "\n\n" + resultado.detalles.entries.joinToString("\n") { "• ${it.key}: ${it.value}" }
+                } else ""
                 MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle("❌ Error de sincronización")
-                    .setMessage(resultado.mensaje)
+                    .setTitle("⚠️ Sincronización parcial")
+                    .setMessage(resultado.mensaje + detalle)
                     .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
                     .show()
             }
