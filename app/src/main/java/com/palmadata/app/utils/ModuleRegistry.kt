@@ -10,6 +10,7 @@ import com.palmadata.app.trampas.TrampasActivity
 import com.palmadata.app.plagas.PlagasActivity
 import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.maquinaria.MaquinariaActivity
+import com.palmadata.app.mapa.MapaUmasActivity
 object ModuleRegistry {
     fun getModules(): List<AppModule> = listOf(
         AppModule(id = "censo_enfermedades", name = "Censo enfermedades", iconResId = R.drawable.censo_enfermedades, destinationClass = CensoEnfermedadesActivity::class.java),
@@ -21,6 +22,7 @@ object ModuleRegistry {
         AppModule(id = "muestreo_plagas",    name = "Muestreo plagas",    iconResId = R.drawable.muestreo_plagas,    destinationClass = PlagasActivity::class.java),
         AppModule(id = "super_cosecha",      name = "Supervisión cosecha",iconResId = R.drawable.super_cosecha,      destinationClass = SuperCosechaActivity::class.java),
         AppModule(id = "maquinaria",         name = "Maquinaria",         iconResId = R.drawable.maquinaria,         destinationClass = MaquinariaActivity::class.java),
+        AppModule(id = "mapa_umas",          name = "Fertilización",      iconResId = R.drawable.fertilizacion,      destinationClass = MapaUmasActivity::class.java),
     )
 }
 

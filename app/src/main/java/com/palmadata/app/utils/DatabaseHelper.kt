@@ -4,13 +4,14 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.palmadata.app.data.model.UmaData
 
 class DatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 12
+        const val DB_VERSION = 14
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -45,6 +46,7 @@ class DatabaseHelper(context: Context) :
         const val T_UNIDADES_MAQUINARIA= "unidades_maquinaria"
         const val T_MAQUINARIA_SESION  = "maquinaria_sesion"
         const val T_TRACKS             = "tracks_movil"
+        const val T_UMAS               = "umas"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -93,6 +95,15 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador INTEGER DEFAULT 0, recolector INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_MAQUINARIA_SESION (id_unico TEXT PRIMARY KEY, maquina INTEGER DEFAULT 0, plantacion INTEGER DEFAULT 0, implemento INTEGER DEFAULT 0, labor INTEGER DEFAULT 0, trabajador INTEGER DEFAULT 0, kiloinicial REAL DEFAULT 0, kilofinal REAL DEFAULT 0, combustible REAL DEFAULT 0, horometroinicial REAL DEFAULT 0, horometrofinal REAL DEFAULT 0, lote TEXT, observaciones TEXT, unidadcantidad INTEGER DEFAULT 0, cantidad REAL DEFAULT 0, fechainicial TEXT, horainicial TEXT, fechafinal TEXT, horafinal TEXT, equipo TEXT, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_UMAS (
+            nut_uma_pol_id INTEGER PRIMARY KEY,
+            nut_uma_id INTEGER NOT NULL,
+            codigo TEXT NOT NULL,
+            palmas INTEGER DEFAULT 0,
+            cat_plantacion_id INTEGER DEFAULT 0,
+            estado INTEGER DEFAULT 1,
+            simbolo TEXT,
+            geojson TEXT NOT NULL)""")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -102,8 +113,10 @@ class DatabaseHelper(context: Context) :
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
-            T_UNIDADES_MAQUINARIA
+            T_UNIDADES_MAQUINARIA, T_UMAS
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
+
+
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
         // v11 → v12: se agregó tabla tracks_movil
@@ -131,10 +144,9 @@ class DatabaseHelper(context: Context) :
                 sincronizado INTEGER DEFAULT 0
             )""")
         }
-
-        // Aquí van futuras migraciones:
-        // if (oldVersion < 13) { db.execSQL("ALTER TABLE $T_CENSO_ENF ADD COLUMN nueva_columna TEXT") }
-        // if (oldVersion < 14) { ... }
+                // v12 → v13: se agregó tabla umas (maestra, ya se maneja arriba en el DROP/CREATE)
+        // Aquí van futuras migraciones de tablas de campo:
+        // if (oldVersion < 14) { db.execSQL("ALTER TABLE $T_CENSO_ENF ADD COLUMN nueva_columna TEXT") }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
@@ -151,6 +163,16 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_IMPLEMENTOS (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_LABORES_MAQUINARIA (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_UNIDADES_MAQUINARIA (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        db.execSQL("""CREATE TABLE $T_UMAS (
+            nut_uma_pol_id INTEGER PRIMARY KEY,
+            nut_uma_id INTEGER NOT NULL,
+            codigo TEXT NOT NULL,
+            palmas INTEGER DEFAULT 0,
+            cat_plantacion_id INTEGER DEFAULT 0,
+            estado INTEGER DEFAULT 1,
+            simbolo TEXT,
+            geojson TEXT NOT NULL,
+            dosis TEXT DEFAULT '')""")
     }
 
     // ── Reemplazar maestros ───────────────────────────────────────────────────
@@ -224,6 +246,41 @@ class DatabaseHelper(context: Context) :
     fun reemplazarUnidadesMaquinaria(lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_UNIDADES_MAQUINARIA, null, null); lista.forEach { (id, descripcion) -> db.insert(T_UNIDADES_MAQUINARIA, null, ContentValues().apply { put("id", id); put("descripcion", descripcion) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarUmas(lista: List<UmaData>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(T_UMAS, null, null)
+            lista.forEach { u ->
+                db.insert(T_UMAS, null, ContentValues().apply {
+                    put("nut_uma_pol_id",    u.nutUmaPolId)
+                    put("nut_uma_id",        u.nutUmaId)
+                    put("codigo",            u.codigo)
+                    put("palmas",            u.palmas)
+                    put("cat_plantacion_id", u.catPlantacionId)
+                    put("estado",            u.estado)
+                    put("simbolo",           u.simbolo)
+                    put("geojson",           u.geojson)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun getUmas(): List<UmaData> {
+        val result = mutableListOf<UmaData>()
+        readableDatabase.rawQuery(
+            "SELECT nut_uma_pol_id, nut_uma_id, codigo, palmas, cat_plantacion_id, estado, simbolo, geojson, dosis FROM $T_UMAS", null
+        ).use { c ->
+            while (c.moveToNext()) result.add(
+                UmaData(c.getInt(0), c.getInt(1), c.getString(2), c.getInt(3),
+                    c.getInt(4), c.getInt(5), c.getString(6) ?: "",
+                    c.getString(7), c.getString(8) ?: "")
+            )
+        }
+        return result
     }
 
     // ── Tracks movil ──────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import com.palmadata.app.data.model.UmaData
 
 object SyncManager {
 
@@ -75,6 +76,21 @@ object SyncManager {
 
             val unidades = fetchLista(baseUrl, "unidades_maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
             db.reemplazarUnidadesMaquinaria(unidades)
+
+            val umas = fetchLista(baseUrl, "umas") { obj ->
+                UmaData(
+                    nutUmaPolId    = obj.getInt("nut_uma_pol_id"),
+                    nutUmaId       = obj.getInt("nut_uma_id"),
+                    codigo         = obj.getString("codigo"),
+                    palmas         = obj.optInt("palmas", 0),
+                    catPlantacionId= obj.optInt("cat_plantacion_id", 0),
+                    estado         = obj.optInt("estado", 1),
+                    simbolo        = obj.optString("simbolo", ""),
+                    geojson        = obj.getString("geojson"),
+                    dosis           = obj.optString("dosis", "")
+                )
+            }
+            db.reemplazarUmas(umas)
 
             guardarFechaSincronizacion(context)
 
@@ -209,6 +225,7 @@ object SyncManager {
 
     private const val PREFS_SYNC    = "palma_sync"
     private const val KEY_LAST_SYNC = "ultima_sincronizacion"
+
 
     private fun guardarFechaSincronizacion(context: Context) {
         val ahora = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())

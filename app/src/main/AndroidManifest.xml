@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:allowBackup="true"
@@ -132,6 +133,7 @@
         <activity android:name=".supercosecha.SuperCosechaOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Maquinaria -->
         <activity android:name=".maquinaria.MaquinariaActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".mapa.MapaUmasActivity" android:exported="false" android:screenOrientation="portrait"/>
     </application>
 
 </manifest>
