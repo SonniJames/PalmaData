@@ -9,5 +9,5 @@ data class UmaData(
     val estado: Int,
     val simbolo: String,
     val geojson: String,
-    val dosis: String
+    val fertilizantes: String  // JSON array: [{"id":3,"nombre":"Grado palmero","rondas":5,"dosis":1.15}, ...]
 )

@@ -82,7 +82,8 @@ class LocationHelper(
             plantacionId = 0L,
             formulario   = 0,
             idunico      = UUID.randomUUID().toString(),
-            equipo       = SessionManager.getEquipoId(context)
+            equipo       = SessionManager.getEquipoId(context),
+            fertilizante = SessionManager.getFertilizanteActivoId(context)  // ← único cambio
         )
     }
 

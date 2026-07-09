@@ -87,10 +87,15 @@ object SyncManager {
                     estado         = obj.optInt("estado", 1),
                     simbolo        = obj.optString("simbolo", ""),
                     geojson        = obj.getString("geojson"),
-                    dosis           = obj.optString("dosis", "")
+                    fertilizantes   = obj.optString("fertilizantes", "[]")  // ← dosis → fertilizantes
                 )
             }
             db.reemplazarUmas(umas)
+
+            val fertilizantes = fetchLista(baseUrl, "fertilizantes") { obj ->
+                Pair(obj.getInt("id"), obj.getString("nombre"))
+            }
+            db.reemplazarFertilizantes(fertilizantes)
 
             guardarFechaSincronizacion(context)
 

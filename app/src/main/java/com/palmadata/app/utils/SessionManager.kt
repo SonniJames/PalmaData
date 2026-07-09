@@ -101,4 +101,29 @@ object SessionManager {
 
     fun getLastLongitude(context: Context): Double =
         java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LON, 0L))
+
+    // ── Fertilizante activo (módulo fertilización) ────────────────────────────
+
+    private const val KEY_FERTILIZANTE_ID   = "fertilizante_activo_id"
+    private const val KEY_FERTILIZANTE_NOMBRE = "fertilizante_activo_nombre"
+
+    fun setFertilizanteActivo(context: Context, id: Int, nombre: String) {
+        prefs(context).edit()
+            .putInt(KEY_FERTILIZANTE_ID, id)
+            .putString(KEY_FERTILIZANTE_NOMBRE, nombre)
+            .apply()
+    }
+
+    fun getFertilizanteActivoId(context: Context): Int =
+        prefs(context).getInt(KEY_FERTILIZANTE_ID, 0)
+
+    fun getFertilizanteActivoNombre(context: Context): String =
+        prefs(context).getString(KEY_FERTILIZANTE_NOMBRE, "") ?: ""
+
+    fun clearFertilizanteActivo(context: Context) {
+        prefs(context).edit()
+            .remove(KEY_FERTILIZANTE_ID)
+            .remove(KEY_FERTILIZANTE_NOMBRE)
+            .apply()
+    }
 }

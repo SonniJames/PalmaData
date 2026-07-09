@@ -32,7 +32,8 @@ data class TrackMovil(
     val loteId: Long = 0,
     val procesado: Long = 1,
     val sesionMaquinaria: String = "",
-
+    // Fertilización
+    val fertilizante: Int = 0,     // ← nuevo: 0 = sin fertilizante, >0 = id del fertilizante
     // Control local
     val sincronizado: Boolean = false  // false = pendiente de subir
 )

@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 14
+        const val DB_VERSION = 15  // ← cambio 1: de 14 a 15
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -47,6 +47,7 @@ class DatabaseHelper(context: Context) :
         const val T_MAQUINARIA_SESION  = "maquinaria_sesion"
         const val T_TRACKS             = "tracks_movil"
         const val T_UMAS               = "umas"
+        const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -64,6 +65,8 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_IMPLEMENTOS (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_LABORES_MAQUINARIA (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_UNIDADES_MAQUINARIA (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        // ← cambio 3: tabla fertilizantes en onCreate
+        db.execSQL("CREATE TABLE $T_FERTILIZANTES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("""CREATE TABLE $T_TRACKS (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             idunico TEXT NOT NULL,
@@ -84,8 +87,9 @@ class DatabaseHelper(context: Context) :
             lote_id INTEGER DEFAULT 0,
             procesado INTEGER DEFAULT 0,
             sesionmaquinaria TEXT,
+            fertilizante INTEGER DEFAULT 0,
             sincronizado INTEGER DEFAULT 0
-        )""")
+        )""")  // ← cambio 4: columna fertilizante en T_TRACKS de onCreate
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -103,7 +107,8 @@ class DatabaseHelper(context: Context) :
             cat_plantacion_id INTEGER DEFAULT 0,
             estado INTEGER DEFAULT 1,
             simbolo TEXT,
-            geojson TEXT NOT NULL)""")
+            geojson TEXT NOT NULL,
+            fertilizantes TEXT DEFAULT '[]')""")  // ← cambio 5: campo fertilizantes en T_UMAS
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -113,10 +118,8 @@ class DatabaseHelper(context: Context) :
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
-            T_UNIDADES_MAQUINARIA, T_UMAS
+            T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES  // ← cambio 6: T_FERTILIZANTES en DROP
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
-
-
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
         // v11 → v12: se agregó tabla tracks_movil
@@ -144,9 +147,11 @@ class DatabaseHelper(context: Context) :
                 sincronizado INTEGER DEFAULT 0
             )""")
         }
-                // v12 → v13: se agregó tabla umas (maestra, ya se maneja arriba en el DROP/CREATE)
-        // Aquí van futuras migraciones de tablas de campo:
-        // if (oldVersion < 14) { db.execSQL("ALTER TABLE $T_CENSO_ENF ADD COLUMN nueva_columna TEXT") }
+        // v14 → v15: columna dosis en umas (maestra, ya se maneja en DROP/CREATE)
+        //            columna fertilizante en tracks
+        if (oldVersion < 15) {
+            db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN fertilizante INTEGER DEFAULT 0")
+        }  // ← cambio 7: migración de fertilizante en tracks
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
@@ -163,6 +168,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_IMPLEMENTOS (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_LABORES_MAQUINARIA (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_UNIDADES_MAQUINARIA (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_FERTILIZANTES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")  // ← cambio 8
         db.execSQL("""CREATE TABLE $T_UMAS (
             nut_uma_pol_id INTEGER PRIMARY KEY,
             nut_uma_id INTEGER NOT NULL,
@@ -172,7 +178,7 @@ class DatabaseHelper(context: Context) :
             estado INTEGER DEFAULT 1,
             simbolo TEXT,
             geojson TEXT NOT NULL,
-            dosis TEXT DEFAULT '')""")
+            fertilizantes TEXT DEFAULT '[]')""")  // ← cambio 9: fertilizantes en recreación
     }
 
     // ── Reemplazar maestros ───────────────────────────────────────────────────
@@ -248,6 +254,16 @@ class DatabaseHelper(context: Context) :
         try { db.delete(T_UNIDADES_MAQUINARIA, null, null); lista.forEach { (id, descripcion) -> db.insert(T_UNIDADES_MAQUINARIA, null, ContentValues().apply { put("id", id); put("descripcion", descripcion) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
+    // ← cambio 10: método reemplazarFertilizantes nuevo
+    fun reemplazarFertilizantes(lista: List<Pair<Int, String>>) = reemplazarPares(T_FERTILIZANTES, lista)
+
+    fun getFertilizantes(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_FERTILIZANTES, null, null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
     fun reemplazarUmas(lista: List<UmaData>) {
         val db = writableDatabase
         db.beginTransaction()
@@ -263,6 +279,7 @@ class DatabaseHelper(context: Context) :
                     put("estado",            u.estado)
                     put("simbolo",           u.simbolo)
                     put("geojson",           u.geojson)
+                    put("fertilizantes",     u.fertilizantes)  // ← cambio 11
                 })
             }
             db.setTransactionSuccessful()
@@ -272,12 +289,12 @@ class DatabaseHelper(context: Context) :
     fun getUmas(): List<UmaData> {
         val result = mutableListOf<UmaData>()
         readableDatabase.rawQuery(
-            "SELECT nut_uma_pol_id, nut_uma_id, codigo, palmas, cat_plantacion_id, estado, simbolo, geojson, dosis FROM $T_UMAS", null
-        ).use { c ->
+            "SELECT nut_uma_pol_id, nut_uma_id, codigo, palmas, cat_plantacion_id, estado, simbolo, geojson, fertilizantes FROM $T_UMAS", null
+        ).use { c ->  // ← cambio 12: fertilizantes en lugar de dosis
             while (c.moveToNext()) result.add(
                 UmaData(c.getInt(0), c.getInt(1), c.getString(2), c.getInt(3),
                     c.getInt(4), c.getInt(5), c.getString(6) ?: "",
-                    c.getString(7), c.getString(8) ?: "")
+                    c.getString(7), c.getString(8) ?: "[]")
             )
         }
         return result
@@ -305,6 +322,7 @@ class DatabaseHelper(context: Context) :
             put("lote_id",         track.loteId)
             put("procesado",       track.procesado)
             put("sesionmaquinaria",track.sesionMaquinaria)
+            put("fertilizante",    track.fertilizante)  // ← cambio 13
             put("sincronizado",    0)
         })
     }
