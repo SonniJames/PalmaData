@@ -2,33 +2,21 @@ package com.palmadata.app.mapa
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.media.RingtoneManager
 import android.os.Bundle
-import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.palmadata.app.R
+import com.palmadata.app.data.model.UmaData
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
-import com.palmadata.app.utils.UmaLocator
-import com.palmadata.app.utils.UmaPoligono
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.palmadata.app.utils.UmaDetectionEngine
 import org.json.JSONArray
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
@@ -41,7 +29,16 @@ import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
-class MapaUmasActivity : AppCompatActivity() {
+/**
+ * Pantalla del módulo de fertilización.
+ *
+ * IMPORTANTE: esta pantalla ya NO detecta las umas por su cuenta. La detección
+ * (posición, cambio de uma, alerta, notificación con dosis) corre en el
+ * UmaDetectionEngine alimentado por el TrackingService, que es un servicio en
+ * primer plano con wakelock — por eso TODO sigue funcionando con la pantalla
+ * bloqueada. Esta pantalla solo se registra como oyente del motor y pinta.
+ */
+class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
 
     private lateinit var mapView: MapView
     private lateinit var tvNombre: TextView
@@ -51,31 +48,28 @@ class MapaUmasActivity : AppCompatActivity() {
     private lateinit var btnDescargarMapa: FloatingActionButton
     private lateinit var tvFertilizanteSelector: TextView
     private lateinit var tvLimpiarFertilizante: TextView
-    private lateinit var fusedClientDeteccion: com.google.android.gms.location.FusedLocationProviderClient
 
-    private var primerFixRecibido = false
-    private val poligonos = mutableListOf<UmaPoligono>()
     private val overlayMap = mutableMapOf<Int, MutableList<Polygon>>()
+    private var umasDibujadas = false
 
-    // Bounding box de todas las umas
+    // Bounding box de todas las umas (para centrar y para la descarga offline)
     private var umasMinLat =  90.0; private var umasMaxLat = -90.0
     private var umasMinLon = 180.0; private var umasMaxLon = -180.0
-
-    // Histéresis
-    private var umaActualId: Int? = null
-    private var umaCandidataId: Int? = null
-    private var fixesCandidata = 0
-    private val FIXES_PARA_CAMBIO = 3
 
     // Fertilizantes seleccionados: lista de ids activos
     // Vacía = sin filtro (muestra aviso rojo)
     private val fertilizantesSeleccionados = mutableSetOf<Int>()
 
     // Uma actual para refrescar caja cuando cambia el filtro
-    private var umaActual: com.palmadata.app.data.model.UmaData? = null
+    private var umaActual: UmaData? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Mantener la pantalla encendida MIENTRAS esta pantalla esté visible.
+        // (Si el trabajador la bloquea con el botón, la detección sigue viva
+        // en el servicio: alerta, vibración y notificación con la dosis.)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         Configuration.getInstance().apply {
             userAgentValue = packageName
@@ -98,6 +92,10 @@ class MapaUmasActivity : AppCompatActivity() {
         btnDescargarMapa       = findViewById(R.id.btnDescargarMapa)
         tvFertilizanteSelector = findViewById(R.id.tvFertilizanteSelector)
         tvLimpiarFertilizante  = findViewById(R.id.tvLimpiarFertilizante)
+
+        // Restaurar la selección de fertilizantes si la pantalla fue recreada
+        // (p. ej. el sistema la mató con la app de fondo y el usuario volvió)
+        restaurarFertilizantesDeSesion()
 
         // ── Botón centrar ──────────────────────────────────────────────────────
         @SuppressLint("MissingPermission")
@@ -126,14 +124,51 @@ class MapaUmasActivity : AppCompatActivity() {
         mapView.setMultiTouchControls(true)
         mapView.minZoomLevel = 3.0
 
-        cargarUmasAsync()
         configurarMiUbicacion()
-        iniciarDeteccion()
         actualizarFranjaFertilizante()
+
+        // ── Motor de detección ────────────────────────────────────────────────
+        // Se registra como oyente y activa el motor (la carga de polígonos
+        // ocurre en segundo plano; si ya estaban en memoria, se pinta de una)
+        UmaDetectionEngine.setListener(this)
+        UmaDetectionEngine.activar(this)
+        if (UmaDetectionEngine.poligonos.isNotEmpty()) {
+            dibujarUmas()
+            sincronizarConMotor()
+            centrarComoOrux()
+        } else {
+            tvNombre.text = "Cargando umas..."
+        }
+    }
+
+    // ── Callbacks del motor (pueden llegar en hilo secundario) ─────────────────
+
+    override fun onUmasCargadas() {
+        runOnUiThread {
+            dibujarUmas()
+            sincronizarConMotor()
+            centrarComoOrux()
+        }
+    }
+
+    override fun onUmaCambiada(uma: UmaData?) {
+        // La alerta (vibración + sonido) ya la hizo el motor; aquí solo se pinta
+        runOnUiThread { mostrarUma(uma) }
+    }
+
+    /** Pone la UI en el estado actual del motor (al abrir o volver a la pantalla) */
+    private fun sincronizarConMotor() {
+        mostrarUma(UmaDetectionEngine.umaActual())
     }
 
     // ── Diálogo selector de fertilizantes ─────────────────────────────────────
 
+    private fun restaurarFertilizantesDeSesion() {
+        try {
+            val arr = JSONArray(SessionManager.getFertilizantesActivos(this))
+            for (i in 0 until arr.length()) fertilizantesSeleccionados.add(arr.getInt(i))
+        } catch (e: Exception) { /* sin selección previa */ }
+    }
 
     private fun mostrarDialogoFertilizantes() {
         val db = DatabaseHelper.getInstance(this)
@@ -185,63 +220,54 @@ class MapaUmasActivity : AppCompatActivity() {
         }
     }
 
-    // ── Cargar umas (parseo en segundo plano para no congelar la apertura) ─────
-    private fun cargarUmasAsync() {
-        tvNombre.text = "Cargando umas..."
-        lifecycleScope.launch {
-            // Parseo pesado del GeoJSON fuera del hilo principal
-            val cargados = withContext(Dispatchers.Default) {
-                DatabaseHelper.getInstance(this@MapaUmasActivity).getUmas().mapNotNull { uma ->
-                    try { UmaPoligono(uma) } catch (e: Exception) { null }  // geojson inválido: se omite
+    // ── Dibujar umas (los polígonos vienen ya parseados del motor) ─────────────
+
+    private fun dibujarUmas() {
+        if (umasDibujadas) return
+        umasDibujadas = true
+
+        UmaDetectionEngine.poligonos.forEach { up ->
+            val listaOverlays = mutableListOf<Polygon>()
+
+            up.anillos.forEach { anillo ->
+                val ov = Polygon(mapView).apply {
+                    points = anillo.map { (lon, lat) -> GeoPoint(lat, lon) }
+                    fillPaint.color    = Color.argb(60, 76, 175, 80)
+                    outlinePaint.color = Color.rgb(46, 125, 50)
+                    outlinePaint.strokeWidth = 3f
                 }
+                mapView.overlays.add(ov)
+                listaOverlays.add(ov)
             }
 
-            // Creación de overlays en el hilo principal (requisito de osmdroid)
-            cargados.forEach { up ->
-                poligonos.add(up)
-                val listaOverlays = mutableListOf<Polygon>()
+            overlayMap[up.uma.nutUmaPolId] = listaOverlays
 
-                up.anillos.forEach { anillo ->
-                    val ov = Polygon(mapView).apply {
-                        points = anillo.map { (lon, lat) -> GeoPoint(lat, lon) }
-                        fillPaint.color    = Color.argb(60, 76, 175, 80)
-                        outlinePaint.color = Color.rgb(46, 125, 50)
-                        outlinePaint.strokeWidth = 3f
-                    }
-                    mapView.overlays.add(ov)
-                    listaOverlays.add(ov)
-                }
-
-                overlayMap[up.uma.nutUmaPolId] = listaOverlays
-
-                val etiqueta = Marker(mapView).apply {
-                    position = GeoPoint(
-                        (up.minLat + up.maxLat) / 2.0,
-                        (up.minLon + up.maxLon) / 2.0
-                    )
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                    setTextLabelFontSize(36)
-                    setTextLabelForegroundColor(Color.rgb(27, 94, 32))
-                    setTextLabelBackgroundColor(Color.argb(170, 255, 255, 255))
-                    setTextIcon(up.uma.codigo)
-                    setOnMarkerClickListener { _, _ -> true }
-                }
-                mapView.overlays.add(etiqueta)
-
-                umasMinLat = minOf(umasMinLat, up.minLat)
-                umasMaxLat = maxOf(umasMaxLat, up.maxLat)
-                umasMinLon = minOf(umasMinLon, up.minLon)
-                umasMaxLon = maxOf(umasMaxLon, up.maxLon)
+            val etiqueta = Marker(mapView).apply {
+                position = GeoPoint(
+                    (up.minLat + up.maxLat) / 2.0,
+                    (up.minLon + up.maxLon) / 2.0
+                )
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                setTextLabelFontSize(36)
+                setTextLabelForegroundColor(Color.rgb(27, 94, 32))
+                setTextLabelBackgroundColor(Color.argb(170, 255, 255, 255))
+                setTextIcon(up.uma.codigo)
+                setOnMarkerClickListener { _, _ -> true }
             }
-            mapView.invalidate()
-            tvNombre.text = "Fuera de las umas"
-            centrarComoOrux()
+            mapView.overlays.add(etiqueta)
+
+            umasMinLat = minOf(umasMinLat, up.minLat)
+            umasMaxLat = maxOf(umasMaxLat, up.maxLat)
+            umasMinLon = minOf(umasMinLon, up.minLon)
+            umasMaxLon = maxOf(umasMaxLon, up.maxLon)
         }
+        mapView.invalidate()
+        if (tvNombre.text == "Cargando umas...") tvNombre.text = "Fuera de las umas"
     }
 
     // ── Descarga del mapa base para uso offline ────────────────────────────────
     private fun confirmarDescargaMapaOffline() {
-        if (poligonos.isEmpty()) {
+        if (UmaDetectionEngine.poligonos.isEmpty()) {
             android.widget.Toast.makeText(this, "Espere a que carguen las umas (o sincronice primero).", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
@@ -272,7 +298,6 @@ class MapaUmasActivity : AppCompatActivity() {
         fusedClient.lastLocation
             .addOnSuccessListener { loc ->
                 if (loc != null) {
-                    primerFixRecibido = true
                     mapView.controller.setZoom(17.0)
                     mapView.controller.setCenter(GeoPoint(loc.latitude, loc.longitude))
                 } else {
@@ -283,7 +308,7 @@ class MapaUmasActivity : AppCompatActivity() {
     }
 
     private fun centrarEnUmas() {
-        if (poligonos.isEmpty()) return
+        if (UmaDetectionEngine.poligonos.isEmpty()) return
         mapView.post {
             mapView.zoomToBoundingBox(
                 BoundingBox(umasMaxLat, umasMaxLon, umasMinLat, umasMinLon).increaseByScale(1.3f), false
@@ -322,48 +347,10 @@ class MapaUmasActivity : AppCompatActivity() {
         return bmp
     }
 
-    @SuppressLint("MissingPermission")
-    private fun iniciarDeteccion() {
-        fusedClientDeteccion = LocationServices.getFusedLocationProviderClient(this)
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
-        fusedClientDeteccion.requestLocationUpdates(request, deteccionCallback, Looper.getMainLooper())
-    }
+    // ── Pintar la uma actual (sin alertar: la alerta la hace el motor) ─────────
 
-
-    private val deteccionCallback = object : LocationCallback() {
-        override fun onLocationResult(result: LocationResult) {
-            val loc = result.lastLocation ?: return
-            if (loc.accuracy > 20f) return
-            procesarPosicion(loc.latitude, loc.longitude)
-        }
-    }
-
-    private fun procesarPosicion(lat: Double, lon: Double) {
-        if (!primerFixRecibido) {
-            primerFixRecibido = true
-            mapView.controller.setZoom(17.0)
-            mapView.controller.animateTo(GeoPoint(lat, lon))
-        }
-
-        val detectada = UmaLocator.umaEn(poligonos, lat, lon)?.uma?.nutUmaPolId
-
-        if (detectada == umaActualId) {
-            umaCandidataId = null; fixesCandidata = 0; return
-        }
-
-        if (detectada == umaCandidataId) fixesCandidata++
-        else { umaCandidataId = detectada; fixesCandidata = 1 }
-
-        if (fixesCandidata >= FIXES_PARA_CAMBIO) {
-            val anterior = umaActualId
-            umaActualId    = umaCandidataId
-            umaCandidataId = null
-            fixesCandidata = 0
-            mostrarUma(umaActualId, alertar = anterior != null || umaActualId != null)
-        }
-    }
-
-    private fun mostrarUma(umaId: Int?, alertar: Boolean) {
+    private fun mostrarUma(uma: UmaData?) {
+        val umaId = uma?.nutUmaPolId
         overlayMap.forEach { (id, overlays) ->
             val color = if (id == umaId) Color.argb(110, 255, 193, 7)
             else             Color.argb(60,  76, 175, 80)
@@ -371,18 +358,17 @@ class MapaUmasActivity : AppCompatActivity() {
         }
         mapView.invalidate()
 
-        umaActual = poligonos.firstOrNull { it.uma.nutUmaPolId == umaId }?.uma
+        umaActual = uma
 
-        if (umaActual != null) {
-            tvNombre.text = "📍 UMA ${umaActual!!.codigo}"
-            tvInfo.text   = "Símbolo: ${umaActual!!.simbolo}  |  Palmas: ${umaActual!!.palmas}"
+        if (uma != null) {
+            tvNombre.text = "📍 UMA ${uma.codigo}"
+            tvInfo.text   = "Símbolo: ${uma.simbolo}  |  Palmas: ${uma.palmas}"
         } else {
             tvNombre.text = "Fuera de las umas"
             tvInfo.text   = "—"
         }
 
         refrescarCajaDosis()
-        if (alertar) alertar()
     }
 
     // ── Caja de dosis con filtro ───────────────────────────────────────────────
@@ -437,24 +423,26 @@ class MapaUmasActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun alertar() {
-        val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 400, 200, 400), -1))
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        RingtoneManager.getRingtone(applicationContext, uri)?.play()
+    override fun onResume() {
+        super.onResume()
+        mapView.onResume()
+        // Al volver (p. ej. tras desbloquear), ponerse al día con lo que el
+        // motor detectó mientras la pantalla estaba apagada
+        UmaDetectionEngine.setListener(this)
+        if (umasDibujadas) sincronizarConMotor()
     }
 
-    override fun onResume()  { super.onResume();  mapView.onResume()  }
-    override fun onPause()   { super.onPause();   mapView.onPause()   }
+    override fun onPause() {
+        super.onPause()
+        mapView.onPause()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        // Detener el GPS propio del módulo (el TrackingService sigue intacto)
-        if (::fusedClientDeteccion.isInitialized) {
-            fusedClientDeteccion.removeLocationUpdates(deteccionCallback)
-        }
+        UmaDetectionEngine.setListener(null)
         // El fertilizante solo aplica dentro de este módulo:
         // al salir, los tracks de los demás módulos vuelven a fertilizante = []
+        // (el motor se desactiva solo cuando el servicio ve formulario ≠ 25)
         fertilizantesSeleccionados.clear()
         SessionManager.clearFertilizantesActivos(this)
     }

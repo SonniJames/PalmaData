@@ -14,6 +14,8 @@ import androidx.core.app.NotificationCompat
 import com.palmadata.app.MainActivity
 import com.palmadata.app.R
 import com.palmadata.app.utils.LocationHelper
+import com.palmadata.app.utils.SessionManager
+import com.palmadata.app.utils.UmaDetectionEngine
 
 class TrackingService : Service() {
 
@@ -25,16 +27,37 @@ class TrackingService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_START = "com.palmadata.app.action.START_TRACKING"
         const val ACTION_STOP  = "com.palmadata.app.action.STOP_TRACKING"
+
+        // Id del módulo de fertilización según generarFormulariosMovil
+        private const val FORMULARIO_FERTILIZACION = 25
     }
 
     override fun onCreate() {
         super.onCreate()
         locationHelper = LocationHelper(
             context = this,
-            onLocationUpdate = { _, _ -> },
+            onLocationUpdate = { lat, lon -> manejarPosicion(lat, lon) },
             onTrackGuardado = null
         )
         crearCanalNotificacion()
+    }
+
+    /**
+     * En cada fix GPS: si el trabajador está dentro del módulo de fertilización
+     * (formulario = 25), el motor de detección de UMAs corre AQUÍ, en el
+     * servicio en primer plano — así el cálculo de posición, el cambio de UMA
+     * y la alerta siguen funcionando con la pantalla bloqueada.
+     */
+    private fun manejarPosicion(lat: Double, lon: Double) {
+        val formulario = SessionManager.getFormularioActivo(this)
+        if (formulario == FORMULARIO_FERTILIZACION) {
+            UmaDetectionEngine.activar(this)
+            UmaDetectionEngine.procesarPosicion(this, lat, lon)
+        } else if (UmaDetectionEngine.activo) {
+            // Salió del módulo: apagar el motor y volver a la notificación base
+            UmaDetectionEngine.desactivar()
+            UmaDetectionEngine.restaurarNotificacionBase(this)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -116,6 +139,7 @@ class TrackingService : Service() {
     }
 
     private fun detenerServicio() {
+        UmaDetectionEngine.desactivar()
         locationHelper.stopLocationUpdates()
         liberarWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -123,6 +147,7 @@ class TrackingService : Service() {
     }
 
     override fun onDestroy() {
+        UmaDetectionEngine.desactivar()
         locationHelper.stopLocationUpdates()
         liberarWakeLock()
         super.onDestroy()
