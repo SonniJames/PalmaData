@@ -20,9 +20,10 @@ import com.palmadata.app.utils.UmaDetectionEngine
 import org.json.JSONArray
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
@@ -61,6 +62,32 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
 
     // Uma actual para refrescar caja cuando cambia el filtro
     private var umaActual: UmaData? = null
+
+    companion object {
+        /**
+         * Mapa base SATELITAL (Esri World Imagery).
+         *
+         * Se usa en lugar de MAPNIK por dos razones:
+         * 1. MAPNIK (servidores gratuitos de OpenStreetMap) prohíbe la descarga
+         *    masiva de teselas — osmdroid lanza TileSourcePolicyException al
+         *    intentar bajar el mapa offline (ese era el cierre de la app).
+         *    Esri World Imagery sí permite descargar la zona para uso offline.
+         * 2. Para la plantación, la imagen satelital muestra las hileras de
+         *    palma reales; el mapa de calles solo mostraba un parche verde.
+         */
+        private val FUENTE_SATELITAL = object : OnlineTileSourceBase(
+            "EsriWorldImagery",
+            0, 19, 256, "",
+            arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
+            "Esri, Maxar, Earthstar Geographics"
+        ) {
+            override fun getTileURLString(pMapTileIndex: Long): String =
+                baseUrl +
+                        MapTileIndex.getZoom(pMapTileIndex) + "/" +
+                        MapTileIndex.getY(pMapTileIndex) + "/" +
+                        MapTileIndex.getX(pMapTileIndex)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +146,7 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
             refrescarCajaDosis()
         }
 
-        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.setTileSource(FUENTE_SATELITAL)
         mapView.setMultiTouchControls(true)
         mapView.minZoomLevel = 3.0
 
@@ -214,7 +241,8 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
                 .mapNotNull { id -> lista.firstOrNull { it.first == id }?.second }
                 .joinToString(", ")
             tvFertilizanteSelector.text = nombres
-            tvFertilizanteSelector.setTextColor(Color.WHITE)
+            // Verde oscuro: el blanco no se veía sobre la franja clara
+            tvFertilizanteSelector.setTextColor(Color.parseColor("#1B5E20"))
             tvLimpiarFertilizante.alpha = 1.0f
         }
     }
@@ -247,24 +275,81 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
             android.widget.Toast.makeText(this, "Espere a que carguen las umas (o sincronice primero).", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        val bb = BoundingBox(umasMaxLat, umasMaxLon, umasMinLat, umasMinLon).increaseByScale(1.2f)
-        val cacheManager = CacheManager(mapView)
-        val zoomMin = 13; val zoomMax = 17
-        val totalTeselas = cacheManager.possibleTilesInArea(bb, zoomMin, zoomMax)
+        try {
+            val bb = BoundingBox(umasMaxLat, umasMaxLon, umasMinLat, umasMinLon).increaseByScale(1.2f)
+            val cacheManager = CacheManager(mapView)
+            val zoomMin = 13; val zoomMax = 17
+            val totalTeselas = cacheManager.possibleTilesInArea(bb, zoomMin, zoomMax)
 
-        AlertDialog.Builder(this)
-            .setTitle("Descargar mapa offline")
-            .setMessage(
-                "Se descargará el mapa base de toda la zona de las umas " +
-                        "(~$totalTeselas imágenes, zoom $zoomMin–$zoomMax).\n\n" +
-                        "Hágalo con WiFi. Después el mapa se verá en campo sin señal."
-            )
-            .setPositiveButton("Descargar") { _, _ ->
-                // Muestra su propio diálogo de progreso y guarda en el caché del mapa
-                cacheManager.downloadAreaAsync(this, bb, zoomMin, zoomMax)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+            AlertDialog.Builder(this)
+                .setTitle("Descargar mapa offline")
+                .setMessage(
+                    "Se descargará la imagen satelital de toda la zona de las umas " +
+                            "(~$totalTeselas imágenes, zoom $zoomMin–$zoomMax).\n\n" +
+                            "Hágalo con WiFi. Después el mapa se verá en campo sin señal."
+                )
+                .setPositiveButton("Descargar") { _, _ ->
+                    iniciarDescargaMapa(cacheManager, bb, zoomMin, zoomMax)
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(this, "No se pudo preparar la descarga: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun iniciarDescargaMapa(cacheManager: CacheManager, bb: BoundingBox, zoomMin: Int, zoomMax: Int) {
+        // Diálogo de progreso propio (el interno de osmdroid causaba cierres)
+        val tvProgreso = TextView(this).apply {
+            text = "Iniciando descarga..."
+            setPadding(60, 40, 60, 20)
+            textSize = 15f
+        }
+        val dialogo = AlertDialog.Builder(this)
+            .setTitle("Descargando mapa satelital")
+            .setView(tvProgreso)
+            .setCancelable(false)
+            .setNegativeButton("Ocultar", null)  // la descarga sigue en segundo plano
+            .create()
+        dialogo.show()
+
+        try {
+            cacheManager.downloadAreaAsyncNoUI(this, bb, zoomMin, zoomMax,
+                object : CacheManager.CacheManagerCallback {
+                    override fun onTaskComplete() {
+                        runOnUiThread {
+                            if (dialogo.isShowing) dialogo.dismiss()
+                            android.widget.Toast.makeText(this@MapaUmasActivity,
+                                "✅ Mapa offline descargado", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun onTaskFailed(errors: Int) {
+                        runOnUiThread {
+                            if (dialogo.isShowing) dialogo.dismiss()
+                            android.widget.Toast.makeText(this@MapaUmasActivity,
+                                "Descarga terminada con $errors imágenes fallidas. " +
+                                        "Puede repetirla: solo bajará las que faltan.",
+                                android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
+                        runOnUiThread {
+                            tvProgreso.text = "Imágenes descargadas: $progress\nNivel de zoom: $currentZoomLevel de $zoomMax"
+                        }
+                    }
+
+                    override fun downloadStarted() { }
+
+                    override fun setPossibleTilesInArea(total: Int) {
+                        runOnUiThread { tvProgreso.text = "Total a descargar: $total imágenes" }
+                    }
+                })
+        } catch (e: Exception) {
+            if (dialogo.isShowing) dialogo.dismiss()
+            android.widget.Toast.makeText(this, "Error en la descarga: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     // ── Centrar estilo OruxMaps ────────────────────────────────────────────────
@@ -398,6 +483,11 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
     override fun onResume() {
         super.onResume()
         mapView.onResume()
+        // Reafirmar el módulo activo: si el operario tocó la notificación,
+        // MainActivity se abrió encima y su onResume limpió el formulario a 0
+        // (apagando el motor). Al volver aquí con atrás, se restaura el 25 y
+        // la detección revive en el siguiente fix del servicio.
+        SessionManager.setFormularioActivo(this, 25)
         // Al volver (p. ej. tras desbloquear), ponerse al día con lo que el
         // motor detectó mientras la pantalla estaba apagada
         UmaDetectionEngine.setListener(this)

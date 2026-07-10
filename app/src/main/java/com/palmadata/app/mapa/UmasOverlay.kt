@@ -42,7 +42,9 @@ class UmasOverlay : Overlay() {
     private val borde = Paint().apply {
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        color = Color.rgb(46, 125, 50)
+        // Blanco: sobre la imagen satelital (vegetación verde) el borde verde
+        // oscuro se perdía; el blanco es el estándar sobre fotografía aérea
+        color = Color.WHITE
         isAntiAlias = true
     }
     private val textoEtiqueta = Paint().apply {
