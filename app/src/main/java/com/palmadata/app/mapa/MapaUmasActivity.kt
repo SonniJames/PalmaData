@@ -24,8 +24,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
@@ -49,7 +47,8 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
     private lateinit var tvFertilizanteSelector: TextView
     private lateinit var tvLimpiarFertilizante: TextView
 
-    private val overlayMap = mutableMapOf<Int, MutableList<Polygon>>()
+    // Overlay único que dibuja todas las umas (optimización de rendimiento)
+    private val umasOverlay = UmasOverlay()
     private var umasDibujadas = false
 
     // Bounding box de todas las umas (para centrar y para la descarga offline)
@@ -220,42 +219,19 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         }
     }
 
-    // ── Dibujar umas (los polígonos vienen ya parseados del motor) ─────────────
+    // ── Dibujar umas (un solo overlay: los polígonos vienen del motor) ─────────
 
     private fun dibujarUmas() {
         if (umasDibujadas) return
         umasDibujadas = true
 
-        UmaDetectionEngine.poligonos.forEach { up ->
-            val listaOverlays = mutableListOf<Polygon>()
+        val poligonos = UmaDetectionEngine.poligonos
+        umasOverlay.setPoligonos(poligonos)
+        // Índice 0: debajo del overlay de mi ubicación, para que la mira roja
+        // siempre quede visible encima de los polígonos
+        mapView.overlays.add(0, umasOverlay)
 
-            up.anillos.forEach { anillo ->
-                val ov = Polygon(mapView).apply {
-                    points = anillo.map { (lon, lat) -> GeoPoint(lat, lon) }
-                    fillPaint.color    = Color.argb(60, 76, 175, 80)
-                    outlinePaint.color = Color.rgb(46, 125, 50)
-                    outlinePaint.strokeWidth = 3f
-                }
-                mapView.overlays.add(ov)
-                listaOverlays.add(ov)
-            }
-
-            overlayMap[up.uma.nutUmaPolId] = listaOverlays
-
-            val etiqueta = Marker(mapView).apply {
-                position = GeoPoint(
-                    (up.minLat + up.maxLat) / 2.0,
-                    (up.minLon + up.maxLon) / 2.0
-                )
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                setTextLabelFontSize(36)
-                setTextLabelForegroundColor(Color.rgb(27, 94, 32))
-                setTextLabelBackgroundColor(Color.argb(170, 255, 255, 255))
-                setTextIcon(up.uma.codigo)
-                setOnMarkerClickListener { _, _ -> true }
-            }
-            mapView.overlays.add(etiqueta)
-
+        poligonos.forEach { up ->
             umasMinLat = minOf(umasMinLat, up.minLat)
             umasMaxLat = maxOf(umasMaxLat, up.maxLat)
             umasMinLon = minOf(umasMinLon, up.minLon)
@@ -350,12 +326,8 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
     // ── Pintar la uma actual (sin alertar: la alerta la hace el motor) ─────────
 
     private fun mostrarUma(uma: UmaData?) {
-        val umaId = uma?.nutUmaPolId
-        overlayMap.forEach { (id, overlays) ->
-            val color = if (id == umaId) Color.argb(110, 255, 193, 7)
-            else             Color.argb(60,  76, 175, 80)
-            overlays.forEach { it.fillPaint.color = color }
-        }
+        // El overlay unificado se encarga del resaltado amarillo
+        umasOverlay.setUmaActual(uma?.nutUmaPolId)
         mapView.invalidate()
 
         umaActual = uma
