@@ -55,6 +55,10 @@ class TrackingService : Service() {
     }
 
     private fun adquirirWakeLock() {
+        // Si ya hay un wakelock activo no se crea otro: MainActivity reinicia el
+        // servicio en cada onStart y sin esta guarda se acumularían candados
+        // abiertos drenando la batería.
+        if (wakeLock?.isHeld == true) return
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,

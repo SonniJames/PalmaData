@@ -66,6 +66,16 @@
             android:src="@android:drawable/ic_menu_mylocation"
             android:contentDescription="Centrar en mi posición"/>
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnDescargarMapa"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="88dp"
+            android:src="@android:drawable/stat_sys_download"
+            android:contentDescription="Descargar mapa para uso offline"/>
+
     </FrameLayout>
 
     <!-- ===== PANEL UMA ===== -->

@@ -14,6 +14,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -25,8 +26,12 @@ import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
 import com.palmadata.app.utils.UmaLocator
 import com.palmadata.app.utils.UmaPoligono
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
@@ -43,6 +48,7 @@ class MapaUmasActivity : AppCompatActivity() {
     private lateinit var tvInfo: TextView
     private lateinit var tvDosis: TextView
     private lateinit var btnCentrar: FloatingActionButton
+    private lateinit var btnDescargarMapa: FloatingActionButton
     private lateinit var tvFertilizanteSelector: TextView
     private lateinit var tvLimpiarFertilizante: TextView
     private lateinit var fusedClientDeteccion: com.google.android.gms.location.FusedLocationProviderClient
@@ -75,6 +81,11 @@ class MapaUmasActivity : AppCompatActivity() {
             userAgentValue = packageName
             osmdroidBasePath = filesDir
             osmdroidTileCache = cacheDir
+            // Las teselas descargadas no expiran en 1 año → el mapa funciona offline
+            expirationOverrideDuration = 365L * 24 * 60 * 60 * 1000
+            // Caché grande para que quepa toda la plantación descargada
+            tileFileSystemCacheMaxBytes  = 1024L * 1024 * 1024   // 1 GB
+            tileFileSystemCacheTrimBytes = 900L  * 1024 * 1024
         }
 
         setContentView(R.layout.activity_mapa_umas)
@@ -84,6 +95,7 @@ class MapaUmasActivity : AppCompatActivity() {
         tvInfo                 = findViewById(R.id.tvUmaInfo)
         tvDosis                = findViewById(R.id.tvUmaDosis)
         btnCentrar             = findViewById(R.id.btnCentrar)
+        btnDescargarMapa       = findViewById(R.id.btnDescargarMapa)
         tvFertilizanteSelector = findViewById(R.id.tvFertilizanteSelector)
         tvLimpiarFertilizante  = findViewById(R.id.tvLimpiarFertilizante)
 
@@ -96,13 +108,16 @@ class MapaUmasActivity : AppCompatActivity() {
             }
         }
 
+        // ── Botón descargar mapa offline ───────────────────────────────────────
+        btnDescargarMapa.setOnClickListener { confirmarDescargaMapaOffline() }
+
         // ── Selector de fertilizante ───────────────────────────────────────────
         tvFertilizanteSelector.setOnClickListener { mostrarDialogoFertilizantes() }
 
         // ── Limpiar fertilizante ───────────────────────────────────────────────
         tvLimpiarFertilizante.setOnClickListener {
             fertilizantesSeleccionados.clear()
-            SessionManager.clearFertilizanteActivo(this)
+            SessionManager.clearFertilizantesActivos(this)
             actualizarFranjaFertilizante()
             refrescarCajaDosis()
         }
@@ -111,9 +126,8 @@ class MapaUmasActivity : AppCompatActivity() {
         mapView.setMultiTouchControls(true)
         mapView.minZoomLevel = 3.0
 
-        cargarUmas()
+        cargarUmasAsync()
         configurarMiUbicacion()
-        centrarComoOrux()
         iniciarDeteccion()
         actualizarFranjaFertilizante()
     }
@@ -141,13 +155,11 @@ class MapaUmasActivity : AppCompatActivity() {
                 else fertilizantesSeleccionados.remove(id)
             }
             .setPositiveButton("Aceptar") { _, _ ->
-                // Guardar el primer id seleccionado en SessionManager (para los tracks)
-                val primero = fertilizantesSeleccionados.firstOrNull()
-                if (primero != null) {
-                    val nombre = lista.first { it.first == primero }.second
-                    SessionManager.setFertilizanteActivo(this, primero, nombre)
+                // Guardar TODOS los ids seleccionados (los tracks llevan "[1,2,...]")
+                if (fertilizantesSeleccionados.isNotEmpty()) {
+                    SessionManager.setFertilizantesActivos(this, fertilizantesSeleccionados)
                 } else {
-                    SessionManager.clearFertilizanteActivo(this)
+                    SessionManager.clearFertilizantesActivos(this)
                 }
                 actualizarFranjaFertilizante()
                 refrescarCajaDosis()
@@ -173,13 +185,19 @@ class MapaUmasActivity : AppCompatActivity() {
         }
     }
 
-    // ── Cargar umas ────────────────────────────────────────────────────────────
-    private fun cargarUmas() {
-        val db = DatabaseHelper.getInstance(this)
+    // ── Cargar umas (parseo en segundo plano para no congelar la apertura) ─────
+    private fun cargarUmasAsync() {
+        tvNombre.text = "Cargando umas..."
+        lifecycleScope.launch {
+            // Parseo pesado del GeoJSON fuera del hilo principal
+            val cargados = withContext(Dispatchers.Default) {
+                DatabaseHelper.getInstance(this@MapaUmasActivity).getUmas().mapNotNull { uma ->
+                    try { UmaPoligono(uma) } catch (e: Exception) { null }  // geojson inválido: se omite
+                }
+            }
 
-        db.getUmas().forEach { uma ->
-            try {
-                val up = UmaPoligono(uma)
+            // Creación de overlays en el hilo principal (requisito de osmdroid)
+            cargados.forEach { up ->
                 poligonos.add(up)
                 val listaOverlays = mutableListOf<Polygon>()
 
@@ -194,7 +212,7 @@ class MapaUmasActivity : AppCompatActivity() {
                     listaOverlays.add(ov)
                 }
 
-                overlayMap[uma.nutUmaPolId] = listaOverlays
+                overlayMap[up.uma.nutUmaPolId] = listaOverlays
 
                 val etiqueta = Marker(mapView).apply {
                     position = GeoPoint(
@@ -205,7 +223,7 @@ class MapaUmasActivity : AppCompatActivity() {
                     setTextLabelFontSize(36)
                     setTextLabelForegroundColor(Color.rgb(27, 94, 32))
                     setTextLabelBackgroundColor(Color.argb(170, 255, 255, 255))
-                    setTextIcon(uma.codigo)
+                    setTextIcon(up.uma.codigo)
                     setOnMarkerClickListener { _, _ -> true }
                 }
                 mapView.overlays.add(etiqueta)
@@ -214,10 +232,37 @@ class MapaUmasActivity : AppCompatActivity() {
                 umasMaxLat = maxOf(umasMaxLat, up.maxLat)
                 umasMinLon = minOf(umasMinLon, up.minLon)
                 umasMaxLon = maxOf(umasMaxLon, up.maxLon)
-
-            } catch (e: Exception) { /* geojson inválido: se omite */ }
+            }
+            mapView.invalidate()
+            tvNombre.text = "Fuera de las umas"
+            centrarComoOrux()
         }
-        mapView.invalidate()
+    }
+
+    // ── Descarga del mapa base para uso offline ────────────────────────────────
+    private fun confirmarDescargaMapaOffline() {
+        if (poligonos.isEmpty()) {
+            android.widget.Toast.makeText(this, "Espere a que carguen las umas (o sincronice primero).", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val bb = BoundingBox(umasMaxLat, umasMaxLon, umasMinLat, umasMinLon).increaseByScale(1.2f)
+        val cacheManager = CacheManager(mapView)
+        val zoomMin = 13; val zoomMax = 17
+        val totalTeselas = cacheManager.possibleTilesInArea(bb, zoomMin, zoomMax)
+
+        AlertDialog.Builder(this)
+            .setTitle("Descargar mapa offline")
+            .setMessage(
+                "Se descargará el mapa base de toda la zona de las umas " +
+                        "(~$totalTeselas imágenes, zoom $zoomMin–$zoomMax).\n\n" +
+                        "Hágalo con WiFi. Después el mapa se verá en campo sin señal."
+            )
+            .setPositiveButton("Descargar") { _, _ ->
+                // Muestra su propio diálogo de progreso y guarda en el caché del mapa
+                cacheManager.downloadAreaAsync(this, bb, zoomMin, zoomMax)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     // ── Centrar estilo OruxMaps ────────────────────────────────────────────────
@@ -409,8 +454,8 @@ class MapaUmasActivity : AppCompatActivity() {
             fusedClientDeteccion.removeLocationUpdates(deteccionCallback)
         }
         // El fertilizante solo aplica dentro de este módulo:
-        // al salir, los tracks de los demás módulos vuelven a fertilizante = 0
+        // al salir, los tracks de los demás módulos vuelven a fertilizante = []
         fertilizantesSeleccionados.clear()
-        SessionManager.clearFertilizanteActivo(this)
+        SessionManager.clearFertilizantesActivos(this)
     }
 }

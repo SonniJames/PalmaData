@@ -102,28 +102,21 @@ object SessionManager {
     fun getLastLongitude(context: Context): Double =
         java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LON, 0L))
 
-    // ── Fertilizante activo (módulo fertilización) ────────────────────────────
+    // ── Fertilizantes activos (módulo fertilización) ──────────────────────────
+    // Se guardan como JSON: "[]" sin selección, "[1,2]" con varios seleccionados.
 
-    private const val KEY_FERTILIZANTE_ID   = "fertilizante_activo_id"
-    private const val KEY_FERTILIZANTE_NOMBRE = "fertilizante_activo_nombre"
+    private const val KEY_FERTILIZANTES_ACTIVOS = "fertilizantes_activos_json"
 
-    fun setFertilizanteActivo(context: Context, id: Int, nombre: String) {
-        prefs(context).edit()
-            .putInt(KEY_FERTILIZANTE_ID, id)
-            .putString(KEY_FERTILIZANTE_NOMBRE, nombre)
-            .apply()
+    fun setFertilizantesActivos(context: Context, ids: Collection<Int>) {
+        val json = org.json.JSONArray(ids.toList()).toString()
+        prefs(context).edit().putString(KEY_FERTILIZANTES_ACTIVOS, json).apply()
     }
 
-    fun getFertilizanteActivoId(context: Context): Int =
-        prefs(context).getInt(KEY_FERTILIZANTE_ID, 0)
+    /** Devuelve "[]" si no hay selección, o "[1,2,...]" con los ids activos */
+    fun getFertilizantesActivos(context: Context): String =
+        prefs(context).getString(KEY_FERTILIZANTES_ACTIVOS, "[]") ?: "[]"
 
-    fun getFertilizanteActivoNombre(context: Context): String =
-        prefs(context).getString(KEY_FERTILIZANTE_NOMBRE, "") ?: ""
-
-    fun clearFertilizanteActivo(context: Context) {
-        prefs(context).edit()
-            .remove(KEY_FERTILIZANTE_ID)
-            .remove(KEY_FERTILIZANTE_NOMBRE)
-            .apply()
+    fun clearFertilizantesActivos(context: Context) {
+        prefs(context).edit().remove(KEY_FERTILIZANTES_ACTIVOS).apply()
     }
 }

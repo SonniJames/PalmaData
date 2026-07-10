@@ -28,18 +28,25 @@ class LocationHelper(
         setWaitForAccurateLocation(false)
     }.build()
 
-    // Filtro de precisión — descarta puntos con accuracy peor a 30 metros
-    private val MAX_ACCURACY_METROS = 20f
+    // Filtro de precisión para TRACKS — descarta puntos con accuracy peor a 30 metros
+    private val MAX_ACCURACY_TRACKS_METROS = 30f
+    // Filtro más laxo para ÚLTIMA UBICACIÓN (usada por los formularios al guardar):
+    // bajo dosel de palma la precisión empeora, pero un punto de 50 m reciente
+    // es mejor que uno perfecto de hace horas (o que 0,0 si nunca hubo fix).
+    private val MAX_ACCURACY_ULTIMA_UBICACION_METROS = 50f
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val location: Location = result.lastLocation ?: return
 
-            // Descartar puntos con mala precisión GPS
-            if (location.accuracy > MAX_ACCURACY_METROS) return
+            // Última ubicación para formularios: umbral laxo
+            if (location.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS) {
+                SessionManager.saveLastLocation(context, location.latitude, location.longitude)
+                onLocationUpdate(location.latitude, location.longitude)
+            }
 
-            SessionManager.saveLastLocation(context, location.latitude, location.longitude)
-            onLocationUpdate(location.latitude, location.longitude)
+            // Tracks del recorrido: umbral estricto
+            if (location.accuracy > MAX_ACCURACY_TRACKS_METROS) return
 
             if (enHorarioLaboral()) {
                 val track = construirTrack(location)
@@ -83,7 +90,7 @@ class LocationHelper(
             formulario   = 0,
             idunico      = UUID.randomUUID().toString(),
             equipo       = SessionManager.getEquipoId(context),
-            fertilizante = SessionManager.getFertilizanteActivoId(context)  // ← único cambio
+            fertilizante = SessionManager.getFertilizantesActivos(context)  // "[]" o "[1,2,...]"
         )
     }
 

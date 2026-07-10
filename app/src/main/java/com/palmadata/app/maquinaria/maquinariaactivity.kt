@@ -13,6 +13,8 @@ import com.palmadata.app.databinding.ActivityMaquinariaBinding
 import com.palmadata.app.databinding.DialogFinalizarLaborBinding
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,7 +46,18 @@ class MaquinariaActivity : AppCompatActivity() {
         setupCamposNumericos()
         setupLotes()
         setupBotones()
+
+        // Si Android mató el proceso con una labor iniciada, se restaura tal cual
+        restaurarSesionEnCurso()
+
         verificarCamposObligatorios()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Mantener actualizada la sesión (combustible, cantidad, observaciones
+        // se escriben durante la labor) por si el sistema mata el proceso
+        if (laborIniciada) guardarSesionEnCurso()
     }
 
     // ── Campos de selección con diálogo ──────────────────────────────────────
@@ -191,18 +204,104 @@ class MaquinariaActivity : AppCompatActivity() {
         horaInicial  = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(ahora)
         laborIniciada = true
         SessionManager.setTrabajadorMaquinariaActivo(this, trabajadorId)
+        guardarSesionEnCurso()
+        bloquearCamposLabor()
+    }
 
-        // Bloquear campos
+    /** Bloquea los campos iniciales y pone el botón en modo FINALIZAR */
+    private fun bloquearCamposLabor() {
         binding.tvPlantacion.isEnabled = false
         binding.acTrabajador.isEnabled = false
         binding.etHorometroInicial.isEnabled = false
         binding.etKilometroInicial.isEnabled = false
         binding.tvLotes.isEnabled = false
 
-        // Cambiar botón
         binding.btnIniciarFinalizar.text = "FINALIZAR LABOR"
         binding.btnIniciarFinalizar.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#D32F2F"))
         binding.btnIniciarFinalizar.isEnabled = true
+    }
+
+    // ── Persistencia de la labor en curso ─────────────────────────────────────
+    // Una labor de maquinaria dura horas; si Android mata el proceso, sin esto
+    // la labor iniciada se pierde y el trabajador quedaría "pegado" en los tracks.
+
+    private val PREFS_SESION = "maquinaria_sesion_en_curso"
+
+    private fun guardarSesionEnCurso() {
+        val json = JSONObject().apply {
+            put("plantacionId", plantacionId);   put("plantacionNombre", plantacionNombre)
+            put("maquinaId", maquinaId);         put("maquinaNombre", maquinaNombre)
+            put("implementoId", implementoId);   put("implementoNombre", implementoNombre)
+            put("laborId", laborId);             put("laborNombre", laborNombre)
+            put("unidadId", unidadId);           put("unidadNombre", unidadNombre)
+            put("trabajadorId", trabajadorId)
+            put("trabajadorNombre", binding.acTrabajador.text.toString())
+            put("fechaInicial", fechaInicial);   put("horaInicial", horaInicial)
+            put("horometroInicial", binding.etHorometroInicial.text.toString())
+            put("kilometroInicial", binding.etKilometroInicial.text.toString())
+            put("combustible", binding.etCombustible.text.toString())
+            put("cantidad", binding.etCantidad.text.toString())
+            put("observaciones", binding.etObservaciones.text.toString())
+            put("lotes", JSONArray().apply {
+                lotesSeleccionados.forEach { (id, nombre) ->
+                    put(JSONObject().put("id", id).put("nombre", nombre))
+                }
+            })
+        }
+        getSharedPreferences(PREFS_SESION, MODE_PRIVATE).edit()
+            .putString("sesion", json.toString()).apply()
+    }
+
+    private fun restaurarSesionEnCurso() {
+        val guardada = getSharedPreferences(PREFS_SESION, MODE_PRIVATE)
+            .getString("sesion", null) ?: return
+        try {
+            val j = JSONObject(guardada)
+            plantacionId = j.optInt("plantacionId"); plantacionNombre = j.optString("plantacionNombre")
+            maquinaId    = j.optInt("maquinaId");    maquinaNombre    = j.optString("maquinaNombre")
+            implementoId = j.optInt("implementoId"); implementoNombre = j.optString("implementoNombre")
+            laborId      = j.optInt("laborId");      laborNombre      = j.optString("laborNombre")
+            unidadId     = j.optInt("unidadId");     unidadNombre     = j.optString("unidadNombre")
+            trabajadorId = j.optInt("trabajadorId")
+            fechaInicial = j.optString("fechaInicial")
+            horaInicial  = j.optString("horaInicial")
+
+            lotesSeleccionados.clear()
+            val arr = j.optJSONArray("lotes") ?: JSONArray()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                lotesSeleccionados.add(Pair(o.getInt("id"), o.getString("nombre")))
+            }
+
+            // Restaurar UI
+            if (plantacionNombre.isNotEmpty()) binding.tvPlantacion.text = plantacionNombre
+            if (maquinaNombre.isNotEmpty())    binding.tvMaquina.text    = maquinaNombre
+            if (implementoNombre.isNotEmpty()) binding.tvImplemento.text = implementoNombre
+            if (laborNombre.isNotEmpty())      binding.tvLabor.text      = laborNombre
+            if (unidadNombre.isNotEmpty())     binding.tvUnidad.text     = unidadNombre
+            binding.acTrabajador.setText(j.optString("trabajadorNombre"), false)
+            binding.etHorometroInicial.setText(j.optString("horometroInicial"))
+            binding.etKilometroInicial.setText(j.optString("kilometroInicial"))
+            binding.etCombustible.setText(j.optString("combustible"))
+            binding.etCantidad.setText(j.optString("cantidad"))
+            binding.etObservaciones.setText(j.optString("observaciones"))
+            if (lotesSeleccionados.isNotEmpty()) {
+                binding.tvLotes.text = lotesSeleccionados.joinToString(", ") { it.second }
+            }
+
+            laborIniciada = true
+            SessionManager.setTrabajadorMaquinariaActivo(this, trabajadorId)
+            bloquearCamposLabor()
+            Toast.makeText(this, "Labor en curso restaurada. Finalícela cuando termine.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            // Sesión corrupta: se descarta y se limpia la atribución de tracks
+            limpiarSesionEnCurso()
+            SessionManager.clearTrabajadorMaquinariaActivo(this)
+        }
+    }
+
+    private fun limpiarSesionEnCurso() {
+        getSharedPreferences(PREFS_SESION, MODE_PRIVATE).edit().clear().apply()
     }
 
     private fun mostrarDialogoFinalizar() {
@@ -266,6 +365,7 @@ class MaquinariaActivity : AppCompatActivity() {
         try {
             db.guardarMaquinaria(registro)
             SessionManager.clearTrabajadorMaquinariaActivo(this)
+            limpiarSesionEnCurso()
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
             finish()
         } catch (e: Exception) {

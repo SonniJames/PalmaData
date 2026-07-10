@@ -117,6 +117,11 @@ class MainActivity : AppCompatActivity() {
 
         db = DatabaseHelper.getInstance(this)
 
+        // Red de seguridad: si el proceso murió dentro del módulo de fertilización,
+        // el onDestroy del mapa nunca corrió y los fertilizantes quedarían "pegados"
+        // etiquetando tracks de otros días. Al arrancar la app siempre se limpian.
+        SessionManager.clearFertilizantesActivos(this)
+
         setupLocationHelper()
         setupModulesGrid()
         setupWorkerSelector()
@@ -331,7 +336,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnSincronizar.text = "Sincronizando..."
 
         val hora = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        if (hora >= 12) detenerTrackingService()
+        if (hora >= 12) {
+            detenerTrackingService()
+            Toast.makeText(this, "Fin de jornada: el registro de recorrido se detiene y reinicia mañana al abrir la app.", Toast.LENGTH_LONG).show()
+        }
 
         lifecycleScope.launch {
             val resultado = withContext(Dispatchers.IO) {

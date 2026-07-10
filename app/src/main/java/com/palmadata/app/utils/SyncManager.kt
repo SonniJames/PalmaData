@@ -131,37 +131,49 @@ object SyncManager {
             val pendientes = db.getTracksPendientes()
             if (pendientes.isEmpty()) return 0
 
-            val tamanoLote = 300
+            val tamanoLote  = 300
+            val maxIntentos = 3
             var subidosTotal = 0
             pendientes.chunked(tamanoLote).forEach { lote ->
-                try {
-                    val array = JSONArray()
-                    val ids = mutableListOf<Long>()
-                    lote.forEach { track ->
-                        array.put(JSONObject(track.filter { it.key != "sincronizado" && it.key != "id" }))
-                        ids.add((track["id"] as? Long) ?: 0L)
+                var exito = false
+                var intento = 0
+                while (!exito && intento < maxIntentos) {
+                    intento++
+                    try {
+                        val array = JSONArray()
+                        val ids = mutableListOf<Long>()
+                        lote.forEach { track ->
+                            array.put(JSONObject(track.filter { it.key != "sincronizado" && it.key != "id" }))
+                            ids.add((track["id"] as? Long) ?: 0L)
+                        }
+                        val url = URL("$baseUrl/tracks")
+                        val connection = url.openConnection() as HttpURLConnection
+                        connection.connectTimeout = 15_000
+                        // 60 s: insertar 300 filas puede tardar más de 15 s en el server
+                        connection.readTimeout    = 60_000
+                        connection.requestMethod  = "POST"
+                        connection.doOutput       = true
+                        connection.setRequestProperty("Content-Type", "application/json")
+                        connection.connect()
+                        connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
+                        val code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        val response = stream?.bufferedReader()?.readText() ?: "{}"
+                        connection.disconnect()
+                        if (code == 200) {
+                            db.marcarTracksSincronizados(ids)
+                            subidosTotal += lote.size
+                            exito = true
+                        }
+                    } catch (e: Exception) { /* timeout u otro error de red — se reintenta */ }
+
+                    // Espera progresiva antes del siguiente intento: 1.5 s, 3 s
+                    if (!exito && intento < maxIntentos) {
+                        try { Thread.sleep(1_500L * intento) } catch (ie: InterruptedException) { }
                     }
-                    val url = URL("$baseUrl/tracks")
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.connectTimeout = 15_000
-                    connection.readTimeout    = 15_000
-                    connection.requestMethod  = "POST"
-                    connection.doOutput       = true
-                    connection.setRequestProperty("Content-Type", "application/json")
-                    connection.connect()
-                    connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
-                    val code = connection.responseCode
-                    // ── FIX: usar errorStream para respuestas de error ──────────
-                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                    val response = stream?.bufferedReader()?.readText() ?: "{}"
-                    connection.disconnect()
-                    if (code == 200) {
-                        db.marcarTracksSincronizados(ids)
-                        subidosTotal += lote.size
-                    }
-                    // Si el servidor rechaza el lote (4xx/5xx), continúa con el siguiente
-                    // sin crashear. Esos tracks quedan pendientes para el próximo intento.
-                } catch (e: Exception) { /* timeout u otro error de red — continúa */ }
+                }
+                // Si el lote falló los 3 intentos, queda pendiente para la próxima
+                // sincronización; se continúa con el siguiente lote sin crashear.
             }
             if (subidosTotal > 0) db.eliminarTracksSincronizados()
             subidosTotal
@@ -185,23 +197,30 @@ object SyncManager {
     }
 
     private fun subirRegistro(baseUrl: String, endpoint: String, registro: Map<String, Any>): Boolean {
-        return try {
-            val url = URL("$baseUrl/$endpoint")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 10_000
-            connection.readTimeout    = 10_000
-            connection.requestMethod  = "POST"
-            connection.doOutput       = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.connect()
-            connection.outputStream.bufferedWriter().use { it.write(JSONObject(registro).toString()) }
-            val code = connection.responseCode
-            // ── FIX: usar errorStream para respuestas de error ──────────────
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.bufferedReader()?.readText() ?: "{}"
-            connection.disconnect()
-            code == 200 && !JSONObject(response).has("error")
-        } catch (e: Exception) { false }
+        // 2 intentos por registro: los formularios pesan poco, un reintento
+        // corto resuelve la mayoría de micro-cortes de WiFi.
+        repeat(2) { intento ->
+            try {
+                val url = URL("$baseUrl/$endpoint")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = 10_000
+                connection.readTimeout    = 10_000
+                connection.requestMethod  = "POST"
+                connection.doOutput       = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.connect()
+                connection.outputStream.bufferedWriter().use { it.write(JSONObject(registro).toString()) }
+                val code = connection.responseCode
+                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.readText() ?: "{}"
+                connection.disconnect()
+                if (code == 200 && !JSONObject(response).has("error")) return true
+            } catch (e: Exception) { /* se reintenta una vez */ }
+            if (intento == 0) {
+                try { Thread.sleep(800) } catch (ie: InterruptedException) { }
+            }
+        }
+        return false
     }
 
     private fun <T> fetchLista(baseUrl: String, endpoint: String, readTimeout: Int = 30_000, mapper: (JSONObject) -> T): List<T> {

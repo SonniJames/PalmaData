@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 15  // ← cambio 1: de 14 a 15
+        const val DB_VERSION = 16  // ← v16: fertilizante en tracks pasa de INTEGER a TEXT "[1,2]"
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -87,9 +87,9 @@ class DatabaseHelper(context: Context) :
             lote_id INTEGER DEFAULT 0,
             procesado INTEGER DEFAULT 0,
             sesionmaquinaria TEXT,
-            fertilizante INTEGER DEFAULT 0,
+            fertilizante TEXT DEFAULT '[]',
             sincronizado INTEGER DEFAULT 0
-        )""")  // ← cambio 4: columna fertilizante en T_TRACKS de onCreate
+        )""")  // ← v16: fertilizante TEXT "[1,2]" en T_TRACKS de onCreate
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -122,7 +122,7 @@ class DatabaseHelper(context: Context) :
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
-        // v11 → v12: se agregó tabla tracks_movil
+        // v11 → v12: se agregó tabla tracks_movil (ya con el esquema actual v16)
         if (oldVersion < 12) {
             db.execSQL("""CREATE TABLE IF NOT EXISTS $T_TRACKS (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,14 +144,57 @@ class DatabaseHelper(context: Context) :
                 lote_id INTEGER DEFAULT 0,
                 procesado INTEGER DEFAULT 0,
                 sesionmaquinaria TEXT,
+                fertilizante TEXT DEFAULT '[]',
                 sincronizado INTEGER DEFAULT 0
             )""")
+        } else {
+            // v14 → v15: columna fertilizante (INTEGER) en tracks
+            if (oldVersion < 15) {
+                db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN fertilizante INTEGER DEFAULT 0")
+            }
+            // v15 → v16: fertilizante pasa a TEXT "[1,2]". SQLite no permite cambiar
+            // el tipo de una columna, así que se reconstruye la tabla preservando
+            // los tracks pendientes de sincronizar.
+            if (oldVersion < 16) {
+                db.execSQL("ALTER TABLE $T_TRACKS RENAME TO ${T_TRACKS}_old")
+                db.execSQL("""CREATE TABLE $T_TRACKS (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    idunico TEXT NOT NULL,
+                    x REAL NOT NULL,
+                    y REAL NOT NULL,
+                    velocidad REAL DEFAULT 0,
+                    precision REAL DEFAULT 0,
+                    sentido REAL DEFAULT 0,
+                    proveedor TEXT,
+                    fecha TEXT NOT NULL,
+                    hora TEXT NOT NULL,
+                    trabajador INTEGER DEFAULT 0,
+                    plantacion_id INTEGER DEFAULT 0,
+                    formulario INTEGER DEFAULT 0,
+                    equipo TEXT,
+                    maquina INTEGER DEFAULT 0,
+                    labormaquina INTEGER DEFAULT 0,
+                    lote_id INTEGER DEFAULT 0,
+                    procesado INTEGER DEFAULT 0,
+                    sesionmaquinaria TEXT,
+                    fertilizante TEXT DEFAULT '[]',
+                    sincronizado INTEGER DEFAULT 0
+                )""")
+                db.execSQL("""INSERT INTO $T_TRACKS (
+                        idunico, x, y, velocidad, precision, sentido, proveedor,
+                        fecha, hora, trabajador, plantacion_id, formulario, equipo,
+                        maquina, labormaquina, lote_id, procesado, sesionmaquinaria,
+                        fertilizante, sincronizado)
+                    SELECT idunico, x, y, velocidad, precision, sentido, proveedor,
+                        fecha, hora, trabajador, plantacion_id, formulario, equipo,
+                        maquina, labormaquina, lote_id, procesado, sesionmaquinaria,
+                        CASE WHEN fertilizante IS NULL OR fertilizante = 0
+                             THEN '[]' ELSE '[' || fertilizante || ']' END,
+                        sincronizado
+                    FROM ${T_TRACKS}_old""")
+                db.execSQL("DROP TABLE ${T_TRACKS}_old")
+            }
         }
-        // v14 → v15: columna dosis en umas (maestra, ya se maneja en DROP/CREATE)
-        //            columna fertilizante en tracks
-        if (oldVersion < 15) {
-            db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN fertilizante INTEGER DEFAULT 0")
-        }  // ← cambio 7: migración de fertilizante en tracks
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
