@@ -87,7 +87,7 @@ class LocationHelper(
             hora         = fmtHora.format(ahora),
             trabajador   = trabajadorFinal,
             plantacionId = 0L,
-            formulario   = 0,
+            formulario   = SessionManager.getFormularioActivo(context),  // id del módulo activo, 0 si está en la pantalla principal
             idunico      = UUID.randomUUID().toString(),
             equipo       = SessionManager.getEquipoId(context),
             fertilizante = SessionManager.getFertilizantesActivos(context)  // "[]" o "[1,2,...]"

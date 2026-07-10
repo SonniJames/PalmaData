@@ -102,6 +102,25 @@ object SessionManager {
     fun getLastLongitude(context: Context): Double =
         java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LON, 0L))
 
+    // ── Formulario activo (módulo en el que está el usuario) ──────────────────
+    // Va a la columna `formulario` de cada track según generarFormulariosMovil:
+    // 0 = pantalla principal / sin módulo, 1 = censo enfermedades, 2 = plagas,
+    // 3 = trampas, 5 = polinización, 6 = strategus, 12 = tratamientos,
+    // 14 = supervisión cosecha, 24 = maquinaria, 25 = fertilización.
+
+    private const val KEY_FORMULARIO_ACTIVO = "formulario_activo"
+
+    fun setFormularioActivo(context: Context, formularioId: Int) {
+        prefs(context).edit().putInt(KEY_FORMULARIO_ACTIVO, formularioId).apply()
+    }
+
+    fun getFormularioActivo(context: Context): Int =
+        prefs(context).getInt(KEY_FORMULARIO_ACTIVO, 0)
+
+    fun clearFormularioActivo(context: Context) {
+        prefs(context).edit().remove(KEY_FORMULARIO_ACTIVO).apply()
+    }
+
     // ── Fertilizantes activos (módulo fertilización) ──────────────────────────
     // Se guardan como JSON: "[]" sin selección, "[1,2]" con varios seleccionados.
 

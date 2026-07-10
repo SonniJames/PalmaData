@@ -145,6 +145,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // El usuario está en la pantalla de módulos → sin módulo activo.
+        // Al entrar a un módulo se marca su id y, como el trabajador queda
+        // "encerrado" navegando dentro del módulo sin pasar por aquí, el id
+        // se mantiene hasta que regrese a esta pantalla.
+        SessionManager.clearFormularioActivo(this)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (isFinishing) {
@@ -222,6 +231,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (module.id == "maquinaria") {
+            SessionManager.setFormularioActivo(this, module.formularioId)  // 24
             startActivity(Intent(this, MaquinariaActivity::class.java))
             return
         }
@@ -241,6 +251,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Marcar el módulo activo: los tracks llevarán este id en `formulario`
+        // hasta que el usuario regrese a esta pantalla (onResume lo pone en 0).
+        if (module.formularioId > 0) {
+            SessionManager.setFormularioActivo(this, module.formularioId)
+        }
         startActivity(Intent(this, module.destinationClass))
     }
 
