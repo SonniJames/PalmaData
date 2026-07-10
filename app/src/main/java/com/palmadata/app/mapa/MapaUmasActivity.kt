@@ -45,6 +45,7 @@ class MapaUmasActivity : AppCompatActivity() {
     private lateinit var btnCentrar: FloatingActionButton
     private lateinit var tvFertilizanteSelector: TextView
     private lateinit var tvLimpiarFertilizante: TextView
+    private lateinit var fusedClientDeteccion: com.google.android.gms.location.FusedLocationProviderClient
 
     private var primerFixRecibido = false
     private val poligonos = mutableListOf<UmaPoligono>()
@@ -118,6 +119,8 @@ class MapaUmasActivity : AppCompatActivity() {
     }
 
     // ── Diálogo selector de fertilizantes ─────────────────────────────────────
+
+
     private fun mostrarDialogoFertilizantes() {
         val db = DatabaseHelper.getInstance(this)
         val lista = db.getFertilizantes()  // List<Pair<Int, String>>
@@ -276,10 +279,11 @@ class MapaUmasActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun iniciarDeteccion() {
-        val fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        fusedClientDeteccion = LocationServices.getFusedLocationProviderClient(this)
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
-        fusedClient.requestLocationUpdates(request, deteccionCallback, Looper.getMainLooper())
+        fusedClientDeteccion.requestLocationUpdates(request, deteccionCallback, Looper.getMainLooper())
     }
+
 
     private val deteccionCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -398,4 +402,15 @@ class MapaUmasActivity : AppCompatActivity() {
 
     override fun onResume()  { super.onResume();  mapView.onResume()  }
     override fun onPause()   { super.onPause();   mapView.onPause()   }
+    override fun onDestroy() {
+        super.onDestroy()
+        // Detener el GPS propio del módulo (el TrackingService sigue intacto)
+        if (::fusedClientDeteccion.isInitialized) {
+            fusedClientDeteccion.removeLocationUpdates(deteccionCallback)
+        }
+        // El fertilizante solo aplica dentro de este módulo:
+        // al salir, los tracks de los demás módulos vuelven a fertilizante = 0
+        fertilizantesSeleccionados.clear()
+        SessionManager.clearFertilizanteActivo(this)
+    }
 }

@@ -20,10 +20,7 @@ object SyncManager {
         val db      = DatabaseHelper.getInstance(context)
 
         // ── Subir pendientes ──────────────────────────────────────────────────
-        // Se hace ANTES del try de maestros para que los tracks subidos
-        // no se pierdan aunque falle la descarga de maestros después
-        val subidosTracks       = subirTracks(baseUrl, context)
-        val subidosCenso        = subirPendientes(baseUrl, "censo_enfermedades",  db.getCensoEnfPendientes())     { id -> db.eliminarCensoEnf(id) }
+        val subidosCenso        = subirPendientes(baseUrl, "censo_enfermedades",   db.getCensoEnfPendientes())     { id -> db.eliminarCensoEnf(id) }
         val subidosTrat         = subirPendientes(baseUrl, "tratamientos",         db.getTratamientosPendientes()) { id -> db.eliminarTratamiento(id) }
         val subidosPoli         = subirPendientes(baseUrl, "polinizacion",         db.getPolinizacionPendientes()) { id -> db.eliminarPolinizacion(id) }
         val subidosPolen        = subirPendientes(baseUrl, "polen_inicial_final",  db.getPolenPendientes())        { id -> db.eliminarPolen(id) }
@@ -32,106 +29,99 @@ object SyncManager {
         val subidosPlagas       = subirPendientes(baseUrl, "muestreo_plagas",      db.getPlagasPendientes())       { id -> db.eliminarPlagas(id) }
         val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha",        db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
         val subidosMaquinaria   = subirPendientes(baseUrl, "maquinaria_sesion",    db.getMaquinariaPendientes(),   idKey = "id_unico") { id -> db.eliminarMaquinaria(id) }
-
+        val subidosTracks       = subirTracks(baseUrl, context)
         // ── Descargar maestros ────────────────────────────────────────────────
-        return try {
-            val plantaciones = fetchLista(baseUrl, "plantaciones") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
-            db.reemplazarPlantaciones(plantaciones)
+        // ── Descargar maestros (cada uno independiente, con 1 reintento) ──────
+        val fallidos = mutableListOf<String>()
 
-            val trabajadores = fetchLista(baseUrl, "trabajadores") { obj -> Triple(obj.getInt("id"), obj.getString("nombre"), obj.optInt("supervisor", 0)) }
-            db.reemplazarTrabajadores(trabajadores)
-
-            val sectores = fetchLista(baseUrl, "sectores") { obj -> Triple(obj.getInt("id"), obj.getString("nombre"), obj.getInt("plantacion_id")) }
-            db.reemplazarSectores(sectores)
-
-            val lotes = fetchLista(baseUrl, "lotes") { obj -> Triple(obj.getInt("id"), obj.getString("nombre"), obj.getInt("sector_id")) }
-            db.reemplazarLotes(lotes)
-
-            val enfermedades = fetchLista(baseUrl, "enfermedades") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
-            db.reemplazarEnfermedades(enfermedades)
-
-            val eventos = fetchLista(baseUrl, "eventos") { obj -> Triple(obj.getInt("id"), obj.getString("codigo"), obj.getInt("enfermedad_id")) }
-            db.reemplazarEventos(eventos)
-
-            val tratEventos = fetchLista(baseUrl, "tratamientos_eventos") { obj -> Pair(obj.getInt("id"), obj.getString("codigo")) }
-            db.reemplazarTratamientosEventos(tratEventos)
-
-            val trampas = fetchLista(baseUrl, "trampas") { obj -> Pair(obj.getInt("id"), obj.getString("codigo")) }
-            db.reemplazarTrampas(trampas)
-
-            val insectos = fetchLista(baseUrl, "insectos") { obj -> Pair(obj.getInt("id"), obj.getString("insecto")) }
-            db.reemplazarInsectos(insectos)
-
-            val estadosInsecto = fetchLista(baseUrl, "estados_insecto") { obj -> Triple(obj.getInt("id"), obj.getString("estado"), obj.getInt("insecto_id")) }
-            db.reemplazarEstadosInsecto(estadosInsecto)
-
-            val maquinaria = fetchLista(baseUrl, "maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
-            db.reemplazarMaquinaria(maquinaria)
-
-            val implementos = fetchLista(baseUrl, "implementos") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
-            db.reemplazarImplementos(implementos)
-
-            val labores = fetchLista(baseUrl, "labores_maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("nombre")) }
-            db.reemplazarLaboresMaquinaria(labores)
-
-            val unidades = fetchLista(baseUrl, "unidades_maquinaria") { obj -> Pair(obj.getInt("id"), obj.getString("descripcion")) }
-            db.reemplazarUnidadesMaquinaria(unidades)
-
-            val umas = fetchLista(baseUrl, "umas") { obj ->
+        descargar("Plantaciones", fallidos) {
+            db.reemplazarPlantaciones(fetchLista(baseUrl, "plantaciones") { o -> Pair(o.getInt("id"), o.getString("nombre")) })
+        }
+        descargar("Trabajadores", fallidos) {
+            db.reemplazarTrabajadores(fetchLista(baseUrl, "trabajadores") { o -> Triple(o.getInt("id"), o.getString("nombre"), o.optInt("supervisor", 0)) })
+        }
+        descargar("Sectores", fallidos) {
+            db.reemplazarSectores(fetchLista(baseUrl, "sectores") { o -> Triple(o.getInt("id"), o.getString("nombre"), o.getInt("plantacion_id")) })
+        }
+        descargar("Lotes", fallidos) {
+            db.reemplazarLotes(fetchLista(baseUrl, "lotes") { o -> Triple(o.getInt("id"), o.getString("nombre"), o.getInt("sector_id")) })
+        }
+        descargar("Enfermedades", fallidos) {
+            db.reemplazarEnfermedades(fetchLista(baseUrl, "enfermedades") { o -> Pair(o.getInt("id"), o.getString("nombre")) })
+        }
+        descargar("Eventos", fallidos) {
+            db.reemplazarEventos(fetchLista(baseUrl, "eventos") { o -> Triple(o.getInt("id"), o.getString("codigo"), o.getInt("enfermedad_id")) })
+        }
+        descargar("Trat. eventos", fallidos) {
+            db.reemplazarTratamientosEventos(fetchLista(baseUrl, "tratamientos_eventos") { o -> Pair(o.getInt("id"), o.getString("codigo")) })
+        }
+        descargar("Trampas", fallidos) {
+            db.reemplazarTrampas(fetchLista(baseUrl, "trampas") { o -> Pair(o.getInt("id"), o.getString("codigo")) })
+        }
+        descargar("Insectos", fallidos) {
+            db.reemplazarInsectos(fetchLista(baseUrl, "insectos") { o -> Pair(o.getInt("id"), o.getString("insecto")) })
+        }
+        descargar("Estados insecto", fallidos) {
+            db.reemplazarEstadosInsecto(fetchLista(baseUrl, "estados_insecto") { o -> Triple(o.getInt("id"), o.getString("estado"), o.getInt("insecto_id")) })
+        }
+        descargar("Maquinaria", fallidos) {
+            db.reemplazarMaquinaria(fetchLista(baseUrl, "maquinaria") { o -> Pair(o.getInt("id"), o.getString("descripcion")) })
+        }
+        descargar("Implementos", fallidos) {
+            db.reemplazarImplementos(fetchLista(baseUrl, "implementos") { o -> Pair(o.getInt("id"), o.getString("descripcion")) })
+        }
+        descargar("Labores", fallidos) {
+            db.reemplazarLaboresMaquinaria(fetchLista(baseUrl, "labores_maquinaria") { o -> Pair(o.getInt("id"), o.getString("nombre")) })
+        }
+        descargar("Unidades", fallidos) {
+            db.reemplazarUnidadesMaquinaria(fetchLista(baseUrl, "unidades_maquinaria") { o -> Pair(o.getInt("id"), o.getString("descripcion")) })
+        }
+        descargar("Umas", fallidos) {
+            db.reemplazarUmas(fetchLista(baseUrl, "umas", readTimeout = 60_000) { o ->
                 UmaData(
-                    nutUmaPolId    = obj.getInt("nut_uma_pol_id"),
-                    nutUmaId       = obj.getInt("nut_uma_id"),
-                    codigo         = obj.getString("codigo"),
-                    palmas         = obj.optInt("palmas", 0),
-                    catPlantacionId= obj.optInt("cat_plantacion_id", 0),
-                    estado         = obj.optInt("estado", 1),
-                    simbolo        = obj.optString("simbolo", ""),
-                    geojson        = obj.getString("geojson"),
-                    fertilizantes   = obj.optString("fertilizantes", "[]")  // ← dosis → fertilizantes
+                    nutUmaPolId     = o.getInt("nut_uma_pol_id"),
+                    nutUmaId        = o.getInt("nut_uma_id"),
+                    codigo          = o.getString("codigo"),
+                    palmas          = o.optInt("palmas", 0),
+                    catPlantacionId = o.optInt("cat_plantacion_id", 0),
+                    estado          = o.optInt("estado", 1),
+                    simbolo         = o.optString("simbolo", ""),
+                    geojson         = o.getString("geojson"),
+                    fertilizantes   = o.optString("fertilizantes", "[]")
                 )
-            }
-            db.reemplazarUmas(umas)
+            })
+        }
+        descargar("Fertilizantes", fallidos) {
+            db.reemplazarFertilizantes(fetchLista(baseUrl, "fertilizantes") { o -> Pair(o.getInt("id"), o.getString("nombre")) })
+        }
 
-            val fertilizantes = fetchLista(baseUrl, "fertilizantes") { obj ->
-                Pair(obj.getInt("id"), obj.getString("nombre"))
-            }
-            db.reemplazarFertilizantes(fertilizantes)
+        guardarFechaSincronizacion(context)
 
-            guardarFechaSincronizacion(context)
+        val detallesFinal = mapOf(
+            "Tracks" to subidosTracks, "Censo enfermedades" to subidosCenso,
+            "Tratamientos" to subidosTrat, "Polinización" to subidosPoli,
+            "Polen inicial/final" to subidosPolen, "Sanstrategus" to subidosStrategus,
+            "Censo trampas" to subidosTrampas, "Muestreo plagas" to subidosPlagas,
+            "Super cosecha" to subidosSuperCosecha, "Maquinaria" to subidosMaquinaria
+        )
 
-            ResultadoSync(
-                exitoso  = true,
-                detalles = mapOf(
-                    "Tracks"              to subidosTracks,
-                    "Censo enfermedades"  to subidosCenso,
-                    "Tratamientos"        to subidosTrat,
-                    "Polinización"        to subidosPoli,
-                    "Polen inicial/final" to subidosPolen,
-                    "Sanstrategus"        to subidosStrategus,
-                    "Censo trampas"       to subidosTrampas,
-                    "Muestreo plagas"     to subidosPlagas,
-                    "Super cosecha"       to subidosSuperCosecha,
-                    "Maquinaria"          to subidosMaquinaria
-                )
-            )
-        } catch (e: Exception) {
-            // Los registros ya subidos se conservan — solo falló la descarga de maestros
+        return if (fallidos.isEmpty()) {
+            ResultadoSync(exitoso = true, detalles = detallesFinal)
+        } else {
             ResultadoSync(
                 exitoso = false,
-                mensaje = "Registros subidos correctamente pero falló la descarga de datos: ${e.message}",
-                detalles = mapOf(
-                    "Tracks"              to subidosTracks,
-                    "Censo enfermedades"  to subidosCenso,
-                    "Tratamientos"        to subidosTrat,
-                    "Polinización"        to subidosPoli,
-                    "Polen inicial/final" to subidosPolen,
-                    "Sanstrategus"        to subidosStrategus,
-                    "Censo trampas"       to subidosTrampas,
-                    "Muestreo plagas"     to subidosPlagas,
-                    "Super cosecha"       to subidosSuperCosecha,
-                    "Maquinaria"          to subidosMaquinaria
-                )
+                mensaje = "No se pudieron descargar: ${fallidos.joinToString(", ")}. Sincroniza de nuevo para completarlos.",
+                detalles = detallesFinal
             )
+        }
+    }
+
+    /** Ejecuta una descarga con 1 reintento; si falla dos veces, anota y continúa. */
+    private fun descargar(nombre: String, fallidos: MutableList<String>, accion: () -> Unit) {
+        repeat(2) { intento ->
+            try { accion(); return } catch (e: Exception) {
+                if (intento == 1) fallidos.add(nombre)
+            }
         }
     }
 
@@ -214,11 +204,11 @@ object SyncManager {
         } catch (e: Exception) { false }
     }
 
-    private fun <T> fetchLista(baseUrl: String, endpoint: String, mapper: (JSONObject) -> T): List<T> {
+    private fun <T> fetchLista(baseUrl: String, endpoint: String, readTimeout: Int = 30_000, mapper: (JSONObject) -> T): List<T> {
         val url = URL("$baseUrl/$endpoint")
         val connection = url.openConnection() as HttpURLConnection
         connection.connectTimeout = 10_000
-        connection.readTimeout    = 10_000
+        connection.readTimeout    = readTimeout
         connection.requestMethod  = "GET"
         connection.connect()
         if (connection.responseCode != 200) throw Exception("Error en /$endpoint: ${connection.responseCode}")
@@ -227,6 +217,7 @@ object SyncManager {
         val array = JSONArray(response)
         return (0 until array.length()).map { mapper(array.getJSONObject(it)) }
     }
+
 
     private const val PREFS_SYNC    = "palma_sync"
     private const val KEY_LAST_SYNC = "ultima_sincronizacion"
