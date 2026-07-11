@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.databinding.ActivityTrat9Binding
+import com.palmadata.app.utils.aDecimalCampo
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
 import java.text.SimpleDateFormat
@@ -64,7 +65,7 @@ class Trat9Activity : AppCompatActivity() {
             observaciones     = binding.etObservaciones.text.toString(),
             latitud           = SessionManager.getLastLatitude(this),
             longitud          = SessionManager.getLastLongitude(this),
-            cantidad          = cantidad.toDoubleOrNull() ?: 0.0,
+            cantidad          = cantidad.aDecimalCampo() ?: 0.0,
             equipo            = SessionManager.getEquipoId(this)
         )
         try {

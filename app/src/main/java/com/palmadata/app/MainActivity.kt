@@ -28,6 +28,7 @@ import com.palmadata.app.polen.PolenInicialFinalRegistro
 import com.palmadata.app.maquinaria.MaquinariaActivity
 import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.service.TrackingService
+import com.palmadata.app.utils.aDecimalCampo
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
@@ -454,8 +455,8 @@ class MainActivity : AppCompatActivity() {
 
             val registro = PolenInicialFinalRegistro(
                 fecha      = fechaSeleccionada,
-                inicial    = inicialStr.toDoubleOrNull() ?: 0.0,
-                final      = finalStr.toDoubleOrNull() ?: 0.0,
+                inicial    = inicialStr.aDecimalCampo() ?: 0.0,
+                final      = finalStr.aDecimalCampo() ?: 0.0,
                 trabajador = worker.code.toIntOrNull() ?: 0
             )
 

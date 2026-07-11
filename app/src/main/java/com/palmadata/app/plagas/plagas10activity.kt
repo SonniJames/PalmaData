@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.databinding.ActivityPlagas10Binding
+import com.palmadata.app.utils.aDecimalCampo
 
 class Plagas10Activity : AppCompatActivity() {
     private lateinit var binding: ActivityPlagas10Binding
@@ -22,11 +23,11 @@ class Plagas10Activity : AppCompatActivity() {
         val nivFoliar       = intent.getStringExtra("niv_foliar") ?: "0"
 
         binding.btnAccion.setOnClickListener {
-            val defol5  = binding.etDefol5.text.toString().toDoubleOrNull() ?: 0.0
-            val defol13 = binding.etDefol13.text.toString().toDoubleOrNull() ?: 0.0
-            val defol21 = binding.etDefol21.text.toString().toDoubleOrNull() ?: 0.0
-            val defol29 = binding.etDefol29.text.toString().toDoubleOrNull() ?: 0.0
-            val defol37 = binding.etDefol37.text.toString().toDoubleOrNull() ?: 0.0
+            val defol5  = binding.etDefol5.text.toString().aDecimalCampo() ?: 0.0
+            val defol13 = binding.etDefol13.text.toString().aDecimalCampo() ?: 0.0
+            val defol21 = binding.etDefol21.text.toString().aDecimalCampo() ?: 0.0
+            val defol29 = binding.etDefol29.text.toString().aDecimalCampo() ?: 0.0
+            val defol37 = binding.etDefol37.text.toString().aDecimalCampo() ?: 0.0
 
             startActivity(Intent(this, Plagas11Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)

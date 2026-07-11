@@ -12,6 +12,7 @@ import com.palmadata.app.R
 import com.palmadata.app.databinding.ActivityMaquinariaBinding
 import com.palmadata.app.databinding.DialogFinalizarLaborBinding
 import com.palmadata.app.utils.DatabaseHelper
+import com.palmadata.app.utils.aDecimalCampo
 import com.palmadata.app.utils.SessionManager
 import org.json.JSONArray
 import org.json.JSONObject
@@ -305,13 +306,13 @@ class MaquinariaActivity : AppCompatActivity() {
     }
 
     private fun mostrarDialogoFinalizar() {
-        val combustible = binding.etCombustible.text.toString().toDoubleOrNull()
+        val combustible = binding.etCombustible.text.toString().aDecimalCampo()
         if (combustible == null || combustible <= 0.0) {
             Toast.makeText(this, "Ingrese valor en Combustible", Toast.LENGTH_SHORT).show()
             return
         }
-        val horometroInicial = binding.etHorometroInicial.text.toString().toDoubleOrNull() ?: 0.0
-        val kilometroInicial = binding.etKilometroInicial.text.toString().toDoubleOrNull() ?: 0.0
+        val horometroInicial = binding.etHorometroInicial.text.toString().aDecimalCampo() ?: 0.0
+        val kilometroInicial = binding.etKilometroInicial.text.toString().aDecimalCampo() ?: 0.0
 
         val dialogBinding = DialogFinalizarLaborBinding.inflate(layoutInflater)
         val dialog = AlertDialog.Builder(this)
@@ -320,8 +321,8 @@ class MaquinariaActivity : AppCompatActivity() {
             .create()
 
         dialogBinding.btnGuardarFinal.setOnClickListener {
-            val horometroFinal = dialogBinding.etHorometroFinal.text.toString().toDoubleOrNull()
-            val kilometroFinal = dialogBinding.etKilometroFinal.text.toString().toDoubleOrNull()
+            val horometroFinal = dialogBinding.etHorometroFinal.text.toString().aDecimalCampo()
+            val kilometroFinal = dialogBinding.etKilometroFinal.text.toString().aDecimalCampo()
 
             when {
                 horometroFinal == null -> { Toast.makeText(this, "Ingrese Horómetro Final", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
@@ -347,15 +348,15 @@ class MaquinariaActivity : AppCompatActivity() {
             implemento       = implementoId,
             labor            = laborId,
             trabajador       = trabajadorId,
-            kiloinicial      = binding.etKilometroInicial.text.toString().toDoubleOrNull() ?: 0.0,
+            kiloinicial      = binding.etKilometroInicial.text.toString().aDecimalCampo() ?: 0.0,
             kilofinal        = kilometroFinal,
-            combustible      = binding.etCombustible.text.toString().toDoubleOrNull() ?: 0.0,
-            horometroinicial = binding.etHorometroInicial.text.toString().toDoubleOrNull() ?: 0.0,
+            combustible      = binding.etCombustible.text.toString().aDecimalCampo() ?: 0.0,
+            horometroinicial = binding.etHorometroInicial.text.toString().aDecimalCampo() ?: 0.0,
             horometrofinal   = horometroFinal,
             lote             = lotesSeleccionados.joinToString(",") { it.first.toString() },
             observaciones    = binding.etObservaciones.text.toString(),
             unidadcantidad   = unidadId,
-            cantidad         = binding.etCantidad.text.toString().toDoubleOrNull() ?: 0.0,
+            cantidad         = binding.etCantidad.text.toString().aDecimalCampo() ?: 0.0,
             fechainicial     = fechaInicial,
             horainicial      = horaInicial,
             fechafinal       = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(ahora),
