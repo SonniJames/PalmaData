@@ -108,6 +108,24 @@ class MainActivity : AppCompatActivity() {
         iniciarTrackingService()
     }
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* concedido o no, la app continúa; sin él solo se pierde la notificación */ }
+
+    /**
+     * Android 13+ exige pedir el permiso de notificaciones en runtime.
+     * Sin él, NO se muestra la notificación del servicio ni la de fertilización
+     * (la que avisa la UMA actual y su dosis en la pantalla de bloqueo).
+     */
+    private fun solicitarPermisoNotificaciones() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Respetar barras del sistema
@@ -135,6 +153,7 @@ class MainActivity : AppCompatActivity() {
             binding.tvWorkerSelector.setTextColor(ContextCompat.getColor(this, R.color.worker_set))
         }
         handleGpsPermissions()
+        solicitarPermisoNotificaciones()
         solicitarExcluirOptimizacionBateria()
     }
 

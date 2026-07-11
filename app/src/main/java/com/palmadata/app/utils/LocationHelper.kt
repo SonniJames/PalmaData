@@ -76,6 +76,17 @@ class LocationHelper(
             SessionManager.getCurrentWorker(context)?.code?.toIntOrNull() ?: 0
         }
 
+        // Invariante: el fertilizante SOLO acompaña tracks del módulo de
+        // fertilización (formulario 25). Cubre el caso borde: estando en el
+        // mapa, el operario toca la notificación → MainActivity se abre encima
+        // (el mapa NO se destruye, así que los fertilizantes no se limpian) →
+        // entra a otro módulo → sin esta guarda, esos tracks saldrían con el
+        // formulario del otro módulo pero arrastrando el fertilizante viejo.
+        val formularioActivo = SessionManager.getFormularioActivo(context)
+        val fertilizantesTrack =
+            if (formularioActivo == 25) SessionManager.getFertilizantesActivos(context)  // "[]" o "[1,2,...]"
+            else "[]"
+
         return TrackMovil(
             x            = location.latitude,
             y            = location.longitude,
@@ -87,10 +98,10 @@ class LocationHelper(
             hora         = fmtHora.format(ahora),
             trabajador   = trabajadorFinal,
             plantacionId = 0L,
-            formulario   = SessionManager.getFormularioActivo(context),  // id del módulo activo, 0 si está en la pantalla principal
+            formulario   = formularioActivo,  // id del módulo activo, 0 si está en la pantalla principal
             idunico      = UUID.randomUUID().toString(),
             equipo       = SessionManager.getEquipoId(context),
-            fertilizante = SessionManager.getFertilizantesActivos(context)  // "[]" o "[1,2,...]"
+            fertilizante = fertilizantesTrack
         )
     }
 
