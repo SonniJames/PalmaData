@@ -14,6 +14,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.palmadata.app.R
 import com.palmadata.app.data.model.UmaData
+import com.palmadata.app.service.TrackingService
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.SessionManager
 import com.palmadata.app.utils.UmaDetectionEngine
@@ -495,10 +496,31 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         // (apagando el motor). Al volver aquí con atrás, se restaura el 25 y
         // la detección revive en el siguiente fix del servicio.
         SessionManager.setFormularioActivo(this, 25)
+        // El motor de detección vive en el TrackingService. Si el servicio está
+        // apagado (p. ej. la jornada se cerró al sincronizar en la tarde), este
+        // módulo no detectaría nada. Asegurar que esté corriendo: el servicio
+        // permite seguir vivo en fertilización aunque la jornada esté cerrada
+        // (detecta y alerta, pero el LocationHelper ya no guarda tracks).
+        asegurarServicioActivo()
         // Al volver (p. ej. tras desbloquear), ponerse al día con lo que el
         // motor detectó mientras la pantalla estaba apagada
         UmaDetectionEngine.setListener(this)
         if (umasDibujadas) sincronizarConMotor()
+    }
+
+    private fun asegurarServicioActivo() {
+        try {
+            val intent = android.content.Intent(this, TrackingService::class.java)
+            intent.action = TrackingService.ACTION_START
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            // Sin permisos de ubicación el servicio no arranca; la pantalla
+            // sigue mostrando el mapa y las umas, solo sin detección.
+        }
     }
 
     override fun onPause() {

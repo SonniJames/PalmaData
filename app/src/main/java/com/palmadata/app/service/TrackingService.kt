@@ -73,10 +73,15 @@ class TrackingService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                // Si la jornada de hoy ya se cerró (sync de la tarde), no
-                // registrar — cubre el caso de que Android reinicie el servicio
-                // solo con START_STICKY (intent nulo) después de matar el proceso.
-                if (SessionManager.isJornadaCerradaHoy(this)) {
+                // Si la jornada de hoy ya se cerró (sync de la tarde), el servicio
+                // solo debe seguir vivo si el operario está en FERTILIZACIÓN:
+                // ahí necesita la detección de UMAs y las alertas aunque ya no se
+                // guarden tracks (el LocationHelper no guarda fuera de horario).
+                // En cualquier otro caso, detenerse — cubre también el reinicio
+                // automático de Android con START_STICKY (intent nulo).
+                val enFertilizacion =
+                    SessionManager.getFormularioActivo(this) == FORMULARIO_FERTILIZACION
+                if (SessionManager.isJornadaCerradaHoy(this) && !enFertilizacion) {
                     detenerServicio()
                     return START_NOT_STICKY
                 }
