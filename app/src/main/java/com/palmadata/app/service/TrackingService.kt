@@ -67,6 +67,13 @@ class TrackingService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
+                // Si la jornada de hoy ya se cerró (sync de la tarde), no
+                // registrar — cubre el caso de que Android reinicie el servicio
+                // solo con START_STICKY (intent nulo) después de matar el proceso.
+                if (SessionManager.isJornadaCerradaHoy(this)) {
+                    detenerServicio()
+                    return START_NOT_STICKY
+                }
                 iniciarComoForeground()
                 adquirirWakeLock()
                 if (locationHelper.hasPermissions()) {

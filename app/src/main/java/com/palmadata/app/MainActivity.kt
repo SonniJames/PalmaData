@@ -160,7 +160,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (locationHelper.hasPermissions()) {
+        // No revivir el tracking si la jornada de hoy ya se cerró (el trabajador
+        // sincronizó en la tarde). Antes, cualquier retorno a esta pantalla
+        // reiniciaba el servicio y volvía a registrar tracks — ese era el bug.
+        if (locationHelper.hasPermissions() && !SessionManager.isJornadaCerradaHoy(this)) {
             iniciarTrackingService()
         }
     }
@@ -190,6 +193,10 @@ class MainActivity : AppCompatActivity() {
     // ── Tracking Service (background) ───────────────────────────────────────
 
     private fun iniciarTrackingService() {
+        // Guarda central: nunca arrancar si la jornada de hoy ya se cerró.
+        // Así los tres puntos de arranque (onCreate, onStart, permisos)
+        // respetan el corte de la tarde sin repetir la comprobación.
+        if (SessionManager.isJornadaCerradaHoy(this)) return
         val intent = Intent(this, TrackingService::class.java)
         intent.action = TrackingService.ACTION_START
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -372,6 +379,9 @@ class MainActivity : AppCompatActivity() {
 
         val hora = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         if (hora >= 12) {
+            // Marcar la jornada como cerrada (estado que dura el resto del día):
+            // ni onStart ni ningún otro punto reviven el servicio hasta mañana.
+            SessionManager.cerrarJornadaHoy(this)
             detenerTrackingService()
             Toast.makeText(this, "Fin de jornada: el registro de recorrido se detiene y reinicia mañana al abrir la app.", Toast.LENGTH_LONG).show()
         }

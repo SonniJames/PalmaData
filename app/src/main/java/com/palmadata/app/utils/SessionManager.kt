@@ -110,6 +110,27 @@ object SessionManager {
 
     private const val KEY_FORMULARIO_ACTIVO = "formulario_activo"
 
+    // ── Jornada cerrada (corte de tracking de la tarde) ───────────────────────
+    // El corte de mediodía NO es una acción de una sola vez ("detener el
+    // servicio"), sino un ESTADO que debe durar el resto del día: una vez el
+    // trabajador sincroniza en la tarde, no se registran más tracks hasta el
+    // día siguiente. Se guarda la fecha del cierre; al cambiar de día, el
+    // estado deja de aplicar solo (sin necesidad de limpiarlo).
+
+    private const val KEY_JORNADA_CERRADA_FECHA = "jornada_cerrada_fecha"
+
+    private fun hoyStr(): String =
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+
+    /** Marca la jornada de HOY como cerrada: no se registran más tracks hoy. */
+    fun cerrarJornadaHoy(context: Context) {
+        prefs(context).edit().putString(KEY_JORNADA_CERRADA_FECHA, hoyStr()).apply()
+    }
+
+    /** True solo si la jornada fue cerrada HOY (ayer ya no cuenta). */
+    fun isJornadaCerradaHoy(context: Context): Boolean =
+        prefs(context).getString(KEY_JORNADA_CERRADA_FECHA, "") == hoyStr()
+
     fun setFormularioActivo(context: Context, formularioId: Int) {
         prefs(context).edit().putInt(KEY_FORMULARIO_ACTIVO, formularioId).apply()
     }
