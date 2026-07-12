@@ -51,10 +51,14 @@ class TrackingService : Service() {
     private fun manejarPosicion(lat: Double, lon: Double) {
         val formulario = SessionManager.getFormularioActivo(this)
         if (formulario == FORMULARIO_FERTILIZACION) {
+            // GPS rápido (2 s): confirma cambio de UMA en ~6 s en vez de ~15 s
+            locationHelper.setIntervalo(LocationHelper.INTERVALO_RAPIDO_MS)
             UmaDetectionEngine.activar(this)
             UmaDetectionEngine.procesarPosicion(this, lat, lon)
         } else if (UmaDetectionEngine.activo) {
-            // Salió del módulo: apagar el motor y volver a la notificación base
+            // Salió del módulo: volver a 5 s (batería), apagar el motor y
+            // restaurar la notificación base del servicio.
+            locationHelper.setIntervalo(LocationHelper.INTERVALO_NORMAL_MS)
             UmaDetectionEngine.desactivar()
             UmaDetectionEngine.restaurarNotificacionBase(this)
         }

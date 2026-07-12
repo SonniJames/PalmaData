@@ -21,12 +21,23 @@ class LocationHelper(
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
-    private val locationRequest = LocationRequest.Builder(
-        Priority.PRIORITY_HIGH_ACCURACY, 5_000L
-    ).apply {
-        setMinUpdateIntervalMillis(5_000L)
-        setWaitForAccurateLocation(false)
-    }.build()
+    companion object {
+        // Intervalo normal: 5 s (equilibra precisión de recorrido y batería).
+        const val INTERVALO_NORMAL_MS = 5_000L
+        // Intervalo rápido para fertilización: 2 s. Con 3 fixes para confirmar
+        // cambio de UMA, la alerta baja de 15 s (a 5 s) a 6 s (a 2 s), acercándose
+        // a como lo hace OruxMaps (que corre a 1 Hz) sin castigar tanto la batería.
+        const val INTERVALO_RAPIDO_MS = 2_000L
+    }
+
+    // Intervalo actual (puede cambiar en caliente al entrar/salir de fertilización)
+    private var intervaloActualMs = INTERVALO_NORMAL_MS
+
+    private fun construirLocationRequest(intervaloMs: Long): LocationRequest =
+        LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervaloMs).apply {
+            setMinUpdateIntervalMillis(intervaloMs)
+            setWaitForAccurateLocation(false)
+        }.build()
 
     // Filtro de precisión para TRACKS — descarta puntos con accuracy peor a 30 metros
     private val MAX_ACCURACY_TRACKS_METROS = 30f
@@ -117,13 +128,33 @@ class LocationHelper(
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
         if (isTracking || !hasPermissions()) return
-        fusedClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        fusedClient.requestLocationUpdates(
+            construirLocationRequest(intervaloActualMs), locationCallback, Looper.getMainLooper()
+        )
         isTracking = true
         fusedClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
                 SessionManager.saveLastLocation(context, it.latitude, it.longitude)
                 onLocationUpdate(it.latitude, it.longitude)
             }
+        }
+    }
+
+    /**
+     * Cambia el intervalo de GPS en caliente. El TrackingService lo usa para
+     * pasar a 2 s cuando el operario entra al módulo de fertilización (alerta de
+     * cambio de UMA más rápida) y volver a 5 s al salir (cuidar batería).
+     * Reinicia los updates solo si el intervalo realmente cambió.
+     */
+    @SuppressLint("MissingPermission")
+    fun setIntervalo(intervaloMs: Long) {
+        if (intervaloMs == intervaloActualMs) return
+        intervaloActualMs = intervaloMs
+        if (isTracking) {
+            fusedClient.removeLocationUpdates(locationCallback)
+            fusedClient.requestLocationUpdates(
+                construirLocationRequest(intervaloActualMs), locationCallback, Looper.getMainLooper()
+            )
         }
     }
 

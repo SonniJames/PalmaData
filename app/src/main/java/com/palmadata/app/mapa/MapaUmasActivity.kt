@@ -149,6 +149,13 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         mapView.setTileSource(FUENTE_SATELITAL)
         mapView.setMultiTouchControls(true)
         mapView.minZoomLevel = 3.0
+        // Zoom de interacción hasta 20, aunque solo hay teselas descargadas
+        // hasta 17. osmdroid rellena los niveles sin tesela reutilizando la del
+        // zoom vecino que sí existe y escalándola (se ve más borrosa pero SIEMPRE
+        // hay imagen, nunca el fondo gris de "mapa no disponible"). Es el mismo
+        // enfoque de OruxMaps y Google Maps.
+        mapView.maxZoomLevel = 20.0
+        mapView.setUseDataConnection(true)  // usa el caché offline; si hay red, completa faltantes
 
         configurarMiUbicacion()
         actualizarFranjaFertilizante()
