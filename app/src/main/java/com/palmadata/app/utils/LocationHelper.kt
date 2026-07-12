@@ -22,16 +22,26 @@ class LocationHelper(
         LocationServices.getFusedLocationProviderClient(context)
 
     companion object {
-        // Intervalo normal: 5 s (equilibra precisión de recorrido y batería).
+        // ── Frecuencia del GPS (cada cuánto llega una posición) ────────────────
+        // Normal: 5 s (equilibra precisión de recorrido y batería).
         const val INTERVALO_NORMAL_MS = 5_000L
-        // Intervalo rápido para fertilización: 2 s. Con 3 fixes para confirmar
-        // cambio de UMA, la alerta baja de 15 s (a 5 s) a 6 s (a 2 s), acercándose
-        // a como lo hace OruxMaps (que corre a 1 Hz) sin castigar tanto la batería.
-        const val INTERVALO_RAPIDO_MS = 2_000L
+        // Fertilización: 1 s, igual que OruxMaps. Sirve para DETECTAR el cambio
+        // de UMA rápido: con 3 fixes de confirmación, la alerta baja de 15 s a
+        // ~3 s. NO significa más tracks guardados (ver PERIODO_GUARDADO_MS).
+        const val INTERVALO_RAPIDO_MS = 1_000L
+
+        // ── Frecuencia de GUARDADO de tracks (independiente del GPS) ───────────
+        // Siempre 5 s, en TODOS los módulos. Aunque en fertilización el GPS
+        // entregue una posición por segundo, solo se guarda un track cada 5 s:
+        // así la detección es rápida sin multiplicar por 5 el volumen de tracks.
+        const val PERIODO_GUARDADO_MS = 5_000L
     }
 
-    // Intervalo actual (puede cambiar en caliente al entrar/salir de fertilización)
+    // Intervalo actual del GPS (cambia en caliente al entrar/salir de fertilización)
     private var intervaloActualMs = INTERVALO_NORMAL_MS
+
+    // Momento del último track guardado (para el portero de los 5 s)
+    private var ultimoGuardadoMs = 0L
 
     private fun construirLocationRequest(intervaloMs: Long): LocationRequest =
         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervaloMs).apply {
@@ -50,20 +60,30 @@ class LocationHelper(
         override fun onLocationResult(result: LocationResult) {
             val location: Location = result.lastLocation ?: return
 
-            // Última ubicación para formularios: umbral laxo
+            // ── 1. Última ubicación para formularios: umbral laxo, cada fix ────
             if (location.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS) {
                 SessionManager.saveLastLocation(context, location.latitude, location.longitude)
+                // Este callback alimenta la DETECCIÓN de UMAs del TrackingService:
+                // se invoca en CADA fix (a 1 s en fertilización) para que el cambio
+                // de UMA se confirme rápido.
                 onLocationUpdate(location.latitude, location.longitude)
             }
 
-            // Tracks del recorrido: umbral estricto
+            // ── 2. Guardado de tracks: umbral estricto + portero de 5 s ────────
             if (location.accuracy > MAX_ACCURACY_TRACKS_METROS) return
+            if (!enHorarioLaboral()) return
 
-            if (enHorarioLaboral()) {
-                val track = construirTrack(location)
-                TrackStorage.guardarTrack(context, track)
-                onTrackGuardado?.invoke(track)
-            }
+            // Aunque el GPS venga a 1 s, solo se guarda un track cada 5 s.
+            // Así fertilización NO genera más tracks que los demás módulos.
+            // El margen de 500 ms evita descartar un track legítimo del modo
+            // normal (GPS a 5 s) por unos milisegundos de desfase del sistema.
+            val ahoraMs = System.currentTimeMillis()
+            if (ahoraMs - ultimoGuardadoMs < PERIODO_GUARDADO_MS - 500L) return
+            ultimoGuardadoMs = ahoraMs
+
+            val track = construirTrack(location)
+            TrackStorage.guardarTrack(context, track)
+            onTrackGuardado?.invoke(track)
         }
     }
 

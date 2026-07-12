@@ -51,7 +51,9 @@ class TrackingService : Service() {
     private fun manejarPosicion(lat: Double, lon: Double) {
         val formulario = SessionManager.getFormularioActivo(this)
         if (formulario == FORMULARIO_FERTILIZACION) {
-            // GPS rápido (2 s): confirma cambio de UMA en ~6 s en vez de ~15 s
+            // GPS a 1 s (como OruxMaps): confirma cambio de UMA en ~3 s en vez
+            // de ~15 s. El guardado de tracks sigue siendo cada 5 s (portero en
+            // LocationHelper), así que este módulo NO genera más tracks.
             locationHelper.setIntervalo(LocationHelper.INTERVALO_RAPIDO_MS)
             UmaDetectionEngine.activar(this)
             UmaDetectionEngine.procesarPosicion(this, lat, lon)
