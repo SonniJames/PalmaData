@@ -137,20 +137,24 @@ object SyncManager {
             pendientes.chunked(tamanoLote).forEach { lote ->
                 var exito = false
                 var intento = 0
+                val ids = mutableListOf<Long>()
+                lote.forEach { track -> ids.add((track["id"] as? Long) ?: 0L) }
+
                 while (!exito && intento < maxIntentos) {
                     intento++
                     try {
                         val array = JSONArray()
-                        val ids = mutableListOf<Long>()
                         lote.forEach { track ->
                             array.put(JSONObject(track.filter { it.key != "sincronizado" && it.key != "id" }))
-                            ids.add((track["id"] as? Long) ?: 0L)
                         }
                         val url = URL("$baseUrl/tracks")
                         val connection = url.openConnection() as HttpURLConnection
                         connection.connectTimeout = 15_000
-                        // 60 s: insertar 300 filas puede tardar más de 15 s en el server
-                        connection.readTimeout    = 60_000
+                        // 120 s: insertar 300 filas en una VM pequeña puede tardar.
+                        // Con el INSERT multi-fila del servidor esto será casi
+                        // instantáneo, pero el margen amplio evita cortar por
+                        // timeout un lote que el servidor SÍ está guardando.
+                        connection.readTimeout    = 120_000
                         connection.requestMethod  = "POST"
                         connection.doOutput       = true
                         connection.setRequestProperty("Content-Type", "application/json")
@@ -158,14 +162,20 @@ object SyncManager {
                         connection.outputStream.bufferedWriter().use { it.write(array.toString()) }
                         val code = connection.responseCode
                         val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                        val response = stream?.bufferedReader()?.readText() ?: "{}"
+                        stream?.bufferedReader()?.readText()
                         connection.disconnect()
                         if (code == 200) {
                             db.marcarTracksSincronizados(ids)
-                            subidosTotal += lote.size
+                            subidosTotal += ids.size
                             exito = true
                         }
-                    } catch (e: Exception) { /* timeout u otro error de red — se reintenta */ }
+                    } catch (e: Exception) {
+                        // Timeout u otro error de red. IMPORTANTE: el servidor
+                        // pudo haber guardado el lote de todas formas (idempotencia
+                        // por idunico lo protege del reenvío). No se cuenta como
+                        // subido aquí; si ya estaba, el próximo intento recibe 200
+                        // sin duplicar.
+                    }
 
                     // Espera progresiva antes del siguiente intento: 1.5 s, 3 s
                     if (!exito && intento < maxIntentos) {

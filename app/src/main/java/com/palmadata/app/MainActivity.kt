@@ -6,6 +6,7 @@ import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.view.WindowManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -374,6 +375,11 @@ class MainActivity : AppCompatActivity() {
             .create()
         dialogCargando.show()
 
+        // Mantener la pantalla encendida mientras sincroniza: evita que el
+        // sistema apague la pantalla y limite el proceso a mitad de una subida
+        // grande de tracks. Se libera sí o sí al terminar (éxito o error).
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         binding.btnSincronizar.isEnabled = false
         binding.btnSincronizar.text = "Sincronizando..."
 
@@ -392,6 +398,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             dialogCargando.dismiss()
+            // Liberar el bloqueo de pantalla encendida
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             binding.btnSincronizar.isEnabled = true
             binding.btnSincronizar.text = "SINCRONIZAR"
 
