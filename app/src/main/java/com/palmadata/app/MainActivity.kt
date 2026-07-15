@@ -393,15 +393,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            val resultado = withContext(Dispatchers.IO) {
-                SyncManager.sincronizar(this@MainActivity)
+            val resultado = try {
+                withContext(Dispatchers.IO) {
+                    SyncManager.sincronizar(this@MainActivity)
+                }
+            } finally {
+                // Pase lo que pase (éxito, error o excepción), soltar la pantalla
+                // encendida y reactivar el botón — nunca dejar la UI bloqueada.
+                dialogCargando.dismiss()
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                binding.btnSincronizar.isEnabled = true
+                binding.btnSincronizar.text = "SINCRONIZAR"
             }
-
-            dialogCargando.dismiss()
-            // Liberar el bloqueo de pantalla encendida
-            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            binding.btnSincronizar.isEnabled = true
-            binding.btnSincronizar.text = "SINCRONIZAR"
 
             if (resultado.exitoso) {
                 val detalle = resultado.detalles.entries.joinToString("\n") {
