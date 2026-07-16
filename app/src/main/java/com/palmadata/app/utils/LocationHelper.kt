@@ -24,7 +24,7 @@ class LocationHelper(
     companion object {
         // ── Frecuencia del GPS (cada cuánto llega una posición) ────────────────
         // Normal: 5 s (equilibra precisión de recorrido y batería).
-        const val INTERVALO_NORMAL_MS = 5_000L
+        const val INTERVALO_NORMAL_MS = 4_000L
         // Fertilización: 1 s, igual que OruxMaps. Sirve para DETECTAR el cambio
         // de UMA rápido: con 3 fixes de confirmación, la alerta baja de 15 s a
         // ~3 s. NO significa más tracks guardados (ver PERIODO_GUARDADO_MS).
@@ -34,7 +34,7 @@ class LocationHelper(
         // Siempre 5 s, en TODOS los módulos. Aunque en fertilización el GPS
         // entregue una posición por segundo, solo se guarda un track cada 5 s:
         // así la detección es rápida sin multiplicar por 5 el volumen de tracks.
-        const val PERIODO_GUARDADO_MS = 5_000L
+        const val PERIODO_GUARDADO_MS = 4_000L
     }
 
     // Intervalo actual del GPS (cambia en caliente al entrar/salir de fertilización)
