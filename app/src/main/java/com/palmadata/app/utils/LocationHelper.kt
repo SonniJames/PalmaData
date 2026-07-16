@@ -72,7 +72,7 @@ class LocationHelper(
             // ── 2. Guardado de tracks: umbral estricto + portero de 5 s ────────
             if (location.accuracy > MAX_ACCURACY_TRACKS_METROS) return
             if (!enHorarioLaboral()) return
-
+            if (SessionManager.isJornadaCerradaHoy(context)) return  // cerrada = no más tracks hoy
             // Aunque el GPS venga a 1 s, solo se guarda un track cada 5 s.
             // Así fertilización NO genera más tracks que los demás módulos.
             // El margen de 500 ms evita descartar un track legítimo del modo
