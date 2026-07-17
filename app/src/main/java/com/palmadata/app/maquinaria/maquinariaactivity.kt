@@ -365,6 +365,11 @@ class MaquinariaActivity : AppCompatActivity() {
         )
         try {
             db.guardarMaquinaria(registro)
+            // IMPORTANTE: marcar la labor como finalizada ANTES de finish().
+            // finish() dispara onPause(), y si laborIniciada siguiera en true,
+            // onPause volvería a guardar la sesión que acabamos de limpiar,
+            // haciendo que al reingresar apareciera una "labor en curso" fantasma.
+            laborIniciada = false
             SessionManager.clearTrabajadorMaquinariaActivo(this)
             limpiarSesionEnCurso()
             Toast.makeText(this, "✅ Registro guardado", Toast.LENGTH_SHORT).show()
