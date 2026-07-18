@@ -93,6 +93,16 @@ object UmaDetectionEngine {
         Log.d(TAG, "Motor de detección desactivado")
     }
 
+    /** Descarta los polígonos en memoria para que la próxima activación los re-lea
+     *  de la BD. Lo usa el botón "Actualizar UMAs" del mapa tras sincronizar. */
+    fun invalidar() {
+        poligonos = emptyList()
+        umaActualId = null
+        umaCandidataId = null
+        fixesCandidata = 0
+        estadoInicialAnunciado = false
+    }
+
     private fun cargarPoligonosSiFaltan(appContext: Context) {
         if (poligonos.isNotEmpty() || cargando) return
         cargando = true

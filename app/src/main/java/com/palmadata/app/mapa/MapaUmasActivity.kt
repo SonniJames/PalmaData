@@ -49,6 +49,7 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
     private lateinit var tvFertilizanteSelector: TextView
     private lateinit var tvLimpiarFertilizante: TextView
 
+    private lateinit var btnActualizarUmas: FloatingActionButton
     // Overlay único que dibuja todas las umas (optimización de rendimiento)
     private val umasOverlay = UmasOverlay()
     private var umasDibujadas = false
@@ -136,6 +137,9 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         // ── Botón descargar mapa offline ───────────────────────────────────────
         btnDescargarMapa.setOnClickListener { confirmarDescargaMapaOffline() }
 
+        btnActualizarUmas.setOnClickListener { actualizarUmasDesdeCache() }
+
+        btnActualizarUmas      = findViewById(R.id.btnActualizarUmas)
         // ── Selector de fertilizante ───────────────────────────────────────────
         tvFertilizanteSelector.setOnClickListener { mostrarDialogoFertilizantes() }
 
@@ -175,6 +179,22 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         }
     }
 
+    private fun actualizarUmasDesdeCache() {
+        // Botar caché en memoria: la próxima activación relee la BD local
+        UmaDetectionEngine.invalidar()
+
+        // Quitar el overlay dibujado y resetear el bounding box
+        mapView.overlays.remove(umasOverlay)
+        umasDibujadas = false
+        umasMinLat =  90.0; umasMaxLat = -90.0
+        umasMinLon = 180.0; umasMaxLon = -180.0
+
+        tvNombre.text = "Recargando UMAs..."
+        android.widget.Toast.makeText(this, "Recargando UMAs...", android.widget.Toast.LENGTH_SHORT).show()
+
+        // Dispara la lectura de la BD y dibujo (el motor llama a onUmasCargadas)
+        UmaDetectionEngine.activar(this)
+    }
     // ── Callbacks del motor (pueden llegar en hilo secundario) ─────────────────
 
     override fun onUmasCargadas() {
@@ -203,6 +223,7 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
             for (i in 0 until arr.length()) fertilizantesSeleccionados.add(arr.getInt(i))
         } catch (e: Exception) { /* sin selección previa */ }
     }
+
 
     private fun mostrarDialogoFertilizantes() {
         val db = DatabaseHelper.getInstance(this)
@@ -233,7 +254,8 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
                 actualizarFranjaFertilizante()
                 refrescarCajaDosis()
             }
-            .setNegativeButton("Cancelar", null)
+            //.setNegativeButton("Cancelar", null)
+            .setCancelable(false)
             .show()
     }
 
