@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+import com.palmadata.app.utils.SessionManager
 
 class SetupActivity : AppCompatActivity() {
 
@@ -26,6 +27,7 @@ class SetupActivity : AppCompatActivity() {
         binding.btnConectar.setOnClickListener {
             val ip     = binding.etIp.text.toString().trim()
             val puerto = binding.etPuerto.text.toString().trim()
+            val idEquipo = binding.etIdEquipo.text.toString().trim()   // ← nuevo
 
             // Validaciones básicas
             if (ip.isEmpty()) {
@@ -36,13 +38,17 @@ class SetupActivity : AppCompatActivity() {
                 mostrarError("Ingrese el puerto")
                 return@setOnClickListener
             }
+            if (idEquipo.isEmpty()) {                                  // ← nuevo: obligatorio
+                mostrarError("Ingrese el Id Equipo")
+                return@setOnClickListener
+            }
 
             ocultarTeclado()
-            probarConexion(ip, puerto)
+            probarConexion(ip, puerto, idEquipo)
         }
     }
 
-    private fun probarConexion(ip: String, puerto: String) {
+    private fun probarConexion(ip: String, puerto: String, idEquipo: String) {
         // Mostrar progreso
         binding.progressBar.visibility = View.VISIBLE
         binding.btnConectar.isEnabled  = false
@@ -62,6 +68,7 @@ class SetupActivity : AppCompatActivity() {
             if (resultado.exito) {
                 // Guardar configuración
                 ServerConfig.guardar(this@SetupActivity, ip, puerto)
+                SessionManager.setIdEquipo(this@SetupActivity, idEquipo)   // ← nuevo
 
                 binding.tvExito.text       = "✅ Conexión exitosa. Entrando..."
                 binding.tvExito.visibility = View.VISIBLE

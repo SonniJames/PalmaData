@@ -107,6 +107,7 @@
             android:textColor="@color/text_secondary"
             android:layout_marginBottom="4dp" />
 
+
         <EditText
             android:id="@+id/etPuerto"
             android:layout_width="match_parent"
@@ -119,6 +120,30 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:inputType="number"
+            android:singleLine="true"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Campo Id Equipo -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Id Equipo"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etIdEquipo"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="Ej: TABLET-01"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/divider"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:inputType="text"
             android:singleLine="true"
             android:layout_marginBottom="8dp" />
 

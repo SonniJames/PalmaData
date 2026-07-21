@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 16  // ← v16: fertilizante en tracks pasa de INTEGER a TEXT "[1,2]"
+        const val DB_VERSION = 17  // ← v17: columna id_equipo (manual) en tracks
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -82,6 +82,7 @@ class DatabaseHelper(context: Context) :
             plantacion_id INTEGER DEFAULT 0,
             formulario INTEGER DEFAULT 0,
             equipo TEXT,
+            id_equipo TEXT,
             maquina INTEGER DEFAULT 0,
             labormaquina INTEGER DEFAULT 0,
             lote_id INTEGER DEFAULT 0,
@@ -193,6 +194,10 @@ class DatabaseHelper(context: Context) :
                         sincronizado
                     FROM ${T_TRACKS}_old""")
                 db.execSQL("DROP TABLE ${T_TRACKS}_old")
+            }
+            // v17: columna id_equipo (identificador manual del equipo, asignado en setup)
+            if (oldVersion < 17) {
+                db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN id_equipo TEXT")
             }
         }
 
@@ -360,6 +365,7 @@ class DatabaseHelper(context: Context) :
             put("plantacion_id",   track.plantacionId)
             put("formulario",      track.formulario)
             put("equipo",          track.equipo)
+            put("id_equipo",       track.idEquipo)
             put("maquina",         track.maquina)
             put("labormaquina",    track.laborMaquina)
             put("lote_id",         track.loteId)

@@ -25,6 +25,7 @@ data class TrackMovil(
     // Identificadores
     val idunico: String,        // UUID v4 único por track
     val equipo: String,         // UUID único del celular
+    val idEquipo: String = "",   // ← nuevo: id manual del equipo (asignado en setup)
 
     // Fijos
     val maquina: Int = 0,

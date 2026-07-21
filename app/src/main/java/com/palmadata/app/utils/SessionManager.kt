@@ -16,6 +16,7 @@ object SessionManager {
     private const val KEY_LAST_LON    = "last_longitude_v2"
     private const val KEY_EQUIPO_ID   = "equipo_id"
 
+    private const val KEY_ID_EQUIPO = "id_equipo_manual"
     private const val KEY_WORKER_SUPERVISOR = "current_worker_supervisor"
     private const val KEY_MAQUINARIA_TRABAJADOR_ACTIVO = "maquinaria_trabajador_activo"
 
@@ -33,6 +34,15 @@ object SessionManager {
         }
         return id
     }
+
+    // ── Id Equipo (asignado manualmente en el setup, viaja en cada track) ──────
+
+    fun setIdEquipo(context: Context, idEquipo: String) {
+        prefs(context).edit().putString(KEY_ID_EQUIPO, idEquipo).apply()
+    }
+
+    fun getIdEquipo(context: Context): String =
+        prefs(context).getString(KEY_ID_EQUIPO, "") ?: ""
 
     // ── Trabajador ────────────────────────────────────────────────────────────
 

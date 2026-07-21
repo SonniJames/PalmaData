@@ -132,6 +132,7 @@ class LocationHelper(
             formulario   = formularioActivo,  // id del módulo activo, 0 si está en la pantalla principal
             idunico      = UUID.randomUUID().toString(),
             equipo       = SessionManager.getEquipoId(context),
+            idEquipo     = SessionManager.getIdEquipo(context),   // ← nuevo
             fertilizante = fertilizantesTrack
         )
     }
