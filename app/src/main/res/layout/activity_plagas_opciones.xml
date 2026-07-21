@@ -82,6 +82,18 @@
             android:backgroundTint="@color/palma_green_dark"
             android:textColor="@color/white" />
 
+        <!-- ← nuevo botón -->
+        <Button
+            android:id="@+id/btnOtroInsecto"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="16dp"
+            android:text="OTRO INSECTO"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/palma_gold"
+            android:textColor="@color/white" />
+
         <Button
             android:id="@+id/btnModulos"
             android:layout_width="match_parent"

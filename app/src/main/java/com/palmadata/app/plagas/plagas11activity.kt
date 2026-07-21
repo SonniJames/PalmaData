@@ -81,6 +81,8 @@ class Plagas11Activity : AppCompatActivity() {
             opcionesIntent.putExtra("plantacion_id", plantacionId)
             opcionesIntent.putExtra("lote_id",       loteId)
             opcionesIntent.putExtra("lectura",       lectura)
+            opcionesIntent.putExtra("linea",         linea)   // ← nuevo
+            opcionesIntent.putExtra("palma",         palma)   // ← nuevo
             startActivity(opcionesIntent)
             finish()
         } catch (e: Exception) {
