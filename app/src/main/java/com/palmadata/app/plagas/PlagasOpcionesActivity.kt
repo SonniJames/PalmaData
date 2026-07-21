@@ -41,6 +41,7 @@ class PlagasOpcionesActivity : AppCompatActivity() {
             intent.putExtra("lectura", lectura)
             intent.putExtra("linea", linea)
             intent.putExtra("palma", palma)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()
         }
