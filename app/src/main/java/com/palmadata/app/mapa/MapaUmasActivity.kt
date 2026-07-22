@@ -120,6 +120,7 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
         btnDescargarMapa       = findViewById(R.id.btnDescargarMapa)
         tvFertilizanteSelector = findViewById(R.id.tvFertilizanteSelector)
         tvLimpiarFertilizante  = findViewById(R.id.tvLimpiarFertilizante)
+        btnActualizarUmas      = findViewById(R.id.btnActualizarUmas)
 
         // Restaurar la selección de fertilizantes si la pantalla fue recreada
         // (p. ej. el sistema la mató con la app de fondo y el usuario volvió)
@@ -139,7 +140,6 @@ class MapaUmasActivity : AppCompatActivity(), UmaDetectionEngine.Listener {
 
         btnActualizarUmas.setOnClickListener { actualizarUmasDesdeCache() }
 
-        btnActualizarUmas      = findViewById(R.id.btnActualizarUmas)
         // ── Selector de fertilizante ───────────────────────────────────────────
         tvFertilizanteSelector.setOnClickListener { mostrarDialogoFertilizantes() }
 
