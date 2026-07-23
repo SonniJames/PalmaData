@@ -134,6 +134,15 @@
         <!-- Maquinaria -->
         <activity android:name=".maquinaria.MaquinariaActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".mapa.MapaUmasActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <!-- Supervisión cosecha vagón -->
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagonActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagon5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_cosecha_vagon.SuperCosechaVagonOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>

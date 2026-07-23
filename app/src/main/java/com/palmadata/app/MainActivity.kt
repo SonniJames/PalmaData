@@ -47,7 +47,6 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.view.WindowCompat
 
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -82,6 +81,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun setupLimpiarWorker() {
         actualizarEstadoLimpiarWorker()
@@ -127,6 +127,7 @@ class MainActivity : AppCompatActivity() {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -512,6 +513,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvPlagas.text               = db.contarPlagasPendientes().toString()
         dialogBinding.tvSuperCosecha.text         = db.contarSuperCosechaPendientes().toString()
         dialogBinding.tvMaquinaria.text           = db.contarMaquinariaPendientes().toString()
+        dialogBinding.tvSuperCosechaVagon.text    = db.contarSuperCosechaVagonPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()

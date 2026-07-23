@@ -29,6 +29,7 @@ object SyncManager {
         val subidosPlagas       = subirPendientes(baseUrl, "muestreo_plagas",      db.getPlagasPendientes())       { id -> db.eliminarPlagas(id) }
         val subidosSuperCosecha = subirPendientes(baseUrl, "super_cosecha",        db.getSuperCosechaPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosecha(id) }
         val subidosMaquinaria   = subirPendientes(baseUrl, "maquinaria_sesion",    db.getMaquinariaPendientes(),   idKey = "id_unico") { id -> db.eliminarMaquinaria(id) }
+        val subidosCosechaVagon = subirPendientes(baseUrl, "super_cosecha_vagon",  db.getSuperCosechaVagonPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosechaVagon(id) }
         val subidosTracks       = subirTracks(baseUrl, context)
         // ── Descargar maestros ────────────────────────────────────────────────
         // ── Descargar maestros (cada uno independiente, con 1 reintento) ──────
@@ -102,7 +103,8 @@ object SyncManager {
             "Tratamientos" to subidosTrat, "Polinización" to subidosPoli,
             "Polen inicial/final" to subidosPolen, "Sanstrategus" to subidosStrategus,
             "Censo trampas" to subidosTrampas, "Muestreo plagas" to subidosPlagas,
-            "Super cosecha" to subidosSuperCosecha, "Maquinaria" to subidosMaquinaria
+            "Super cosecha" to subidosSuperCosecha, "Maquinaria" to subidosMaquinaria,
+            "Sup. cosecha vagón" to subidosCosechaVagon
         )
 
         return if (fallidos.isEmpty()) {

@@ -11,6 +11,7 @@ import com.palmadata.app.plagas.PlagasActivity
 import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.maquinaria.MaquinariaActivity
 import com.palmadata.app.mapa.MapaUmasActivity
+import com.palmadata.app.super_cosecha_vagon.SuperCosechaVagonActivity
 object ModuleRegistry {
     // formularioId según generarFormulariosMovil() del sistema web:
     // 1=CENSO ENFERMEDADES, 2=CENSO PLAGAS, 3=CENSO TRAMPAS, 5=POLINIZACION,
@@ -27,6 +28,7 @@ object ModuleRegistry {
         AppModule(id = "super_cosecha",      name = "Supervisión cosecha",iconResId = R.drawable.super_cosecha,      destinationClass = SuperCosechaActivity::class.java,       formularioId = 14),
         AppModule(id = "maquinaria",         name = "Maquinaria",         iconResId = R.drawable.maquinaria,         destinationClass = MaquinariaActivity::class.java,         formularioId = 24),
         AppModule(id = "mapa_umas",          name = "Fertilización",      iconResId = R.drawable.fertilizacion,      destinationClass = MapaUmasActivity::class.java,           formularioId = 25),
+        AppModule(id = "super_cosecha_vagon", name = "Supervisión cosecha vagón", iconResId = R.drawable.cosecha_vagon, destinationClass = SuperCosechaVagonActivity::class.java, formularioId = 15),
     )
 }
 

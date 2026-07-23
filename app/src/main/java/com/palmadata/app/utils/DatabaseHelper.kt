@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 17  // ← v17: columna id_equipo (manual) en tracks
+        const val DB_VERSION = 18  // ← v18: tabla super_cosecha_vagon
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -48,6 +48,7 @@ class DatabaseHelper(context: Context) :
         const val T_TRACKS             = "tracks_movil"
         const val T_UMAS               = "umas"
         const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
+        const val T_SUPER_COSECHA_VAGON = "super_cosecha_vagon"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -110,6 +111,26 @@ class DatabaseHelper(context: Context) :
             simbolo TEXT,
             geojson TEXT NOT NULL,
             fertilizantes TEXT DEFAULT '[]')""")  // ← cambio 5: campo fertilizantes en T_UMAS
+        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA_VAGON (
+            id_unico TEXT PRIMARY KEY,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            supervisor INTEGER DEFAULT 0,
+            trabajador INTEGER,
+            catloteid INTEGER DEFAULT 0,
+            catplantacionid INTEGER DEFAULT 0,
+            racimosmuestra INTEGER DEFAULT 0,
+            racimosverde INTEGER DEFAULT 0,
+            racimossobremaduro INTEGER DEFAULT 0,
+            racimospodridos INTEGER DEFAULT 0,
+            pedunculolargo INTEGER DEFAULT 0,
+            racimosmalformados INTEGER DEFAULT 0,
+            racimosenfermos INTEGER DEFAULT 0,
+            racimoseupalamides INTEGER DEFAULT 0,
+            observaciones TEXT,
+            latitud REAL NOT NULL,
+            longitud REAL NOT NULL,
+            sincronizado INTEGER DEFAULT 0)""")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -200,6 +221,29 @@ class DatabaseHelper(context: Context) :
                 db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN id_equipo TEXT")
             }
         }
+
+        // v18: tabla de supervisión cosecha vagón (módulo nuevo).
+        // Va FUERA del if/else de tracks: aplica venga de la versión que venga.
+        db.execSQL("""CREATE TABLE IF NOT EXISTS $T_SUPER_COSECHA_VAGON (
+            id_unico TEXT PRIMARY KEY,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            supervisor INTEGER DEFAULT 0,
+            trabajador INTEGER,
+            catloteid INTEGER DEFAULT 0,
+            catplantacionid INTEGER DEFAULT 0,
+            racimosmuestra INTEGER DEFAULT 0,
+            racimosverde INTEGER DEFAULT 0,
+            racimossobremaduro INTEGER DEFAULT 0,
+            racimospodridos INTEGER DEFAULT 0,
+            pedunculolargo INTEGER DEFAULT 0,
+            racimosmalformados INTEGER DEFAULT 0,
+            racimosenfermos INTEGER DEFAULT 0,
+            racimoseupalamides INTEGER DEFAULT 0,
+            observaciones TEXT,
+            latitud REAL NOT NULL,
+            longitud REAL NOT NULL,
+            sincronizado INTEGER DEFAULT 0)""")
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
@@ -567,6 +611,28 @@ class DatabaseHelper(context: Context) :
     fun getMaquinariaPendientes(): List<Map<String, Any>> = getPendientes(T_MAQUINARIA_SESION)
     fun eliminarMaquinaria(id: String) = writableDatabase.delete(T_MAQUINARIA_SESION, "id_unico = ?", arrayOf(id))
     fun contarMaquinariaPendientes(): Int = contarPendientes(T_MAQUINARIA_SESION)
+
+
+    fun guardarSuperCosechaVagon(r: com.palmadata.app.super_cosecha_vagon.SuperCosechaVagonRegistro) {
+        writableDatabase.insert(T_SUPER_COSECHA_VAGON, null, ContentValues().apply {
+            put("id_unico", r.idUnico); put("fecha", r.fecha); put("hora", r.hora)
+            put("supervisor", r.supervisor)
+            // trabajador es opcional: NULL si el operario dejó el campo en blanco
+            if (r.trabajador != null) put("trabajador", r.trabajador) else putNull("trabajador")
+            put("catloteid", r.catLoteId); put("catplantacionid", r.catPlantacionId)
+            put("racimosmuestra", r.racimosMuestra); put("racimosverde", r.racimosVerde)
+            put("racimossobremaduro", r.racimosSobremaduro); put("racimospodridos", r.racimosPodridos)
+            put("pedunculolargo", r.pedunculoLargo); put("racimosmalformados", r.racimosMalformados)
+            put("racimosenfermos", r.racimosEnfermos); put("racimoseupalamides", r.racimosEupalamides)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud); put("longitud", r.longitud)
+            put("sincronizado", 0)
+        })
+    }
+
+    fun getSuperCosechaVagonPendientes(): List<Map<String, Any>> = getPendientes(T_SUPER_COSECHA_VAGON)
+    fun eliminarSuperCosechaVagon(id: String) = writableDatabase.delete(T_SUPER_COSECHA_VAGON, "id_unico = ?", arrayOf(id))
+    fun contarSuperCosechaVagonPendientes(): Int = contarPendientes(T_SUPER_COSECHA_VAGON)
 
     // ── Lecturas de maestros ──────────────────────────────────────────────────
 
