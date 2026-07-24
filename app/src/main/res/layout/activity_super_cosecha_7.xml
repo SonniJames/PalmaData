@@ -15,12 +15,18 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
 
             <!-- Fila genérica: etiqueta | valor | botones -->
-            <!-- 1. R. cosechados -->
+            <!-- 1. R. cosechados: teclado numerico del sistema. El operario
+                 escribe el valor y confirma con la tecla enter/OK. -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="R. cosechados" android:textSize="13sp" android:textColor="@color/text_primary" />
-                <TextView android:id="@+id/tvValor1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
-                <Button android:id="@+id/btnMenos1" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
-                <Button android:id="@+id/btnMas1" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+                <EditText android:id="@+id/etRacimosRecogidos"
+                    android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="2"
+                    android:hint="0" android:textSize="18sp" android:textStyle="bold"
+                    android:textColor="@color/palma_green_dark" android:textColorHint="@color/divider"
+                    android:gravity="center" android:background="@color/white"
+                    android:inputType="number" android:maxLength="6"
+                    android:imeOptions="actionDone" android:maxLines="1" />
+                <View android:layout_width="84dp" android:layout_height="1dp" />
             </LinearLayout>
             <!-- 2. R. verdes -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">

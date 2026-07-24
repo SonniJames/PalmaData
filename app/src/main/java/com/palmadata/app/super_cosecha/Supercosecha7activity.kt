@@ -4,10 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.databinding.ActivitySuperCosecha7Binding
+import android.content.Context
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 
 class SuperCosecha7Activity : AppCompatActivity() {
     private lateinit var binding: ActivitySuperCosecha7Binding
-    private var racimosRecogidos = 0
     private var racimosVerdes = 0
     private var racimossobremaduros = 0
     private var racimosPodridos = 0
@@ -33,8 +35,10 @@ class SuperCosecha7Activity : AppCompatActivity() {
 
         actualizarDisplays()
         setupContadores()
+        setupCampoRecogidos()
 
         binding.btnAccion.setOnClickListener {
+            val racimosRecogidos = binding.etRacimosRecogidos.text.toString().trim().toIntOrNull() ?: 0
             startActivity(Intent(this, SuperCosecha8Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)
                 it.putExtra("ciclo", ciclo); it.putExtra("cortador_id", cortadorId)
@@ -54,9 +58,23 @@ class SuperCosecha7Activity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Al pulsar la tecla de confirmación del teclado numérico, se baja el
+     * teclado y se quita el foco: así el operario puede seguir usando los
+     * botones +/- de las demás filas sin estorbos.
+     */
+    private fun setupCampoRecogidos() {
+        binding.etRacimosRecogidos.setOnEditorActionListener { v, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(v.windowToken, 0)
+                v.clearFocus()
+                true
+            } else false
+        }
+    }
+
     private fun setupContadores() {
-        binding.btnMas1.setOnClickListener  { racimosRecogidos++;    actualizarDisplays() }
-        binding.btnMenos1.setOnClickListener { if (racimosRecogidos > 0) { racimosRecogidos--; actualizarDisplays() } }
         binding.btnMas2.setOnClickListener  { racimosVerdes++;       actualizarDisplays() }
         binding.btnMenos2.setOnClickListener { if (racimosVerdes > 0) { racimosVerdes--; actualizarDisplays() } }
         binding.btnMas3.setOnClickListener  { racimossobremaduros++; actualizarDisplays() }
@@ -78,7 +96,6 @@ class SuperCosecha7Activity : AppCompatActivity() {
     }
 
     private fun actualizarDisplays() {
-        binding.tvValor1.text  = racimosRecogidos.toString()
         binding.tvValor2.text  = racimosVerdes.toString()
         binding.tvValor3.text  = racimossobremaduros.toString()
         binding.tvValor4.text  = racimosPodridos.toString()
