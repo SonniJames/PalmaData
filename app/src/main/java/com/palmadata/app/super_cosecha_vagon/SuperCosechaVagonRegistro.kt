@@ -13,7 +13,7 @@ data class SuperCosechaVagonRegistro(
     val fecha: String,
     val hora: String,
     val supervisor: Int,            // trabajador de la barra de MainActivity
-    val trabajador: Int?,           // pantalla 3 — NULL si se dejó en blanco
+    val trabajador: Int,            // 0 = sin trabajador (campo en blanco)
     val catLoteId: Long,            // pantalla 2
     val catPlantacionId: Long,      // pantalla 0
     val racimosMuestra: Int,        // R. muestra (teclado numérico)

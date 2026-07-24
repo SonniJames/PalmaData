@@ -617,8 +617,7 @@ class DatabaseHelper(context: Context) :
         writableDatabase.insert(T_SUPER_COSECHA_VAGON, null, ContentValues().apply {
             put("id_unico", r.idUnico); put("fecha", r.fecha); put("hora", r.hora)
             put("supervisor", r.supervisor)
-            // trabajador es opcional: NULL si el operario dejó el campo en blanco
-            if (r.trabajador != null) put("trabajador", r.trabajador) else putNull("trabajador")
+            put("trabajador", r.trabajador)
             put("catloteid", r.catLoteId); put("catplantacionid", r.catPlantacionId)
             put("racimosmuestra", r.racimosMuestra); put("racimosverde", r.racimosVerde)
             put("racimossobremaduro", r.racimosSobremaduro); put("racimospodridos", r.racimosPodridos)

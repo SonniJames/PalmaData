@@ -26,9 +26,9 @@ object ModuleRegistry {
         AppModule(id = "censo_trampas",      name = "Censo trampas",      iconResId = R.drawable.censo_trampas,      destinationClass = TrampasActivity::class.java,            formularioId = 3),
         AppModule(id = "muestreo_plagas",    name = "Muestreo plagas",    iconResId = R.drawable.muestreo_plagas,    destinationClass = PlagasActivity::class.java,             formularioId = 2),
         AppModule(id = "super_cosecha",      name = "Supervisión cosecha",iconResId = R.drawable.super_cosecha,      destinationClass = SuperCosechaActivity::class.java,       formularioId = 14),
+        AppModule(id = "super_cosecha_vagon", name = "Supervisión cosecha vagón", iconResId = R.drawable.cosecha_vagon, destinationClass = SuperCosechaVagonActivity::class.java, formularioId = 15),
         AppModule(id = "maquinaria",         name = "Maquinaria",         iconResId = R.drawable.maquinaria,         destinationClass = MaquinariaActivity::class.java,         formularioId = 24),
         AppModule(id = "mapa_umas",          name = "Fertilización",      iconResId = R.drawable.fertilizacion,      destinationClass = MapaUmasActivity::class.java,           formularioId = 25),
-        AppModule(id = "super_cosecha_vagon", name = "Supervisión cosecha vagón", iconResId = R.drawable.cosecha_vagon, destinationClass = SuperCosechaVagonActivity::class.java, formularioId = 15),
     )
 }
 

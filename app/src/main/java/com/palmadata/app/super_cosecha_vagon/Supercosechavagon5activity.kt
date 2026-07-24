@@ -72,7 +72,7 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
             supervisor         = worker.code.toIntOrNull() ?: 0,
             // El trabajador de la pantalla 3 es opcional: 0 significa "en blanco",
             // y se guarda como NULL (no como 0) en la base de datos.
-            trabajador         = if (trabajadorId > 0) trabajadorId else null,
+            trabajador         = trabajadorId,
             catLoteId          = loteId.toLong(),
             catPlantacionId    = plantacionId.toLong(),
             racimosMuestra     = racimosMuestra,

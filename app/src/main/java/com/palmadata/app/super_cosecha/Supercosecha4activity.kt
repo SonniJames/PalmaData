@@ -44,6 +44,12 @@ class SuperCosecha4Activity : AppCompatActivity() {
         }
 
         binding.btnAccion.setOnClickListener {
+            // Si el operario borró el texto tras haber elegido, la selección deja
+            // de ser válida: el id vuelve a 0 para no arrastrar un trabajador
+            // que ya no está escrito en el campo.
+            if (binding.acCortador.text.toString().trim().isEmpty())   cortadorId = 0
+            if (binding.acRecolector.text.toString().trim().isEmpty()) recolectorId = 0
+
             startActivity(Intent(this, SuperCosecha5Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId)
                 it.putExtra("plantacion_nombre", plantacionNombre)
