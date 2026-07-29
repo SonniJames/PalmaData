@@ -12,6 +12,7 @@ import com.palmadata.app.supercosecha.SuperCosechaActivity
 import com.palmadata.app.maquinaria.MaquinariaActivity
 import com.palmadata.app.mapa.MapaUmasActivity
 import com.palmadata.app.super_cosecha_vagon.SuperCosechaVagonActivity
+import com.palmadata.app.super_poli.SuperPoliActivity
 object ModuleRegistry {
     // formularioId según generarFormulariosMovil() del sistema web:
     // 1=CENSO ENFERMEDADES, 2=CENSO PLAGAS, 3=CENSO TRAMPAS, 5=POLINIZACION,
@@ -26,9 +27,10 @@ object ModuleRegistry {
         AppModule(id = "censo_trampas",      name = "Censo trampas",      iconResId = R.drawable.censo_trampas,      destinationClass = TrampasActivity::class.java,            formularioId = 3),
         AppModule(id = "muestreo_plagas",    name = "Muestreo plagas",    iconResId = R.drawable.muestreo_plagas,    destinationClass = PlagasActivity::class.java,             formularioId = 2),
         AppModule(id = "super_cosecha",      name = "Supervisión cosecha",iconResId = R.drawable.super_cosecha,      destinationClass = SuperCosechaActivity::class.java,       formularioId = 14),
-        AppModule(id = "super_cosecha_vagon", name = "Supervisión cosecha vagón", iconResId = R.drawable.cosecha_vagon, destinationClass = SuperCosechaVagonActivity::class.java, formularioId = 15),
+        AppModule(id = "super_cosecha_vagon",name = "Supervisión cosecha vagón", iconResId = R.drawable.cosecha_vagon, destinationClass = SuperCosechaVagonActivity::class.java, formularioId = 15),
         AppModule(id = "maquinaria",         name = "Maquinaria",         iconResId = R.drawable.maquinaria,         destinationClass = MaquinariaActivity::class.java,         formularioId = 24),
         AppModule(id = "mapa_umas",          name = "Fertilización",      iconResId = R.drawable.fertilizacion,      destinationClass = MapaUmasActivity::class.java,           formularioId = 25),
+        AppModule(id = "super_poli",         name = "Supervisión polinización", iconResId = R.drawable.super_poli, destinationClass = SuperPoliActivity::class.java, formularioId = 20),
     )
 }
 
