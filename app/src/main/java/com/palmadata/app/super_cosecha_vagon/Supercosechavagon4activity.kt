@@ -31,7 +31,7 @@ class SuperCosechaVagon4Activity : AppCompatActivity() {
         val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
         val loteId           = intent.getIntExtra("lote_id", 0)
         val loteNombre       = intent.getStringExtra("lote_nombre") ?: ""
-        val trabajadorId     = intent.getIntExtra("trabajador_id", 0)
+        val trabajadorIds    = intent.getStringExtra("trabajador_ids") ?: ""
 
         actualizarDisplays()
         setupContadores()
@@ -48,7 +48,7 @@ class SuperCosechaVagon4Activity : AppCompatActivity() {
                 it.putExtra("sector_nombre", sectorNombre)
                 it.putExtra("lote_id", loteId)
                 it.putExtra("lote_nombre", loteNombre)
-                it.putExtra("trabajador_id", trabajadorId)
+                it.putExtra("trabajador_ids", trabajadorIds)
                 it.putExtra("racimos_muestra", racimosMuestra)
                 it.putExtra("racimos_verde", racimosVerde)
                 it.putExtra("racimos_sobremaduro", racimosSobremaduro)
