@@ -143,6 +143,19 @@
         <activity android:name=".super_cosecha_vagon.SuperCosechaVagon4Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".super_cosecha_vagon.SuperCosechaVagon5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".super_cosecha_vagon.SuperCosechaVagonOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Supervisión polinización -->
+        <activity android:name=".super_poli.SuperPoliActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoliValorActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli12Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoli13Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".super_poli.SuperPoliOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>

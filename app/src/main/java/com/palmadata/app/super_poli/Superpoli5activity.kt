@@ -8,14 +8,20 @@ import com.palmadata.app.databinding.ActivitySuperPoliTecladoBinding
 
 /**
  * Pantalla 5 — según el modo elegido en la 3:
- *   LP → PALMA: obligatoria, de 1 a 3 dígitos. Viaja como extra "palma".
- *   L  → CANTIDAD PALMAS: opcional. Viaja como extra "cant_palmas".
+ *   LP → PALMA: obligatoria, máximo 2 dígitos. Viaja como extra "palma".
+ *   L  → CANTIDAD PALMAS: opcional, hasta 3 dígitos. Viaja como "cant_palmas".
  * El valor no usado en cada modo queda en 0 al guardar.
+ *
+ * El límite de 2 dígitos en PALMA no es arbitrario: el cat_palma_id que arma
+ * el trigger en PostgreSQL concatena lote + línea (3 dígitos) + palma (2
+ * dígitos). Una palma de 3 dígitos produciría un código ambiguo, incompatible
+ * con los cat_palma_id del resto del sistema.
  */
 class SuperPoli5Activity : AppCompatActivity() {
     private lateinit var binding: ActivitySuperPoliTecladoBinding
     private var valorActual = ""
     private var esModoLineaPalma = true
+    private var maxDigitos = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +38,7 @@ class SuperPoli5Activity : AppCompatActivity() {
         val linea            = intent.getStringExtra("linea") ?: ""
 
         esModoLineaPalma = modo == SuperPoli3Activity.MODO_LINEA_PALMA
+        maxDigitos       = if (esModoLineaPalma) 2 else 3
 
         binding.tvTitulo.text  = if (esModoLineaPalma) "PALMA" else "CANTIDAD PALMAS"
         binding.btnAccion.text = "DEJADAS/POLINIZADAS"
@@ -42,8 +49,12 @@ class SuperPoli5Activity : AppCompatActivity() {
             // En modo LÍNEA-PALMA la palma es obligatoria; en POR LÍNEA la
             // cantidad de palmas puede quedar vacía (llega 0 a la base).
             if (esModoLineaPalma) {
-                if (valorActual.isEmpty())  { mostrarError("Debe ingresar un valor para PALMA"); return@setOnClickListener }
-                if (valorActual.length > 3) { mostrarError("PALMA debe tener máximo 3 dígitos"); return@setOnClickListener }
+                if (valorActual.isEmpty()) {
+                    mostrarError("Debe ingresar un valor para PALMA"); return@setOnClickListener
+                }
+                if (valorActual.length > 2) {
+                    mostrarError("PALMA debe tener máximo 2 dígitos"); return@setOnClickListener
+                }
             }
 
             startActivity(Intent(this, SuperPoli6Activity::class.java).also {
@@ -68,7 +79,8 @@ class SuperPoli5Activity : AppCompatActivity() {
             binding.btn8 to "8", binding.btn9 to "9"
         )
         botones.forEach { (btn, v) ->
-            btn.setOnClickListener { if (valorActual.length < 3) { valorActual += v; actualizarDisplay() } }
+            // 2 dígitos para PALMA, 3 para CANTIDAD PALMAS
+            btn.setOnClickListener { if (valorActual.length < maxDigitos) { valorActual += v; actualizarDisplay() } }
         }
         binding.btnC.setOnClickListener { valorActual = ""; actualizarDisplay(); ocultarError() }
         binding.btnDel.setOnClickListener {

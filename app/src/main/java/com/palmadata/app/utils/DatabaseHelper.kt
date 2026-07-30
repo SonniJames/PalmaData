@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 18  // ← v18: tabla super_cosecha_vagon
+        const val DB_VERSION = 19  // ← v19: tabla super_poli
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -49,6 +49,7 @@ class DatabaseHelper(context: Context) :
         const val T_UMAS               = "umas"
         const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
         const val T_SUPER_COSECHA_VAGON = "super_cosecha_vagon"
+        const val T_SUPER_POLI          = "super_poli"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -127,6 +128,27 @@ class DatabaseHelper(context: Context) :
             racimosmalformados INTEGER DEFAULT 0,
             racimosenfermos INTEGER DEFAULT 0,
             racimoseupalamides INTEGER DEFAULT 0,
+            observaciones TEXT,
+            latitud REAL NOT NULL,
+            longitud REAL NOT NULL,
+            sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_POLI (
+            id_unico TEXT PRIMARY KEY,
+            fecha_super TEXT NOT NULL,
+            supervisor_sin_orden INTEGER DEFAULT 0,
+            polinizador INTEGER DEFAULT 0,
+            cat_lote_id INTEGER DEFAULT 0,
+            linea INTEGER DEFAULT 0,
+            palma INTEGER DEFAULT 0,
+            cant_palmas INTEGER DEFAULT 0,
+            flor_polini_aplicacion1 INTEGER DEFAULT 0,
+            flor_polini_aplicacion2 INTEGER DEFAULT 0,
+            flor_polini_aplicacion3 INTEGER DEFAULT 0,
+            hoja_sin_marcar INTEGER DEFAULT 0,
+            espata_sin_abrir INTEGER DEFAULT 0,
+            espata_abierta INTEGER DEFAULT 0,
+            espata_parcial INTEGER DEFAULT 0,
+            mala_cobertura_aplicacion INTEGER DEFAULT 0,
             observaciones TEXT,
             latitud REAL NOT NULL,
             longitud REAL NOT NULL,
@@ -240,6 +262,31 @@ class DatabaseHelper(context: Context) :
             racimosmalformados INTEGER DEFAULT 0,
             racimosenfermos INTEGER DEFAULT 0,
             racimoseupalamides INTEGER DEFAULT 0,
+            observaciones TEXT,
+            latitud REAL NOT NULL,
+            longitud REAL NOT NULL,
+            sincronizado INTEGER DEFAULT 0)""")
+
+        // v19: tabla de supervisión polinización (módulo nuevo).
+        // Igual que la v18: fuera del if/else de tracks, aplica venga de la
+        // versión que venga, y con IF NOT EXISTS para ser idempotente.
+        db.execSQL("""CREATE TABLE IF NOT EXISTS $T_SUPER_POLI (
+            id_unico TEXT PRIMARY KEY,
+            fecha_super TEXT NOT NULL,
+            supervisor_sin_orden INTEGER DEFAULT 0,
+            polinizador INTEGER DEFAULT 0,
+            cat_lote_id INTEGER DEFAULT 0,
+            linea INTEGER DEFAULT 0,
+            palma INTEGER DEFAULT 0,
+            cant_palmas INTEGER DEFAULT 0,
+            flor_polini_aplicacion1 INTEGER DEFAULT 0,
+            flor_polini_aplicacion2 INTEGER DEFAULT 0,
+            flor_polini_aplicacion3 INTEGER DEFAULT 0,
+            hoja_sin_marcar INTEGER DEFAULT 0,
+            espata_sin_abrir INTEGER DEFAULT 0,
+            espata_abierta INTEGER DEFAULT 0,
+            espata_parcial INTEGER DEFAULT 0,
+            mala_cobertura_aplicacion INTEGER DEFAULT 0,
             observaciones TEXT,
             latitud REAL NOT NULL,
             longitud REAL NOT NULL,
@@ -632,6 +679,37 @@ class DatabaseHelper(context: Context) :
     fun getSuperCosechaVagonPendientes(): List<Map<String, Any>> = getPendientes(T_SUPER_COSECHA_VAGON)
     fun eliminarSuperCosechaVagon(id: String) = writableDatabase.delete(T_SUPER_COSECHA_VAGON, "id_unico = ?", arrayOf(id))
     fun contarSuperCosechaVagonPendientes(): Int = contarPendientes(T_SUPER_COSECHA_VAGON)
+
+
+    fun guardarSuperPoli(r: com.palmadata.app.super_poli.SuperPoliRegistro) {
+        writableDatabase.insert(T_SUPER_POLI, null, ContentValues().apply {
+            put("id_unico", r.idUnico)
+            put("fecha_super", r.fechaSuper)
+            put("supervisor_sin_orden", r.supervisorSinOrden)
+            put("polinizador", r.polinizador)
+            put("cat_lote_id", r.catLoteId)
+            put("linea", r.linea)
+            // Segun el flujo elegido solo uno de estos dos trae valor; el otro va en 0
+            put("palma", r.palma)
+            put("cant_palmas", r.cantPalmas)
+            put("flor_polini_aplicacion1", r.florPoliniAplicacion1)
+            put("flor_polini_aplicacion2", r.florPoliniAplicacion2)
+            put("flor_polini_aplicacion3", r.florPoliniAplicacion3)
+            put("hoja_sin_marcar", r.hojaSinMarcar)
+            put("espata_sin_abrir", r.espataSinAbrir)
+            put("espata_abierta", r.espataAbierta)
+            put("espata_parcial", r.espataParcial)
+            put("mala_cobertura_aplicacion", r.malaCoberturaAplicacion)
+            put("observaciones", r.observaciones)
+            put("latitud", r.latitud)
+            put("longitud", r.longitud)
+            put("sincronizado", 0)
+        })
+    }
+
+    fun getSuperPoliPendientes(): List<Map<String, Any>> = getPendientes(T_SUPER_POLI)
+    fun eliminarSuperPoli(id: String) = writableDatabase.delete(T_SUPER_POLI, "id_unico = ?", arrayOf(id))
+    fun contarSuperPoliPendientes(): Int = contarPendientes(T_SUPER_POLI)
 
     // ── Lecturas de maestros ──────────────────────────────────────────────────
 
