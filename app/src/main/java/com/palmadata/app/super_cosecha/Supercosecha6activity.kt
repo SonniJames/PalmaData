@@ -16,8 +16,9 @@ class SuperCosecha6Activity : AppCompatActivity() {
         val plantacionId = intent.getIntExtra("plantacion_id", 0)
         val loteId       = intent.getIntExtra("lote_id", 0)
         val ciclo        = intent.getStringExtra("ciclo") ?: "0"
-        val cortadorId   = intent.getIntExtra("cortador_id", 0)
-        val recolectorId = intent.getIntExtra("recolector_id", 0)
+        val cortadorIds   = intent.getStringExtra("cortador_ids")   ?: ""
+        val recolectorIds = intent.getStringExtra("recolector_ids") ?: ""
+        val alistadorIds  = intent.getStringExtra("alistador_ids")  ?: ""
         val linea        = intent.getStringExtra("linea") ?: ""
         setupTeclado()
         binding.btnAccion.setOnClickListener {
@@ -26,8 +27,9 @@ class SuperCosecha6Activity : AppCompatActivity() {
                 valorActual.length > 2 -> mostrarError("PALMA debe tener máximo 2 dígitos")
                 else -> startActivity(Intent(this, SuperCosecha7Activity::class.java).also {
                     it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)
-                    it.putExtra("ciclo", ciclo); it.putExtra("cortador_id", cortadorId)
-                    it.putExtra("recolector_id", recolectorId); it.putExtra("linea", linea)
+                    it.putExtra("ciclo", ciclo); it.putExtra("cortador_ids",   cortadorIds)
+                    it.putExtra("recolector_ids", recolectorIds); it.putExtra("alistador_ids",  alistadorIds);
+                    it.putExtra("linea", linea)
                     it.putExtra("palma", valorActual)
                 })
             }

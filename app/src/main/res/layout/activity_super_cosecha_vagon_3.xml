@@ -16,7 +16,7 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:padding="20dp">
 
-            <!-- Trabajador (opcional: puede quedar en blanco) -->
+            <!-- Trabajador (opcional: puede quedar sin ninguno) -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="Trabajador" android:textSize="13sp" android:textColor="@color/text_secondary"
                 android:layout_marginBottom="4dp" />
@@ -25,7 +25,11 @@
                 android:hint="Buscar trabajador..." android:textSize="15sp"
                 android:textColor="@color/text_primary" android:textColorHint="@color/divider"
                 android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
-                android:inputType="textPersonName" android:completionThreshold="1"
+                android:inputType="textPersonName" android:completionThreshold="1" />
+            <!-- Aqui se listan los trabajadores seleccionados, con su "-" para quitarlos -->
+            <LinearLayout android:id="@+id/contTrabajador"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="4dp"
                 android:layout_marginBottom="24dp" />
 
         </LinearLayout>

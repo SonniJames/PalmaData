@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 19  // ← v19: tabla super_poli
+        const val DB_VERSION = 21  // ← v21: trabajador a TEXT (varios) en super_cosecha_vagon
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -100,7 +100,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona TEXT, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador INTEGER DEFAULT 0, recolector INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador TEXT DEFAULT '', recolector TEXT DEFAULT '', alistador TEXT DEFAULT '', linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_MAQUINARIA_SESION (id_unico TEXT PRIMARY KEY, maquina INTEGER DEFAULT 0, plantacion INTEGER DEFAULT 0, implemento INTEGER DEFAULT 0, labor INTEGER DEFAULT 0, trabajador INTEGER DEFAULT 0, kiloinicial REAL DEFAULT 0, kilofinal REAL DEFAULT 0, combustible REAL DEFAULT 0, horometroinicial REAL DEFAULT 0, horometrofinal REAL DEFAULT 0, lote TEXT, observaciones TEXT, unidadcantidad INTEGER DEFAULT 0, cantidad REAL DEFAULT 0, fechainicial TEXT, horainicial TEXT, fechafinal TEXT, horafinal TEXT, equipo TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_UMAS (
             nut_uma_pol_id INTEGER PRIMARY KEY,
@@ -117,7 +117,7 @@ class DatabaseHelper(context: Context) :
             fecha TEXT NOT NULL,
             hora TEXT NOT NULL,
             supervisor INTEGER DEFAULT 0,
-            trabajador INTEGER,
+            trabajador TEXT DEFAULT '',
             catloteid INTEGER DEFAULT 0,
             catplantacionid INTEGER DEFAULT 0,
             racimosmuestra INTEGER DEFAULT 0,
@@ -251,7 +251,7 @@ class DatabaseHelper(context: Context) :
             fecha TEXT NOT NULL,
             hora TEXT NOT NULL,
             supervisor INTEGER DEFAULT 0,
-            trabajador INTEGER,
+            trabajador TEXT DEFAULT '',
             catloteid INTEGER DEFAULT 0,
             catplantacionid INTEGER DEFAULT 0,
             racimosmuestra INTEGER DEFAULT 0,
@@ -291,6 +291,69 @@ class DatabaseHelper(context: Context) :
             latitud REAL NOT NULL,
             longitud REAL NOT NULL,
             sincronizado INTEGER DEFAULT 0)""")
+
+        // v20: en super_cosecha, cortador y recolector pasan de un id único a una
+        // LISTA de ids en texto ("125,159,520"), y se agrega alistador con el mismo
+        // formato. SQLite no permite cambiar el tipo de una columna, así que se
+        // reconstruye la tabla preservando los registros pendientes de subir.
+        // Los ids que ya existían se convierten a texto: 112 -> "112"; el 0
+        // (sin trabajador) pasa a cadena vacía, que es el "ninguno" del formato nuevo.
+        if (oldVersion < 20) {
+            db.execSQL("ALTER TABLE $T_SUPER_COSECHA RENAME TO ${T_SUPER_COSECHA}_old")
+            db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador TEXT DEFAULT '', recolector TEXT DEFAULT '', alistador TEXT DEFAULT '', linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+            db.execSQL("""INSERT INTO $T_SUPER_COSECHA (
+                    id_unico, fecha, hora, supervisor, cortador, recolector, alistador, linea, palma, ciclo, cat_lote_id, cat_plantacion_id, racimos_recogidos, racimos_verdes, racimos_sobremaduros, racimos_podridos, racimossinrecoger, racimossincortar, racimorobado, hojasmalacomo, hojacolgando, frutoplato, observaciones, latitud, longitud, equipo, sincronizado)
+                SELECT id_unico, fecha, hora, supervisor,
+                    CASE WHEN cortador   IS NULL OR cortador   = 0 THEN '' ELSE CAST(cortador   AS TEXT) END,
+                    CASE WHEN recolector IS NULL OR recolector = 0 THEN '' ELSE CAST(recolector AS TEXT) END,
+                    '',
+                    linea, palma, ciclo, cat_lote_id, cat_plantacion_id,
+                    racimos_recogidos, racimos_verdes, racimos_sobremaduros,
+                    racimos_podridos, racimossinrecoger, racimossincortar,
+                    racimorobado, hojasmalacomo, hojacolgando, frutoplato,
+                    observaciones, latitud, longitud, equipo, sincronizado
+                FROM ${T_SUPER_COSECHA}_old""")
+            db.execSQL("DROP TABLE ${T_SUPER_COSECHA}_old")
+        }
+
+        // v21: en super_cosecha_vagon, trabajador pasa de un id único a una LISTA
+        // de ids en texto ("125,159,520"). Como en la v20, SQLite no permite
+        // cambiar el tipo de una columna: se reconstruye la tabla conservando los
+        // registros pendientes. Los ids existentes se convierten a texto
+        // (112 -> "112") y el 0 o NULL pasa a cadena vacía = sin trabajador.
+        if (oldVersion < 21) {
+            db.execSQL("ALTER TABLE $T_SUPER_COSECHA_VAGON RENAME TO ${T_SUPER_COSECHA_VAGON}_old")
+            db.execSQL("""CREATE TABLE $T_SUPER_COSECHA_VAGON (
+            id_unico TEXT PRIMARY KEY,
+            fecha TEXT NOT NULL,
+            hora TEXT NOT NULL,
+            supervisor INTEGER DEFAULT 0,
+            trabajador TEXT DEFAULT '',
+            catloteid INTEGER DEFAULT 0,
+            catplantacionid INTEGER DEFAULT 0,
+            racimosmuestra INTEGER DEFAULT 0,
+            racimosverde INTEGER DEFAULT 0,
+            racimossobremaduro INTEGER DEFAULT 0,
+            racimospodridos INTEGER DEFAULT 0,
+            pedunculolargo INTEGER DEFAULT 0,
+            racimosmalformados INTEGER DEFAULT 0,
+            racimosenfermos INTEGER DEFAULT 0,
+            racimoseupalamides INTEGER DEFAULT 0,
+            observaciones TEXT,
+            latitud REAL NOT NULL,
+            longitud REAL NOT NULL,
+            sincronizado INTEGER DEFAULT 0)""")
+            db.execSQL("""INSERT INTO $T_SUPER_COSECHA_VAGON (
+                    id_unico, fecha, hora, supervisor, trabajador, catloteid, catplantacionid, racimosmuestra, racimosverde, racimossobremaduro, racimospodridos, pedunculolargo, racimosmalformados, racimosenfermos, racimoseupalamides, observaciones, latitud, longitud, sincronizado)
+                SELECT id_unico, fecha, hora, supervisor,
+                    CASE WHEN trabajador IS NULL OR trabajador = 0 THEN '' ELSE CAST(trabajador AS TEXT) END,
+                    catloteid, catplantacionid,
+                    racimosmuestra, racimosverde, racimossobremaduro, racimospodridos,
+                    pedunculolargo, racimosmalformados, racimosenfermos, racimoseupalamides,
+                    observaciones, latitud, longitud, sincronizado
+                FROM ${T_SUPER_COSECHA_VAGON}_old""")
+            db.execSQL("DROP TABLE ${T_SUPER_COSECHA_VAGON}_old")
+        }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
@@ -622,7 +685,9 @@ class DatabaseHelper(context: Context) :
     fun guardarSuperCosecha(r: com.palmadata.app.supercosecha.SuperCosechaRegistro) {
         writableDatabase.insert(T_SUPER_COSECHA, null, ContentValues().apply {
             put("id_unico", r.idUnico); put("fecha", r.fecha); put("hora", r.hora)
-            put("supervisor", r.supervisor); put("cortador", r.cortador); put("recolector", r.recolector)
+            put("supervisor", r.supervisor)
+            // Listas de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
+            put("cortador", r.cortador); put("recolector", r.recolector); put("alistador", r.alistador)
             put("linea", r.linea); put("palma", r.palma); put("ciclo", r.ciclo)
             put("cat_lote_id", r.catLoteId); put("cat_plantacion_id", r.catPlantacionId)
             put("racimos_recogidos", r.racimosRecogidos); put("racimos_verdes", r.racimosVerdes)
@@ -664,6 +729,7 @@ class DatabaseHelper(context: Context) :
         writableDatabase.insert(T_SUPER_COSECHA_VAGON, null, ContentValues().apply {
             put("id_unico", r.idUnico); put("fecha", r.fecha); put("hora", r.hora)
             put("supervisor", r.supervisor)
+            // Lista de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
             put("trabajador", r.trabajador)
             put("catloteid", r.catLoteId); put("catplantacionid", r.catPlantacionId)
             put("racimosmuestra", r.racimosMuestra); put("racimosverde", r.racimosVerde)

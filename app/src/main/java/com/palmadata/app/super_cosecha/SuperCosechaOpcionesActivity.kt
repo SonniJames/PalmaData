@@ -13,31 +13,38 @@ class SuperCosechaOpcionesActivity : AppCompatActivity() {
         val binding = ActivitySuperCosechaOpcionesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val plantacionId = intent.getIntExtra("plantacion_id", 0)
-        val loteId       = intent.getIntExtra("lote_id", 0)
-        val ciclo        = intent.getStringExtra("ciclo") ?: "0"
-        val cortadorId   = intent.getIntExtra("cortador_id", 0)
-        val recolectorId = intent.getIntExtra("recolector_id", 0)
+        val plantacionId  = intent.getIntExtra("plantacion_id", 0)
+        val loteId        = intent.getIntExtra("lote_id", 0)
+        val ciclo         = intent.getStringExtra("ciclo") ?: "0"
+        // Listas de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
+        val cortadorIds   = intent.getStringExtra("cortador_ids")   ?: ""
+        val recolectorIds = intent.getStringExtra("recolector_ids") ?: ""
+        val alistadorIds  = intent.getStringExtra("alistador_ids")  ?: ""
 
-        // LÍNEA-PALMA → SuperCosecha5Activity (conserva plantacion, lote, ciclo, cortador, recolector)
+        // LÍNEA-PALMA → SuperCosecha5Activity (conserva plantacion, lote, ciclo y los trabajadores)
         binding.btnLineaPalma.setOnClickListener {
             val intent = Intent(this, SuperCosecha5Activity::class.java)
             intent.putExtra("plantacion_id",  plantacionId)
             intent.putExtra("lote_id",        loteId)
             intent.putExtra("ciclo",          ciclo)
-            intent.putExtra("cortador_id",    cortadorId)
-            intent.putExtra("recolector_id",  recolectorId)
+            intent.putExtra("cortador_ids",   cortadorIds)
+            intent.putExtra("recolector_ids", recolectorIds)
+            intent.putExtra("alistador_ids",  alistadorIds)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()
         }
 
-        // CORTADOR/RECOLECTOR → SuperCosecha4Activity (conserva plantacion, lote, ciclo)
+        // CORTADOR/RECOLECTOR → SuperCosecha4Activity. Se devuelven las selecciones
+        // para que aparezcan ya listadas y el operario pueda quitarlas o sumar más.
         binding.btnCortadorRecolector.setOnClickListener {
             val intent = Intent(this, SuperCosecha4Activity::class.java)
-            intent.putExtra("plantacion_id", plantacionId)
-            intent.putExtra("lote_id",       loteId)
-            intent.putExtra("ciclo",         ciclo)
+            intent.putExtra("plantacion_id",  plantacionId)
+            intent.putExtra("lote_id",        loteId)
+            intent.putExtra("ciclo",          ciclo)
+            intent.putExtra("cortador_ids",   cortadorIds)
+            intent.putExtra("recolector_ids", recolectorIds)
+            intent.putExtra("alistador_ids",  alistadorIds)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()

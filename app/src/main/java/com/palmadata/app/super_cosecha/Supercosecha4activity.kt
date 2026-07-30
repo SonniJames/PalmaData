@@ -2,16 +2,39 @@ package com.palmadata.app.supercosecha
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.palmadata.app.R
 import com.palmadata.app.databinding.ActivitySuperCosecha4Binding
 import com.palmadata.app.utils.DatabaseHelper
 
+/**
+ * Pantalla 4 — CORTADOR / RECOLECTOR / ALISTADOR.
+ *
+ * Cada campo admite VARIOS trabajadores: el operario escribe, elige del
+ * desplegable y el nombre queda listado debajo con un "−" para quitarlo.
+ * Al continuar, cada campo viaja como una lista de ids separados por coma:
+ *   ""            ningún trabajador
+ *   "112"         uno
+ *   "125,159,520" varios
+ *
+ * Al regresar desde la pantalla de opciones, las selecciones del registro
+ * anterior llegan en los extras y se reconstruyen tal cual estaban.
+ */
 class SuperCosecha4Activity : AppCompatActivity() {
+
     private lateinit var binding: ActivitySuperCosecha4Binding
     private var trabajadores = listOf<Triple<Int, String, Int>>()
-    private var cortadorId = 0
-    private var recolectorId = 0
+
+    // Selección actual de cada campo: pares (id, nombre)
+    private val selCortador   = mutableListOf<Pair<Int, String>>()
+    private val selRecolector = mutableListOf<Pair<Int, String>>()
+    private val selAlistador  = mutableListOf<Pair<Int, String>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,29 +50,18 @@ class SuperCosecha4Activity : AppCompatActivity() {
         val ciclo            = intent.getStringExtra("ciclo") ?: "0"
 
         trabajadores = DatabaseHelper.getInstance(this).getTrabajadoresConSupervisor()
-        val nombres = trabajadores.map { it.second }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, trabajadores.map { it.second })
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombres)
+        configurarCampo(binding.acCortador,   adapter, selCortador,   binding.contCortador)
+        configurarCampo(binding.acRecolector, adapter, selRecolector, binding.contRecolector)
+        configurarCampo(binding.acAlistador,  adapter, selAlistador,  binding.contAlistador)
 
-        binding.acCortador.setAdapter(adapter)
-        binding.acCortador.setOnItemClickListener { _, _, position, _ ->
-            val nombre = binding.acCortador.adapter.getItem(position).toString()
-            cortadorId = trabajadores.first { it.second == nombre }.first
-        }
-
-        binding.acRecolector.setAdapter(adapter)
-        binding.acRecolector.setOnItemClickListener { _, _, position, _ ->
-            val nombre = binding.acRecolector.adapter.getItem(position).toString()
-            recolectorId = trabajadores.first { it.second == nombre }.first
-        }
+        // Precargar las selecciones del registro anterior (al volver desde opciones)
+        precargar(intent.getStringExtra("cortador_ids")   ?: "", selCortador,   binding.contCortador)
+        precargar(intent.getStringExtra("recolector_ids") ?: "", selRecolector, binding.contRecolector)
+        precargar(intent.getStringExtra("alistador_ids")  ?: "", selAlistador,  binding.contAlistador)
 
         binding.btnAccion.setOnClickListener {
-            // Si el operario borró el texto tras haber elegido, la selección deja
-            // de ser válida: el id vuelve a 0 para no arrastrar un trabajador
-            // que ya no está escrito en el campo.
-            if (binding.acCortador.text.toString().trim().isEmpty())   cortadorId = 0
-            if (binding.acRecolector.text.toString().trim().isEmpty()) recolectorId = 0
-
             startActivity(Intent(this, SuperCosecha5Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId)
                 it.putExtra("plantacion_nombre", plantacionNombre)
@@ -58,9 +70,89 @@ class SuperCosecha4Activity : AppCompatActivity() {
                 it.putExtra("lote_id", loteId)
                 it.putExtra("lote_nombre", loteNombre)
                 it.putExtra("ciclo", ciclo)
-                it.putExtra("cortador_id", cortadorId)
-                it.putExtra("recolector_id", recolectorId)
+                // Solo cuenta lo que quedó en la lista; el texto suelto del campo
+                // se ignora, así no hay ids fantasma de nombres a medio escribir.
+                it.putExtra("cortador_ids",   aListaIds(selCortador))
+                it.putExtra("recolector_ids", aListaIds(selRecolector))
+                it.putExtra("alistador_ids",  aListaIds(selAlistador))
             })
         }
     }
+
+    /** Al elegir del desplegable, el trabajador pasa a la lista y el campo se limpia. */
+    private fun configurarCampo(
+        campo: AutoCompleteTextView,
+        adapter: ArrayAdapter<String>,
+        seleccion: MutableList<Pair<Int, String>>,
+        contenedor: LinearLayout
+    ) {
+        campo.setAdapter(adapter)
+        campo.setOnItemClickListener { _, _, position, _ ->
+            val nombre = campo.adapter.getItem(position).toString()
+            val t = trabajadores.firstOrNull { it.second == nombre }
+            if (t != null && seleccion.none { it.first == t.first }) {
+                seleccion.add(Pair(t.first, t.second))
+                pintarSeleccion(contenedor, seleccion)
+            }
+            // Se limpia para poder escribir el siguiente nombre de una vez
+            campo.setText("")
+        }
+    }
+
+    /** Reconstruye la lista desde "125,159,520" buscando los nombres. */
+    private fun precargar(idsCsv: String, seleccion: MutableList<Pair<Int, String>>, contenedor: LinearLayout) {
+        if (idsCsv.isBlank()) return
+        idsCsv.split(",").mapNotNull { it.trim().toIntOrNull() }.forEach { id ->
+            val t = trabajadores.firstOrNull { it.first == id }
+            if (t != null && seleccion.none { s -> s.first == id }) {
+                seleccion.add(Pair(t.first, t.second))
+            }
+        }
+        pintarSeleccion(contenedor, seleccion)
+    }
+
+    /** Dibuja una fila por trabajador seleccionado, con el "−" para quitarlo. */
+    private fun pintarSeleccion(contenedor: LinearLayout, seleccion: MutableList<Pair<Int, String>>) {
+        contenedor.removeAllViews()
+        seleccion.toList().forEach { par ->
+            val fila = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setBackgroundColor(resources.getColor(R.color.white, theme))
+                setPadding(dp(12), dp(8), dp(12), dp(8))
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(2) }
+            }
+
+            val btnQuitar = TextView(this).apply {
+                text = "−"
+                textSize = 22f
+                setTextColor(resources.getColor(R.color.worker_not_set, theme))
+                gravity = Gravity.CENTER
+                setPadding(dp(8), 0, dp(16), 0)
+                isClickable = true
+                setOnClickListener {
+                    seleccion.remove(par)
+                    pintarSeleccion(contenedor, seleccion)
+                }
+            }
+
+            val tvNombre = TextView(this).apply {
+                text = par.second
+                textSize = 15f
+                setTextColor(resources.getColor(R.color.text_primary, theme))
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+
+            fila.addView(btnQuitar)
+            fila.addView(tvNombre)
+            contenedor.addView(fila)
+        }
+    }
+
+    private fun aListaIds(seleccion: List<Pair<Int, String>>): String =
+        seleccion.joinToString(",") { it.first.toString() }
+
+    private fun dp(valor: Int): Int = (valor * resources.displayMetrics.density).toInt()
 }

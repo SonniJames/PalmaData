@@ -22,8 +22,10 @@ class SuperCosecha8Activity : AppCompatActivity() {
         val plantacionId        = intent.getIntExtra("plantacion_id", 0)
         val loteId              = intent.getIntExtra("lote_id", 0)
         val ciclo               = intent.getStringExtra("ciclo") ?: "0"
-        val cortadorId          = intent.getIntExtra("cortador_id", 0)
-        val recolectorId        = intent.getIntExtra("recolector_id", 0)
+        // Listas de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
+        val cortadorIds         = intent.getStringExtra("cortador_ids")   ?: ""
+        val recolectorIds       = intent.getStringExtra("recolector_ids") ?: ""
+        val alistadorIds        = intent.getStringExtra("alistador_ids")  ?: ""
         val linea               = intent.getStringExtra("linea") ?: ""
         val palma               = intent.getStringExtra("palma") ?: ""
         val racimosRecogidos    = intent.getIntExtra("racimos_recogidos", 0)
@@ -44,14 +46,14 @@ class SuperCosecha8Activity : AppCompatActivity() {
         })
 
         binding.btnGuardar.setOnClickListener {
-            guardarRegistro(plantacionId, loteId, ciclo, cortadorId, recolectorId, linea, palma,
+            guardarRegistro(plantacionId, loteId, ciclo, cortadorIds, recolectorIds, alistadorIds, linea, palma,
                 racimosRecogidos, racimosVerdes, racimossobremaduros, racimosPodridos,
                 racimossinrecoger, racimossincortar, racimorobado, hojasmalacomo, hojacolgando, frutoplato)
         }
     }
-
     private fun guardarRegistro(
-        plantacionId: Int, loteId: Int, ciclo: String, cortadorId: Int, recolectorId: Int,
+        plantacionId: Int, loteId: Int, ciclo: String,
+        cortadorIds: String, recolectorIds: String, alistadorIds: String,
         linea: String, palma: String, racimosRecogidos: Int, racimosVerdes: Int,
         racimossobremaduros: Int, racimosPodridos: Int, racimossinrecoger: Int,
         racimossincortar: Int, racimorobado: Int, hojasmalacomo: Int, hojacolgando: Int, frutoplato: Int
@@ -64,8 +66,9 @@ class SuperCosecha8Activity : AppCompatActivity() {
             fecha               = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(ahora),
             hora                = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(ahora),
             supervisor          = worker.code.toIntOrNull() ?: 0,
-            cortador            = cortadorId,
-            recolector          = recolectorId,
+            cortador            = cortadorIds,
+            recolector          = recolectorIds,
+            alistador           = alistadorIds,
             linea               = linea.toIntOrNull() ?: 0,
             palma               = palma.toIntOrNull() ?: 0,
             ciclo               = ciclo.toIntOrNull() ?: 0,
@@ -93,8 +96,9 @@ class SuperCosecha8Activity : AppCompatActivity() {
             opcionesIntent.putExtra("plantacion_id",  plantacionId)
             opcionesIntent.putExtra("lote_id",        loteId)
             opcionesIntent.putExtra("ciclo",          ciclo)
-            opcionesIntent.putExtra("cortador_id",    cortadorId)
-            opcionesIntent.putExtra("recolector_id",  recolectorId)
+            opcionesIntent.putExtra("cortador_ids",   cortadorIds)
+            opcionesIntent.putExtra("recolector_ids", recolectorIds)
+            opcionesIntent.putExtra("alistador_ids",  alistadorIds)
             startActivity(opcionesIntent)
             finish()
         } catch (e: Exception) {

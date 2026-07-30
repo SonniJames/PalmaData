@@ -19,8 +19,9 @@ class SuperCosecha5Activity : AppCompatActivity() {
         val plantacionId  = intent.getIntExtra("plantacion_id", 0)
         val loteId        = intent.getIntExtra("lote_id", 0)
         val ciclo         = intent.getStringExtra("ciclo") ?: "0"
-        val cortadorId    = intent.getIntExtra("cortador_id", 0)
-        val recolectorId  = intent.getIntExtra("recolector_id", 0)
+        val cortadorIds   = intent.getStringExtra("cortador_ids")   ?: ""
+        val recolectorIds = intent.getStringExtra("recolector_ids") ?: ""
+        val alistadorIds  = intent.getStringExtra("alistador_ids")  ?: ""
         setupTeclado()
         binding.btnAccion.setOnClickListener {
             when {
@@ -28,8 +29,9 @@ class SuperCosecha5Activity : AppCompatActivity() {
                 valorActual.length > 3 -> mostrarError("LÍNEA debe tener máximo 3 dígitos")
                 else -> startActivity(Intent(this, SuperCosecha6Activity::class.java).also {
                     it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)
-                    it.putExtra("ciclo", ciclo); it.putExtra("cortador_id", cortadorId)
-                    it.putExtra("recolector_id", recolectorId); it.putExtra("linea", valorActual)
+                    it.putExtra("ciclo", ciclo); it.putExtra("cortador_ids",   cortadorIds)
+                    it.putExtra("recolector_ids", recolectorIds); it.putExtra("alistador_ids",  alistadorIds);
+                    it.putExtra("linea", valorActual)
                 })
             }
         }

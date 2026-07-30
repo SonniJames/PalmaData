@@ -7,14 +7,12 @@
         <View android:layout_width="12dp" android:layout_height="match_parent" />
         <ImageView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:src="@drawable/texto_palma_data" android:scaleType="fitStart" android:adjustViewBounds="true" android:contentDescription="PalmaData" />
     </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="CORTADOR / RECOLECTOR"
-        android:gravity="center" android:textSize="16sp" android:textColor="@color/text_secondary"
+    <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="CORTADOR / RECOLECTOR / ALISTADOR"
+        android:gravity="center" android:textSize="14sp" android:textColor="@color/text_secondary"
         android:background="@color/white" android:elevation="2dp" />
-
     <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:padding="20dp">
-
             <!-- Cortador -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="Cortador" android:textSize="13sp" android:textColor="@color/text_secondary"
@@ -24,9 +22,12 @@
                 android:hint="Buscar cortador..." android:textSize="15sp"
                 android:textColor="@color/text_primary" android:textColorHint="@color/divider"
                 android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
-                android:inputType="textPersonName" android:completionThreshold="1"
+                android:inputType="textPersonName" android:completionThreshold="1" />
+            <!-- Aqui se listan los cortadores seleccionados, con su "-" para quitarlos -->
+            <LinearLayout android:id="@+id/contCortador"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="4dp"
                 android:layout_marginBottom="24dp" />
-
             <!-- Recolector -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="Recolector" android:textSize="13sp" android:textColor="@color/text_secondary"
@@ -36,12 +37,30 @@
                 android:hint="Buscar recolector..." android:textSize="15sp"
                 android:textColor="@color/text_primary" android:textColorHint="@color/divider"
                 android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
-                android:inputType="textPersonName" android:completionThreshold="1"
+                android:inputType="textPersonName" android:completionThreshold="1" />
+            <!-- Aqui se listan los recolectores seleccionados, con su "-" para quitarlos -->
+            <LinearLayout android:id="@+id/contRecolector"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="4dp"
+                android:layout_marginBottom="24dp" />
+            <!-- Alistador -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Alistador" android:textSize="13sp" android:textColor="@color/text_secondary"
+                android:layout_marginBottom="4dp" />
+            <AutoCompleteTextView android:id="@+id/acAlistador"
+                android:layout_width="match_parent" android:layout_height="56dp"
+                android:hint="Buscar alistador..." android:textSize="15sp"
+                android:textColor="@color/text_primary" android:textColorHint="@color/divider"
+                android:background="@color/white" android:paddingStart="12dp" android:paddingEnd="12dp"
+                android:inputType="textPersonName" android:completionThreshold="1" />
+            <!-- Aqui se listan los alistadores seleccionados, con su "-" para quitarlos -->
+            <LinearLayout android:id="@+id/contAlistador"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="4dp"
                 android:layout_marginBottom="24dp" />
 
         </LinearLayout>
     </ScrollView>
-
     <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="60dp"
         android:layout_margin="16dp" android:text="LINEA-PALMA" android:textSize="15sp"
         android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />

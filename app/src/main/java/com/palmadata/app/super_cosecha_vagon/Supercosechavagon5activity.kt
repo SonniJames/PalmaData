@@ -28,7 +28,8 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
         val sectorNombre       = intent.getStringExtra("sector_nombre") ?: ""
         val loteId             = intent.getIntExtra("lote_id", 0)
         val loteNombre         = intent.getStringExtra("lote_nombre") ?: ""
-        val trabajadorId       = intent.getIntExtra("trabajador_id", 0)
+        // Lista de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
+        val trabajadorIds      = intent.getStringExtra("trabajador_ids") ?: ""
         val racimosMuestra     = intent.getIntExtra("racimos_muestra", 0)
         val racimosVerde       = intent.getIntExtra("racimos_verde", 0)
         val racimosSobremaduro = intent.getIntExtra("racimos_sobremaduro", 0)
@@ -47,7 +48,7 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
         binding.btnGuardar.setOnClickListener {
             guardarRegistro(
                 plantacionId, plantacionNombre, sectorId, sectorNombre, loteId, loteNombre,
-                trabajadorId, racimosMuestra, racimosVerde, racimosSobremaduro, racimosPodridos,
+                trabajadorIds, racimosMuestra, racimosVerde, racimosSobremaduro, racimosPodridos,
                 pedunculoLargo, racimosMalformados, racimosEnfermos, racimosEupalamides
             )
         }
@@ -55,7 +56,7 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
 
     private fun guardarRegistro(
         plantacionId: Int, plantacionNombre: String, sectorId: Int, sectorNombre: String,
-        loteId: Int, loteNombre: String, trabajadorId: Int,
+        loteId: Int, loteNombre: String, trabajadorIds: String,
         racimosMuestra: Int, racimosVerde: Int, racimosSobremaduro: Int, racimosPodridos: Int,
         pedunculoLargo: Int, racimosMalformados: Int, racimosEnfermos: Int, racimosEupalamides: Int
     ) {
@@ -70,9 +71,8 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
             fecha              = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(ahora),
             hora               = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(ahora),
             supervisor         = worker.code.toIntOrNull() ?: 0,
-            // El trabajador de la pantalla 3 es opcional: 0 significa "en blanco",
-            // y se guarda como NULL (no como 0) en la base de datos.
-            trabajador         = trabajadorId,
+            // Lista de trabajadores de la pantalla 3 (puede ir vacía)
+            trabajador         = trabajadorIds,
             catLoteId          = loteId.toLong(),
             catPlantacionId    = plantacionId.toLong(),
             racimosMuestra     = racimosMuestra,
@@ -97,6 +97,7 @@ class SuperCosechaVagon5Activity : AppCompatActivity() {
             opcionesIntent.putExtra("sector_nombre", sectorNombre)
             opcionesIntent.putExtra("lote_id", loteId)
             opcionesIntent.putExtra("lote_nombre", loteNombre)
+            opcionesIntent.putExtra("trabajador_ids", trabajadorIds)
             startActivity(opcionesIntent)
             finish()
         } catch (e: Exception) {

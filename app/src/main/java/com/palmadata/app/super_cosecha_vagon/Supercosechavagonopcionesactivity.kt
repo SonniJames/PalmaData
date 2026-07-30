@@ -19,10 +19,14 @@ class SuperCosechaVagonOpcionesActivity : AppCompatActivity() {
         val sectorNombre     = intent.getStringExtra("sector_nombre") ?: ""
         val loteId           = intent.getIntExtra("lote_id", 0)
         val loteNombre       = intent.getStringExtra("lote_nombre") ?: ""
+        // Lista de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
+        val trabajadorIds    = intent.getStringExtra("trabajador_ids") ?: ""
 
         // TRABAJADOR → pantalla 3, conservando plantación, sector y lote del
-        // registro anterior. Los flags limpian la pila del registro pasado para
-        // que el botón atrás siga la navegación natural (3 → 2 → 1 → 0).
+        // registro anterior. Se devuelve también la selección de trabajadores
+        // para que aparezca ya listada y se pueda quitar o sumar más.
+        // Los flags limpian la pila del registro pasado para que el botón atrás
+        // siga la navegación natural (3 → 2 → 1 → 0).
         binding.btnTrabajador.setOnClickListener {
             val intent = Intent(this, SuperCosechaVagon3Activity::class.java)
             intent.putExtra("plantacion_id", plantacionId)
@@ -31,6 +35,7 @@ class SuperCosechaVagonOpcionesActivity : AppCompatActivity() {
             intent.putExtra("sector_nombre", sectorNombre)
             intent.putExtra("lote_id", loteId)
             intent.putExtra("lote_nombre", loteNombre)
+            intent.putExtra("trabajador_ids", trabajadorIds)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()

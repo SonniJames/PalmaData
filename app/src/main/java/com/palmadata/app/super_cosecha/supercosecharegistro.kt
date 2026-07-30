@@ -5,8 +5,13 @@ data class SuperCosechaRegistro(
     val fecha: String,
     val hora: String,
     val supervisor: Int,
-    val cortador: Int,
-    val recolector: Int,
+    // Listas de ids de trabajadores separadas por coma:
+    //   ""            = ninguno seleccionado
+    //   "112"         = un trabajador
+    //   "125,159,520" = varios
+    val cortador: String,
+    val recolector: String,
+    val alistador: String,
     val linea: Int,
     val palma: Int,
     val ciclo: Int,
