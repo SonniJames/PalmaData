@@ -74,7 +74,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="El equipo permanecerá en esta pantalla durante toda la jornada mientras se registra el recorrido.\n\nPara finalizar, presione el botón e ingrese la contraseña asignada."
+            android:text="El equipo permanecerá en esta pantalla durante toda la jornada mientras se registra el recorrido.\n\nAl terminar, presione FINALIZAR JORNADA para volver al menú de módulos."
             android:gravity="center"
             android:textSize="15sp"
             android:lineSpacingExtra="4dp"
