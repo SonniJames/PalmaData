@@ -17,18 +17,21 @@ import com.palmadata.app.utils.SessionManager
  * durante toda la jornada mientras el servicio de tracking graba el recorrido
  * con formulario = 30, para que los tracks del estudio queden identificados.
  *
- * El control de acceso es del dispositivo, no de la app: los equipos se
- * entregan con el módulo abierto y la pantalla bloqueada con contraseña, que
- * solo conoce el supervisor.
+ * El control de acceso es del DISPOSITIVO, no de la app: los equipos se
+ * entregan con el módulo abierto y la pantalla bloqueada con PIN, que solo
+ * conoce el supervisor. Al final de la jornada él desbloquea y presiona
+ * FINALIZAR JORNADA.
+ *
+ * NO se usa startLockTask() a propósito. Con el anclaje activo, la pantalla del
+ * módulo quedaba visible por encima del bloqueo del teléfono: cualquiera podía
+ * pulsar FINALIZAR JORNADA y, aunque después el sistema pidiera el PIN para
+ * desanclar, el cierre de jornada YA se había ejecutado. Sin anclaje, el
+ * bloqueo del equipo tapa la app y no se llega al botón sin desbloquear.
  *
  * FINALIZAR JORNADA cierra el día igual que la sincronización de mediodía:
  * marca la jornada como cerrada, detiene el servicio y sale al grid. A partir
  * de ahí no se graban más tracks hoy; el estado expira solo al cambiar de
  * fecha, así que mañana al abrir la app el registro se reanuda por sí mismo.
- *
- * Complementos por si el equipo llegara a quedar desbloqueado:
- *  - Botón atrás anulado.
- *  - startLockTask(): ancla la app en pantalla.
  */
 class EstudioTiemposActivity : AppCompatActivity() {
 
@@ -39,19 +42,7 @@ class EstudioTiemposActivity : AppCompatActivity() {
         binding = ActivityEstudioTiemposBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        anclarPantalla()
-
         binding.btnFinalizar.setOnClickListener { confirmarFin() }
-    }
-
-    /** Ancla la app en esta pantalla. Si falla, el módulo sigue funcionando
-     *  igual: el botón atrás queda bloqueado de todas formas. */
-    private fun anclarPantalla() {
-        try {
-            startLockTask()
-        } catch (e: Exception) {
-            android.util.Log.e("EstudioTiempos", "No se pudo anclar la pantalla: ${e.message}")
-        }
     }
 
     /**
@@ -69,20 +60,14 @@ class EstudioTiemposActivity : AppCompatActivity() {
     }
 
     /**
-     * Cierra la jornada (mismo mecanismo que la sincronización de mediodía),
-     * libera el anclaje y regresa al grid, donde el formulario vuelve a 0.
+     * Cierra la jornada (mismo mecanismo que la sincronización de mediodía) y
+     * regresa al grid, donde el formulario vuelve a 0.
      */
     private fun finalizarJornada() {
         // Estado que dura el resto del día: ni onStart ni el propio servicio
         // reviven el tracking hasta mañana.
         SessionManager.cerrarJornadaHoy(this)
         stopService(Intent(this, TrackingService::class.java))
-
-        try {
-            stopLockTask()
-        } catch (e: Exception) {
-            android.util.Log.e("EstudioTiempos", "No se pudo liberar el anclaje: ${e.message}")
-        }
 
         Toast.makeText(
             this,
@@ -98,7 +83,8 @@ class EstudioTiemposActivity : AppCompatActivity() {
 
     /**
      * El botón atrás no hace nada: la única salida del módulo es FINALIZAR
-     * JORNADA.
+     * JORNADA. Es la protección que queda para cuando el equipo está
+     * desbloqueado en manos del operario.
      */
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
