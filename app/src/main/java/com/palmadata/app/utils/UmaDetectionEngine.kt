@@ -34,6 +34,20 @@ object UmaDetectionEngine {
     private const val TAG = "UmaDetectionEngine"
     private const val FIXES_PARA_CAMBIO = 3
 
+    // Distancia al borde de la uma vecina a la que se avisa "se aproxima a la
+    // uma X". Aplica igual estando dentro de otra uma o fuera de todas.
+    private const val PROXIMIDAD_METROS = 10.0
+
+    // Silencio por uma tras avisarla: evita que caminar sobre el lindero entre
+    // dos umas dispare el aviso una y otra vez. Pasado este tiempo, si el
+    // operario vuelve a acercarse, la uma se anuncia de nuevo.
+    private const val SILENCIO_PROXIMIDAD_MS = 3 * 60 * 1000L   // 3 minutos
+
+    // Red de seguridad: tope de avisos por uma en toda la sesión del módulo.
+    // Si una uma llega a este número, deja de anunciarse hasta salir y volver
+    // a entrar al módulo. Cubre el caso raro que la ventana no alcance a filtrar.
+    private const val MAX_AVISOS_POR_UMA = 5
+
     // Deben coincidir con TrackingService para actualizar SU notificación
     private const val CHANNEL_ID      = "palmadata_tracking_channel"
     private const val NOTIFICATION_ID = 1001
@@ -64,6 +78,16 @@ object UmaDetectionEngine {
     /** Al entrar al módulo se anuncia una vez el estado actual ("por fuera" o la uma con su dosis) */
     @Volatile private var estadoInicialAnunciado = false
 
+    /** Uma cuya proximidad se anunció más recientemente: mientras siga siendo
+     *  la más cercana no se repite el aviso. */
+    @Volatile private var umaProximaAnunciada: Int? = null
+
+    /** Momento del último aviso de cada uma, para la ventana de silencio. */
+    private val ultimoAvisoProximidad = mutableMapOf<Int, Long>()
+
+    /** Cuántas veces se ha anunciado cada uma en esta sesión (tope). */
+    private val avisosPorUma = mutableMapOf<Int, Int>()
+
     fun setListener(l: Listener?) { listener = l }
 
     fun umaActual(): UmaData? =
@@ -89,6 +113,9 @@ object UmaDetectionEngine {
         umaCandidataId = null
         fixesCandidata = 0
         estadoInicialAnunciado = false
+        umaProximaAnunciada = null
+        ultimoAvisoProximidad.clear()
+        avisosPorUma.clear()
         liberarTts()
         Log.d(TAG, "Motor de detección desactivado")
     }
@@ -140,6 +167,7 @@ object UmaDetectionEngine {
                 estadoInicialAnunciado = true
                 hablar(context.applicationContext, fraseHablada(context.applicationContext, umaActual()))
             }
+            revisarProximidad(context.applicationContext, lat, lon)
             return
         }
 
@@ -152,6 +180,11 @@ object UmaDetectionEngine {
             umaCandidataId = null
             fixesCandidata = 0
             estadoInicialAnunciado = true   // el cambio confirmado ya anuncia el estado
+            // La uma que se acaba de dejar queda marcada como ya anunciada: si
+            // están pegadas seguirá a pocos metros, y sin esto la voz diría
+            // "se aproxima a la 18" justo al entrar a la 19. Se libera sola
+            // cuando el operario se aleje de ella más del umbral.
+            umaProximaAnunciada = anterior
 
             val uma = umaActual()
             val alertar = anterior != null || umaActualId != null
@@ -169,6 +202,54 @@ object UmaDetectionEngine {
         }
     }
 
+    // ── Aviso de proximidad ───────────────────────────────────────────────────
+
+    /**
+     * Avisa por voz que se está llegando a una uma, ANTES de entrar.
+     *
+     * Opera en los dos escenarios: fuera de toda uma (desplazándose hacia la
+     * siguiente) y dentro de una uma acercándose a la vecina, que es el caso de
+     * los bloques de umas pegadas.
+     *
+     * Tres filtros evitan que se vuelva ruido:
+     *  1. Mientras la uma anunciada siga siendo la más cercana, no se repite.
+     *  2. Ventana de silencio por uma: aunque el operario se aleje y vuelva,
+     *     esa uma no se repite hasta pasados unos minutos.
+     *  3. Tope de avisos por uma en la sesión, como red de seguridad.
+     *
+     * No dice la dosis: eso se anuncia al entrar, con el flujo normal.
+     */
+    private fun revisarProximidad(appContext: Context, lat: Double, lon: Double) {
+        // Se excluye la uma actual: dentro de ella la distancia es 0 y no tiene
+        // sentido anunciar la que el operario ya está trabajando.
+        val cercana = UmaLocator.umaMasCercana(
+            poligonos, lat, lon, PROXIMIDAD_METROS, excluirId = umaActualId
+        )
+        if (cercana == null) {
+            // Ya no hay ninguna cerca: se libera para volver a avisar la próxima vez
+            umaProximaAnunciada = null
+            return
+        }
+
+        val id = cercana.first.uma.nutUmaPolId
+        if (id == umaProximaAnunciada) return   // sigue siendo la misma: nada que decir
+
+        umaProximaAnunciada = id
+
+        // Regla 1 — ventana de silencio: no repetir esta uma por unos minutos.
+        // Es lo que corta el ida y vuelta sobre el lindero entre dos umas.
+        val ahora = System.currentTimeMillis()
+        val ultimo = ultimoAvisoProximidad[id] ?: 0L
+        if (ahora - ultimo < SILENCIO_PROXIMIDAD_MS) return
+
+        // Regla 2 — tope por sesión: red de seguridad si la ventana no bastara.
+        val veces = avisosPorUma[id] ?: 0
+        if (veces >= MAX_AVISOS_POR_UMA) return
+
+        ultimoAvisoProximidad[id] = ahora
+        avisosPorUma[id] = veces + 1
+        hablar(appContext, "Se aproxima a la uma ${cercana.first.uma.codigo}")
+    }
     // ── Alerta (vibración + sonido): funciona con pantalla bloqueada ──────────
 
     @Suppress("DEPRECATION")
