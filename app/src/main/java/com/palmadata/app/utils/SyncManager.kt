@@ -97,6 +97,19 @@ object SyncManager {
             db.reemplazarFertilizantes(fetchLista(baseUrl, "fertilizantes") { o -> Pair(o.getInt("id"), o.getString("nombre")) })
         }
 
+        descargar("Lotes mapa", fallidos) {
+            db.reemplazarLotesMapa(fetchLista(baseUrl, "lotes_mapa", readTimeout = 60_000) { o ->
+                com.palmadata.app.data.model.LoteMapa(
+                    catLoteId = o.getInt("cat_lote_id"),
+                    nombre    = o.getString("nombre"),
+                    siembra   = o.optInt("siembra", 0),
+                    palmas    = o.optInt("palmas", 0),
+                    material  = o.optString("material", ""),
+                    geojson   = o.getString("geojson")
+                )
+            })
+        }
+
         guardarFechaSincronizacion(context)
 
         val detallesFinal = mapOf(

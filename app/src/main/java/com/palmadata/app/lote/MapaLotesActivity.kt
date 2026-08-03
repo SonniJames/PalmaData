@@ -1,0 +1,434 @@
+package com.palmadata.app.mapa
+
+import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.os.Bundle
+import android.os.Looper
+import android.view.WindowManager
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.palmadata.app.R
+import com.palmadata.app.data.model.LoteMapa
+import com.palmadata.app.utils.DatabaseHelper
+import com.palmadata.app.utils.LoteLocator
+import com.palmadata.app.utils.LotePoligono
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.cachemanager.CacheManager
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+
+/**
+ * Módulo MAPAS: ubicación en la plantación.
+ *
+ * Es informativo, no de labor. Muestra los polígonos de los lotes sobre la
+ * imagen satelital, ubica al operario y le dice en qué lote está parado con
+ * sus características (siembra, palmas, material).
+ *
+ * Diferencias con el módulo de fertilización:
+ *  - formularioId = 0: no marca los tracks, porque no corresponde a una labor.
+ *  - Sin voz, sin vibración, sin notificación: solo actualiza la caja en
+ *    pantalla. Por lo mismo NO necesita un motor que sobreviva a la pantalla
+ *    apagada; la detección vive aquí y se apaga al salir.
+ *  - Sin filtro de fertilizantes.
+ *
+ * La posición la pide esta pantalla directamente al proveedor (1 s, igual que
+ * fertilización) y NO guarda tracks: de eso sigue encargándose el
+ * TrackingService por su cuenta, con su propia cadencia.
+ */
+class MapaLotesActivity : AppCompatActivity() {
+
+    private lateinit var mapView: MapView
+    private lateinit var tvNombre: TextView
+    private lateinit var tvInfo: TextView
+    private lateinit var tvDetalle: TextView
+    private lateinit var btnCentrar: FloatingActionButton
+    private lateinit var btnDescargarMapa: FloatingActionButton
+    private lateinit var btnActualizarLotes: FloatingActionButton
+
+    private val lotesOverlay = LotesOverlay()
+    private var lotesDibujados = false
+
+    @Volatile private var poligonos: List<LotePoligono> = emptyList()
+
+    // Bounding box de todos los lotes (para centrar y para la descarga offline)
+    private var lotesMinLat =  90.0; private var lotesMaxLat = -90.0
+    private var lotesMinLon = 180.0; private var lotesMaxLon = -180.0
+
+    // ── Detección con histéresis ──────────────────────────────────────────────
+    // Sin ella, estando sobre el lindero el GPS salta unos metros y la caja
+    // parpadearía entre dos lotes. Se exige confirmación de 3 fixes seguidos.
+    private var loteActualId: Int? = null
+    private var loteCandidatoId: Int? = null
+    private var fixesCandidato = 0
+
+    private lateinit var fusedClient: FusedLocationProviderClient
+    private var pidiendoUbicacion = false
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(result: LocationResult) {
+            val loc = result.lastLocation ?: return
+            procesarPosicion(loc.latitude, loc.longitude)
+        }
+    }
+
+    companion object {
+        private const val FIXES_PARA_CAMBIO = 3
+        private const val INTERVALO_MS = 1_000L
+
+        /** Mapa base satelital (Esri World Imagery), el mismo de fertilización:
+         *  permite descarga offline y muestra las hileras de palma reales. */
+        private val FUENTE_SATELITAL = object : OnlineTileSourceBase(
+            "EsriWorldImagery",
+            0, 19, 256, "",
+            arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
+            "Esri, Maxar, Earthstar Geographics"
+        ) {
+            override fun getTileURLString(pMapTileIndex: Long): String =
+                baseUrl +
+                        MapTileIndex.getZoom(pMapTileIndex) + "/" +
+                        MapTileIndex.getY(pMapTileIndex) + "/" +
+                        MapTileIndex.getX(pMapTileIndex)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        Configuration.getInstance().apply {
+            userAgentValue = packageName
+            osmdroidBasePath = filesDir
+            osmdroidTileCache = cacheDir
+            expirationOverrideDuration = 365L * 24 * 60 * 60 * 1000
+            tileFileSystemCacheMaxBytes  = 1024L * 1024 * 1024   // 1 GB
+            tileFileSystemCacheTrimBytes = 900L  * 1024 * 1024
+        }
+
+        setContentView(R.layout.activity_mapa_lotes)
+
+        mapView            = findViewById(R.id.mapView)
+        tvNombre           = findViewById(R.id.tvLoteNombre)
+        tvInfo             = findViewById(R.id.tvLoteInfo)
+        tvDetalle          = findViewById(R.id.tvLoteDetalle)
+        btnCentrar         = findViewById(R.id.btnCentrar)
+        btnDescargarMapa   = findViewById(R.id.btnDescargarMapa)
+        btnActualizarLotes = findViewById(R.id.btnActualizarLotes)
+
+        fusedClient = LocationServices.getFusedLocationProviderClient(this)
+
+        @SuppressLint("MissingPermission")
+        btnCentrar.setOnClickListener {
+            fusedClient.lastLocation.addOnSuccessListener { loc ->
+                if (loc != null) mapView.controller.animateTo(GeoPoint(loc.latitude, loc.longitude))
+            }
+        }
+        btnDescargarMapa.setOnClickListener { confirmarDescargaMapaOffline() }
+        btnActualizarLotes.setOnClickListener { recargarLotes() }
+
+        mapView.setTileSource(FUENTE_SATELITAL)
+        mapView.setMultiTouchControls(true)
+        mapView.minZoomLevel = 3.0
+        // Hasta 20 aunque solo haya teselas hasta 17: osmdroid escala la del
+        // zoom vecino, así siempre hay imagen en vez del fondo gris.
+        mapView.maxZoomLevel = 20.0
+        mapView.setUseDataConnection(true)
+
+        configurarMiUbicacion()
+
+        tvNombre.text = "Cargando lotes..."
+        cargarLotes()
+    }
+
+    // ── Carga de polígonos desde la BD local ──────────────────────────────────
+
+    private fun cargarLotes() {
+        Thread {
+            val cargados = try {
+                DatabaseHelper.getInstance(this).getLotesMapa().mapNotNull { lote ->
+                    try { LotePoligono(lote) } catch (e: Exception) { null }  // geojson inválido: se omite
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            poligonos = cargados
+            runOnUiThread {
+                dibujarLotes()
+                centrarComoOrux()
+            }
+        }.start()
+    }
+
+    private fun recargarLotes() {
+        mapView.overlays.remove(lotesOverlay)
+        lotesDibujados = false
+        lotesMinLat =  90.0; lotesMaxLat = -90.0
+        lotesMinLon = 180.0; lotesMaxLon = -180.0
+        loteActualId = null; loteCandidatoId = null; fixesCandidato = 0
+
+        tvNombre.text = "Recargando lotes..."
+        android.widget.Toast.makeText(this, "Recargando lotes...", android.widget.Toast.LENGTH_SHORT).show()
+        cargarLotes()
+    }
+
+    private fun dibujarLotes() {
+        if (lotesDibujados) return
+        if (poligonos.isEmpty()) {
+            tvNombre.text = "Sin lotes cargados"
+            tvInfo.text   = "Sincronice para descargarlos"
+            tvDetalle.text = ""
+            return
+        }
+        lotesDibujados = true
+
+        lotesOverlay.setPoligonos(poligonos)
+        // Índice 0: debajo del overlay de mi ubicación, para que la mira roja
+        // quede siempre visible encima de los polígonos
+        mapView.overlays.add(0, lotesOverlay)
+
+        poligonos.forEach { lp ->
+            lotesMinLat = minOf(lotesMinLat, lp.minLat)
+            lotesMaxLat = maxOf(lotesMaxLat, lp.maxLat)
+            lotesMinLon = minOf(lotesMinLon, lp.minLon)
+            lotesMaxLon = maxOf(lotesMaxLon, lp.maxLon)
+        }
+        mapView.invalidate()
+        mostrarLote(null)
+    }
+
+    // ── Detección de lote ─────────────────────────────────────────────────────
+
+    private fun procesarPosicion(lat: Double, lon: Double) {
+        if (poligonos.isEmpty()) return
+
+        val detectado = LoteLocator.loteEn(poligonos, lat, lon)?.lote?.catLoteId
+
+        if (detectado == loteActualId) {
+            loteCandidatoId = null; fixesCandidato = 0
+            return
+        }
+
+        if (detectado == loteCandidatoId) fixesCandidato++
+        else { loteCandidatoId = detectado; fixesCandidato = 1 }
+
+        if (fixesCandidato >= FIXES_PARA_CAMBIO) {
+            loteActualId = loteCandidatoId
+            loteCandidatoId = null
+            fixesCandidato = 0
+            mostrarLote(poligonos.firstOrNull { it.lote.catLoteId == loteActualId }?.lote)
+        }
+    }
+
+    private fun mostrarLote(lote: LoteMapa?) {
+        lotesOverlay.setLoteActual(lote?.catLoteId)
+        mapView.invalidate()
+
+        if (lote != null) {
+            tvNombre.text  = "📍 Lote ${lote.nombre}"
+            tvInfo.text    = "Siembra: ${if (lote.siembra > 0) lote.siembra.toString() else "—"}" +
+                    "   |   Palmas: ${lote.palmas}"
+            tvDetalle.text = "Material: ${lote.material.ifBlank { "—" }}"
+        } else {
+            tvNombre.text  = "Fuera de los lotes"
+            tvInfo.text    = "—"
+            tvDetalle.text = ""
+        }
+    }
+
+    // ── Descarga del mapa base para uso offline ───────────────────────────────
+
+    private fun confirmarDescargaMapaOffline() {
+        if (poligonos.isEmpty()) {
+            android.widget.Toast.makeText(this, "Espere a que carguen los lotes (o sincronice primero).", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val bb = BoundingBox(lotesMaxLat, lotesMaxLon, lotesMinLat, lotesMinLon).increaseByScale(1.2f)
+            val cacheManager = CacheManager(mapView)
+            val zoomMin = 13; val zoomMax = 17
+            val totalTeselas = cacheManager.possibleTilesInArea(bb, zoomMin, zoomMax)
+
+            AlertDialog.Builder(this)
+                .setTitle("Descargar mapa offline")
+                .setMessage(
+                    "Se descargará la imagen satelital de toda la zona de los lotes " +
+                            "(~$totalTeselas imágenes, zoom $zoomMin–$zoomMax).\n\n" +
+                            "Hágalo con WiFi. Después el mapa se verá en campo sin señal."
+                )
+                .setPositiveButton("Descargar") { _, _ ->
+                    iniciarDescargaMapa(cacheManager, bb, zoomMin, zoomMax)
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(this, "No se pudo preparar la descarga: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun iniciarDescargaMapa(cacheManager: CacheManager, bb: BoundingBox, zoomMin: Int, zoomMax: Int) {
+        val tvProgreso = TextView(this).apply {
+            text = "Iniciando descarga..."
+            setPadding(60, 40, 60, 20)
+            textSize = 15f
+        }
+        val dialogo = AlertDialog.Builder(this)
+            .setTitle("Descargando mapa satelital")
+            .setView(tvProgreso)
+            .setCancelable(false)
+            .setNegativeButton("Ocultar", null)   // la descarga sigue en segundo plano
+            .create()
+        dialogo.show()
+
+        try {
+            cacheManager.downloadAreaAsyncNoUI(this, bb, zoomMin, zoomMax,
+                object : CacheManager.CacheManagerCallback {
+                    override fun onTaskComplete() {
+                        runOnUiThread {
+                            if (dialogo.isShowing) dialogo.dismiss()
+                            android.widget.Toast.makeText(this@MapaLotesActivity,
+                                "✅ Mapa offline descargado", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun onTaskFailed(errors: Int) {
+                        runOnUiThread {
+                            if (dialogo.isShowing) dialogo.dismiss()
+                            android.widget.Toast.makeText(this@MapaLotesActivity,
+                                "Descarga terminada con $errors imágenes fallidas. " +
+                                        "Puede repetirla: solo bajará las que faltan.",
+                                android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
+                        runOnUiThread {
+                            tvProgreso.text = "Imágenes descargadas: $progress\nNivel de zoom: $currentZoomLevel de $zoomMax"
+                        }
+                    }
+
+                    override fun downloadStarted() { }
+
+                    override fun setPossibleTilesInArea(total: Int) {
+                        runOnUiThread { tvProgreso.text = "Total a descargar: $total imágenes" }
+                    }
+                })
+        } catch (e: Exception) {
+            if (dialogo.isShowing) dialogo.dismiss()
+            android.widget.Toast.makeText(this, "Error en la descarga: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // ── Centrado y posición ───────────────────────────────────────────────────
+
+    @SuppressLint("MissingPermission")
+    private fun centrarComoOrux() {
+        fusedClient.lastLocation
+            .addOnSuccessListener { loc ->
+                if (loc != null) {
+                    mapView.controller.setZoom(17.0)
+                    mapView.controller.setCenter(GeoPoint(loc.latitude, loc.longitude))
+                } else {
+                    centrarEnLotes()
+                }
+            }
+            .addOnFailureListener { centrarEnLotes() }
+    }
+
+    private fun centrarEnLotes() {
+        if (poligonos.isEmpty()) return
+        mapView.post {
+            mapView.zoomToBoundingBox(
+                BoundingBox(lotesMaxLat, lotesMaxLon, lotesMinLat, lotesMinLon).increaseByScale(1.3f), false
+            )
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun configurarMiUbicacion() {
+        val icono = crearIconoPosicion()
+        val overlay = MyLocationNewOverlay(GpsMyLocationProvider(this), mapView)
+        overlay.setPersonIcon(icono)
+        overlay.setDirectionIcon(icono)
+        overlay.setPersonHotspot(icono.width / 2f, icono.height / 2f)
+        overlay.enableMyLocation()
+        overlay.enableFollowLocation()
+        mapView.overlays.add(overlay)
+    }
+
+    private fun crearIconoPosicion(): Bitmap {
+        val size = 72
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val cx = size / 2f
+        val rojo = Color.rgb(211, 47, 47)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = rojo; style = Paint.Style.STROKE; strokeWidth = 6f
+        }
+        canvas.drawCircle(cx, cx, 18f, paint)
+        canvas.drawLine(cx, 2f,        cx, cx - 8f, paint)
+        canvas.drawLine(cx, size - 2f, cx, cx + 8f, paint)
+        canvas.drawLine(2f, cx,        cx - 8f, cx, paint)
+        canvas.drawLine(size - 2f, cx, cx + 8f, cx, paint)
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(cx, cx, 5f, paint)
+        return bmp
+    }
+
+    // ── Ciclo de vida ─────────────────────────────────────────────────────────
+
+    @SuppressLint("MissingPermission")
+    private fun iniciarUbicacion() {
+        if (pidiendoUbicacion) return
+        try {
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVALO_MS)
+                .setMinUpdateIntervalMillis(INTERVALO_MS)
+                .build()
+            fusedClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+            pidiendoUbicacion = true
+        } catch (e: Exception) {
+            // Sin permisos de ubicación: el mapa y los lotes se ven igual,
+            // solo que sin detección del lote actual.
+        }
+    }
+
+    private fun detenerUbicacion() {
+        if (!pidiendoUbicacion) return
+        try { fusedClient.removeLocationUpdates(locationCallback) } catch (e: Exception) { }
+        pidiendoUbicacion = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mapView.onResume()
+        iniciarUbicacion()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mapView.onPause()
+        // Módulo informativo: al salir de pantalla no tiene sentido seguir
+        // consultando la posición cada segundo. Los tracks los sigue grabando
+        // el TrackingService por su cuenta.
+        detenerUbicacion()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        detenerUbicacion()
+    }
+}

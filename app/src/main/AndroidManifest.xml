@@ -158,6 +158,8 @@
         <activity android:name=".super_poli.SuperPoliOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Estudio de tiempos -->
         <activity android:name=".estudio_tiempos.EstudioTiemposActivity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Lotes -->
+        <activity android:name=".mapa.MapaLotesActivity" android:exported="false" android:screenOrientation="portrait" />
     </application>
 
 </manifest>

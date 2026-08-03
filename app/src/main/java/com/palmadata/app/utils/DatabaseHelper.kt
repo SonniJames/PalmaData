@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 21  // ← v21: trabajador a TEXT (varios) en super_cosecha_vagon
+        const val DB_VERSION = 22  // ← v22: tabla maestra lotes_mapa (módulo mapas)
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -47,6 +47,7 @@ class DatabaseHelper(context: Context) :
         const val T_MAQUINARIA_SESION  = "maquinaria_sesion"
         const val T_TRACKS             = "tracks_movil"
         const val T_UMAS               = "umas"
+        const val T_LOTES_MAPA         = "lotes_mapa"
         const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
         const val T_SUPER_COSECHA_VAGON = "super_cosecha_vagon"
         const val T_SUPER_POLI          = "super_poli"
@@ -112,6 +113,13 @@ class DatabaseHelper(context: Context) :
             simbolo TEXT,
             geojson TEXT NOT NULL,
             fertilizantes TEXT DEFAULT '[]')""")  // ← cambio 5: campo fertilizantes en T_UMAS
+        db.execSQL("""CREATE TABLE $T_LOTES_MAPA (
+            cat_lote_id INTEGER PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            siembra INTEGER DEFAULT 0,
+            palmas INTEGER DEFAULT 0,
+            material TEXT,
+            geojson TEXT NOT NULL)""")
         db.execSQL("""CREATE TABLE $T_SUPER_COSECHA_VAGON (
             id_unico TEXT PRIMARY KEY,
             fecha TEXT NOT NULL,
@@ -162,7 +170,8 @@ class DatabaseHelper(context: Context) :
             T_ENFERMEDADES, T_EVENTOS, T_TRATAMIENTOS_EVT,
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
-            T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES  // ← cambio 6: T_FERTILIZANTES en DROP
+            T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
+            T_LOTES_MAPA
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -381,6 +390,13 @@ class DatabaseHelper(context: Context) :
             simbolo TEXT,
             geojson TEXT NOT NULL,
             fertilizantes TEXT DEFAULT '[]')""")  // ← cambio 9: fertilizantes en recreación
+        db.execSQL("""CREATE TABLE $T_LOTES_MAPA (
+            cat_lote_id INTEGER PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            siembra INTEGER DEFAULT 0,
+            palmas INTEGER DEFAULT 0,
+            material TEXT,
+            geojson TEXT NOT NULL)""")
     }
 
     // ── Reemplazar maestros ───────────────────────────────────────────────────
@@ -488,6 +504,40 @@ class DatabaseHelper(context: Context) :
         } finally { db.endTransaction() }
     }
 
+
+    fun reemplazarLotesMapa(lista: List<com.palmadata.app.data.model.LoteMapa>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(T_LOTES_MAPA, null, null)
+            lista.forEach { l ->
+                db.insert(T_LOTES_MAPA, null, ContentValues().apply {
+                    put("cat_lote_id", l.catLoteId)
+                    put("nombre",      l.nombre)
+                    put("siembra",     l.siembra)
+                    put("palmas",      l.palmas)
+                    put("material",    l.material)
+                    put("geojson",     l.geojson)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun getLotesMapa(): List<com.palmadata.app.data.model.LoteMapa> {
+        val result = mutableListOf<com.palmadata.app.data.model.LoteMapa>()
+        readableDatabase.rawQuery(
+            "SELECT cat_lote_id, nombre, siembra, palmas, material, geojson FROM $T_LOTES_MAPA", null
+        ).use { c ->
+            while (c.moveToNext()) result.add(
+                com.palmadata.app.data.model.LoteMapa(
+                    c.getInt(0), c.getString(1), c.getInt(2),
+                    c.getInt(3), c.getString(4) ?: "", c.getString(5)
+                )
+            )
+        }
+        return result
+    }
     fun getUmas(): List<UmaData> {
         val result = mutableListOf<UmaData>()
         readableDatabase.rawQuery(
