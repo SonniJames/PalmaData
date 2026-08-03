@@ -5,13 +5,34 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import com.palmadata.app.data.model.TrackMovil
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Fuente de posición de la app, con estrategia HÍBRIDA: se prefiere el GPS
+ * crudo y solo se cae a Fused cuando el GPS no está reportando.
+ *
+ * Por qué: el GPS crudo entrega la posición tal como la calcula el chip, sin
+ * el suavizado que Fused aplica (pensado para navegación urbana). Para trazar
+ * el recorrido real por los lotes eso es lo deseable. Pero bajo dosel cerrado
+ * el chip puede quedarse sin fijar, y ahí Fused —que complementa con WiFi,
+ * torres y sensores— evita que queden huecos en el recorrido.
+ *
+ * Cómo: se escucha a los DOS proveedores a la vez. Cada fix del GPS refresca
+ * un reloj; un fix de Fused solo se acepta si ese reloj lleva rato sin
+ * refrescarse. Hay DOS umbrales, porque alertas y tracks piden cosas opuestas:
+ * VENTANA_GPS_ALERTAS_MS (corta, prioriza no quedarse sin posición) y
+ * VENTANA_GPS_TRACKS_MS (larga, prioriza no mezclar fuentes en el análisis).
+ * La columna `proveedor` de cada track guarda cuál fue el origen real, así se
+ * puede medir en la base qué proporción viene de cada uno.
+ */
 class LocationHelper(
     private val context: Context,
     private val onLocationUpdate: (lat: Double, lon: Double) -> Unit,
@@ -21,27 +42,70 @@ class LocationHelper(
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
+    private val locationManager: LocationManager? =
+        context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+
     companion object {
         // ── Frecuencia del GPS (cada cuánto llega una posición) ────────────────
-        // Normal: 5 s (equilibra precisión de recorrido y batería).
+        // Normal: 4 s (equilibra precisión de recorrido y batería).
         const val INTERVALO_NORMAL_MS = 4_000L
-        // Fertilización: 1 s, igual que OruxMaps. Sirve para DETECTAR el cambio
-        // de UMA rápido: con 3 fixes de confirmación, la alerta baja de 15 s a
-        // ~3 s. NO significa más tracks guardados (ver PERIODO_GUARDADO_MS).
+        // Fertilización y mapas: 1 s, igual que OruxMaps. Sirve para DETECTAR el
+        // cambio de UMA rápido: con 3 fixes de confirmación, la alerta baja de
+        // 15 s a ~3 s. NO significa más tracks guardados (ver PERIODO_GUARDADO_MS).
         const val INTERVALO_RAPIDO_MS = 1_000L
 
         // ── Frecuencia de GUARDADO de tracks (independiente del GPS) ───────────
-        // Siempre 5 s, en TODOS los módulos. Aunque en fertilización el GPS
-        // entregue una posición por segundo, solo se guarda un track cada 5 s:
-        // así la detección es rápida sin multiplicar por 5 el volumen de tracks.
+        // Siempre 4 s, en TODOS los módulos. Aunque en fertilización el GPS
+        // entregue una posición por segundo, solo se guarda un track cada 4 s:
+        // así la detección es rápida sin multiplicar el volumen de tracks.
         const val PERIODO_GUARDADO_MS = 4_000L
+
+        // ── Estrategia híbrida: DOS ventanas, no una ──────────────────────────
+        // Las alertas y el guardado de tracks tienen requisitos opuestos, así
+        // que no pueden compartir umbral.
+        //
+        // ALERTAS (fertilización, detección de uma, punto en el mapa): lo que
+        // importa es la latencia. Un fix de Fused, aunque sea menos preciso, es
+        // infinitamente mejor que quedarse sin ninguna posición mientras el
+        // operario camina aplicando la dosis equivocada. Bajo dosel cerrado el
+        // GNSS se pierde con frecuencia, así que la espera debe ser corta.
+        const val VENTANA_GPS_ALERTAS_MS = 8_000L
+
+        // TRACKS (analítica de recorrido): lo que importa es la pureza de la
+        // fuente. Al perderse el GNSS, Fused rellena con red y sensores y esa
+        // posición puede estar a decenas de metros; al volver el GNSS el salto
+        // entre ambas fuentes aparece en los datos como un desplazamiento que
+        // nunca ocurrió. Para el análisis de micromovimiento un hueco honesto
+        // vale más que un punto inventado, así que aquí se es paciente.
+        const val VENTANA_GPS_TRACKS_MS = 30_000L
+
+        // Un fix más viejo que esto se descarta: Android puede servir una
+        // posición guardada en caché que ya no representa dónde está el
+        // operario.
+        //
+        // La edad se mide con elapsedRealtimeNanos (reloj monotónico desde el
+        // arranque del equipo), NO con location.time. Ese detalle importa: la
+        // hora del fix GPS viene de los satélites y la del equipo puede estar
+        // desfasada; comparándolas, una tablet con el reloj corrido dejaría de
+        // guardar tracks en silencio. El reloj monotónico es inmune a eso, así
+        // que se puede usar un umbral estricto sin riesgo.
+        const val EDAD_MAXIMA_FIX_NS = 15_000_000_000L   // 15 s reales
+
+        private const val TAG = "LocationHelper"
+
+        const val PROVEEDOR_GPS   = "gps"
+        const val PROVEEDOR_FUSED = "fused"
     }
 
     // Intervalo actual del GPS (cambia en caliente al entrar/salir de fertilización)
     private var intervaloActualMs = INTERVALO_NORMAL_MS
 
-    // Momento del último track guardado (para el portero de los 5 s)
+    // Momento del último track guardado (para el portero de los 4 s)
     private var ultimoGuardadoMs = 0L
+
+    // Momento del último fix recibido del GPS crudo. Es el que decide si un
+    // fix de Fused se acepta o se descarta.
+    @Volatile private var ultimoFixGpsMs = 0L
 
     private fun construirLocationRequest(intervaloMs: Long): LocationRequest =
         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervaloMs).apply {
@@ -56,35 +120,92 @@ class LocationHelper(
     // es mejor que uno perfecto de hace horas (o que 0,0 si nunca hubo fix).
     private val MAX_ACCURACY_ULTIMA_UBICACION_METROS = 50f
 
+    // ── Entradas de los dos proveedores ───────────────────────────────────────
+
+    /** Fixes del GPS crudo (LocationManager). Tienen prioridad absoluta. */
+    private val gpsListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            procesarUbicacion(location, PROVEEDOR_GPS)
+        }
+        // Firmas heredadas de versiones antiguas: deben existir para compilar
+        // contra minSdk bajo, aunque el sistema ya no las invoque.
+        @Deprecated("Requerido por la interfaz en APIs antiguas")
+        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) { }
+        override fun onProviderEnabled(provider: String) { }
+        override fun onProviderDisabled(provider: String) { }
+    }
+
+    /** Fixes de Fused. Solo se usan cuando el GPS lleva rato sin reportar. */
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val location: Location = result.lastLocation ?: return
-
-            // ── 1. Última ubicación para formularios: umbral laxo, cada fix ────
-            if (location.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS) {
-                SessionManager.saveLastLocation(context, location.latitude, location.longitude)
-                // Este callback alimenta la DETECCIÓN de UMAs del TrackingService:
-                // se invoca en CADA fix (a 1 s en fertilización) para que el cambio
-                // de UMA se confirme rápido.
-                onLocationUpdate(location.latitude, location.longitude)
-            }
-
-            // ── 2. Guardado de tracks: umbral estricto + portero de 5 s ────────
-            if (location.accuracy > MAX_ACCURACY_TRACKS_METROS) return
-            if (!enHorarioLaboral()) return
-            if (SessionManager.isJornadaCerradaHoy(context)) return  // cerrada = no más tracks hoy
-            // Aunque el GPS venga a 1 s, solo se guarda un track cada 5 s.
-            // Así fertilización NO genera más tracks que los demás módulos.
-            // El margen de 500 ms evita descartar un track legítimo del modo
-            // normal (GPS a 5 s) por unos milisegundos de desfase del sistema.
-            val ahoraMs = System.currentTimeMillis()
-            if (ahoraMs - ultimoGuardadoMs < PERIODO_GUARDADO_MS - 500L) return
-            ultimoGuardadoMs = ahoraMs
-
-            val track = construirTrack(location)
-            TrackStorage.guardarTrack(context, track)
-            onTrackGuardado?.invoke(track)
+            procesarUbicacion(location, PROVEEDOR_FUSED)
         }
+    }
+
+    /**
+     * Punto único por donde pasan las posiciones de ambos proveedores.
+     *
+     * El filtro de proveedor se aplica en DOS puntos distintos, no en uno:
+     * primero con la ventana corta (alertas) y más abajo con la larga (tracks).
+     * Así, cuando el GNSS se pierde bajo dosel, la detección de umas se recupera
+     * en segundos mientras el recorrido guardado conserva un único origen.
+     */
+    private fun procesarUbicacion(location: Location, proveedor: String) {
+        val ahoraMs = System.currentTimeMillis()
+
+        // Fix servido desde caché del sistema: no dice dónde está el operario
+        // ahora. Se descarta antes de tocar nada.
+        if (esFixViejo(location)) return
+
+        // Cuánto lleva el GNSS sin reportar. Se calcula ANTES de actualizar el
+        // reloj, para que un fix de GPS no invalide su propia medición.
+        val silencioGpsMs = ahoraMs - ultimoFixGpsMs
+
+        if (proveedor == PROVEEDOR_GPS) {
+            ultimoFixGpsMs = ahoraMs
+        } else if (silencioGpsMs < VENTANA_GPS_ALERTAS_MS) {
+            // El GNSS está vivo: este fix de Fused no aporta nada y solo
+            // metería ruido. Se descarta por completo.
+            return
+        }
+
+        // ── 1. Última ubicación y ALERTAS ─────────────────────────────────────
+        // Llegan aquí los fixes del GNSS y, cuando este lleva más de la ventana
+        // corta callado, también los de Fused. Es el camino que alimenta la
+        // detección de umas del TrackingService: se invoca en CADA fix (a 1 s en
+        // fertilización) para que el cambio de uma se confirme rápido.
+        if (location.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS) {
+            SessionManager.saveLastLocation(context, location.latitude, location.longitude)
+            onLocationUpdate(location.latitude, location.longitude)
+        }
+
+        // ── 2. Guardado de tracks ─────────────────────────────────────────────
+        // Aquí sí se exige la ventana larga: un fix de Fused solo se graba si el
+        // GNSS lleva medio minuto sin dar señales. Los que quedaron fuera ya
+        // sirvieron para alertar, que es lo urgente.
+        if (proveedor != PROVEEDOR_GPS && silencioGpsMs < VENTANA_GPS_TRACKS_MS) return
+
+        if (location.accuracy > MAX_ACCURACY_TRACKS_METROS) return
+        if (!enHorarioLaboral()) return
+        if (SessionManager.isJornadaCerradaHoy(context)) return  // cerrada = no más tracks hoy
+        // Aunque el GPS venga a 1 s, solo se guarda un track cada 4 s.
+        // El margen de 500 ms evita descartar un track legítimo del modo
+        // normal por unos milisegundos de desfase del sistema.
+        if (ahoraMs - ultimoGuardadoMs < PERIODO_GUARDADO_MS - 500L) return
+        ultimoGuardadoMs = ahoraMs
+
+        val track = construirTrack(location, proveedor)
+        TrackStorage.guardarTrack(context, track)
+        onTrackGuardado?.invoke(track)
+    }
+
+    /** ¿El fix es demasiado viejo para representar la posición actual?
+     *  Usa el reloj monotónico del sistema, inmune al desfase de hora. */
+    private fun esFixViejo(location: Location): Boolean {
+        val marcaNs = location.elapsedRealtimeNanos
+        if (marcaNs <= 0L) return false          // sin marca: no se puede juzgar
+        return SystemClock.elapsedRealtimeNanos() - marcaNs > EDAD_MAXIMA_FIX_NS
     }
 
     private var isTracking = false
@@ -95,8 +216,12 @@ class LocationHelper(
         return hora in 6..15
     }
 
-    private fun construirTrack(location: Location): TrackMovil {
-        val ahora    = Date()
+    private fun construirTrack(location: Location, proveedor: String): TrackMovil {
+        // Marca de tiempo DEL FIX, no del momento de guardar: entre que el chip
+        // calcula la posición y llega este callback hay latencia variable, y el
+        // sistema puede entregar varios fixes seguidos. Si el fix no trae hora
+        // (caso raro), se usa la del equipo.
+        val instanteFix = if (location.time > 0L) Date(location.time) else Date()
         val fmtFecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val fmtHora  = SimpleDateFormat("HH:mm:ss",   Locale.getDefault())
 
@@ -121,18 +246,39 @@ class LocationHelper(
         return TrackMovil(
             x            = location.latitude,
             y            = location.longitude,
-            velocidad    = location.speed.toDouble(),
+            // hasSpeed()/hasBearing() distinguen "el chip no reportó el dato"
+            // de "el dato es cero". Sin la comprobación Android devuelve 0.0 en
+            // ambos casos, y un operario detenido se vuelve indistinguible de
+            // uno cuya velocidad simplemente no se midió — justo la señal sobre
+            // la que se detectan los descansos.
+            //
+            // Importa especialmente desde el cambio a GPS crudo: Fused siempre
+            // entregaba un valor (salida de su filtro), mientras que el chip
+            // GNSS marca hasSpeed() = false cuando no tiene enganche Doppler
+            // suficiente. Es más honesto, pero exige registrar ese "no sé".
+            //
+            // Como la columna no admite nulos se usa -1.0 como centinela: la
+            // velocidad nunca puede ser negativa, así que el valor es
+            // inequívoco y el pipeline lo excluye con "velocidad >= 0".
+            // Escribir 0.0 aquí equivaldría a no comprobar nada.
+            //
+            // OJO: todo consumidor de estas columnas debe filtrar el centinela.
+            // Un AVG(velocidad) sin filtro queda sesgado hacia abajo en
+            // silencio. Cuando se pueda migrar el esquema, NULL es lo correcto.
+            velocidad    = if (location.hasSpeed()) location.speed.toDouble() else -1.0,
             precision    = location.accuracy.toDouble(),
-            sentido      = location.bearing.toDouble(),
-            proveedor    = "fused",
-            fecha        = fmtFecha.format(ahora),
-            hora         = fmtHora.format(ahora),
+            sentido      = if (location.hasBearing()) location.bearing.toDouble() else -1.0,
+            // Origen real del fix: permite medir en la base qué proporción del
+            // recorrido vino del GPS crudo y cuánta del respaldo.
+            proveedor    = proveedor,
+            fecha        = fmtFecha.format(instanteFix),
+            hora         = fmtHora.format(instanteFix),
             trabajador   = trabajadorFinal,
             plantacionId = 0L,
             formulario   = formularioActivo,  // id del módulo activo, 0 si está en la pantalla principal
             idunico      = UUID.randomUUID().toString(),
             equipo       = SessionManager.getEquipoId(context),
-            idEquipo     = SessionManager.getIdEquipo(context),   // ← nuevo
+            idEquipo     = SessionManager.getIdEquipo(context),
             fertilizante = fertilizantesTrack
         )
     }
@@ -146,26 +292,94 @@ class LocationHelper(
                 ) == PackageManager.PERMISSION_GRANTED
     }
 
+    /** El GPS crudo exige FINE_LOCATION. Con solo COARSE la app funciona,
+     *  pero el 100% de los tracks vendría de Fused: conviene poder detectarlo. */
+    fun tienePermisoFino(): Boolean =
+        ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
         if (isTracking || !hasPermissions()) return
+
+        // Fused: respaldo. Se pide a la MITAD de cadencia que el GPS: como sus
+        // fixes se descartan mientras el GNSS reporte, pedirlos al mismo ritmo
+        // solo gastaría batería.
         fusedClient.requestLocationUpdates(
-            construirLocationRequest(intervaloActualMs), locationCallback, Looper.getMainLooper()
+            construirLocationRequest(intervaloActualMs * 2), locationCallback, Looper.getMainLooper()
         )
+
+        // GPS crudo: la fuente preferida.
+        pedirGps()
+
         isTracking = true
-        fusedClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                SessionManager.saveLastLocation(context, it.latitude, it.longitude)
-                onLocationUpdate(it.latitude, it.longitude)
+
+        // Semilla inicial para que los formularios no arranquen sin posición.
+        // Se prefiere el último fix del GNSS, PERO exigiéndole lo mismo que a
+        // cualquier otro: getLastKnownLocation devuelve el último fix guardado
+        // sin límite de antigüedad — puede ser del parqueadero de la semana
+        // pasada. Sin este filtro se alimentaría al detector de umas y a los
+        // formularios con una posición falsa.
+        val ultimaGnss = try {
+            locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?.takeIf { !esFixViejo(it) && it.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS }
+        } catch (e: Exception) { null }
+
+        if (ultimaGnss != null) {
+            SessionManager.saveLastLocation(context, ultimaGnss.latitude, ultimaGnss.longitude)
+            onLocationUpdate(ultimaGnss.latitude, ultimaGnss.longitude)
+        } else {
+            fusedClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    SessionManager.saveLastLocation(context, it.latitude, it.longitude)
+                    onLocationUpdate(it.latitude, it.longitude)
+                }
             }
         }
     }
 
+    /** Suscribe el GPS crudo. Si el proveedor no existe o está apagado, la app
+     *  sigue funcionando solo con Fused. */
+    @SuppressLint("MissingPermission")
+    private fun pedirGps() {
+        val lm = locationManager
+        if (lm == null) {
+            android.util.Log.w(TAG, "Sin LocationManager: todo el recorrido vendrá de Fused")
+            return
+        }
+        if (!tienePermisoFino()) {
+            // Con solo COARSE el GPS crudo no arranca. Sin este aviso, el equipo
+            // correría meses al 100% Fused sin que nadie lo note.
+            android.util.Log.w(TAG, "Sin permiso FINE_LOCATION: todo el recorrido vendrá de Fused")
+            return
+        }
+        if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            android.util.Log.w(TAG, "GPS apagado en el equipo: todo el recorrido vendrá de Fused")
+            return
+        }
+        try {
+            lm.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                intervaloActualMs,
+                0f,                       // sin filtro de distancia: lo hace el portero de guardado
+                gpsListener,
+                Looper.getMainLooper()
+            )
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "No se pudo suscribir el GPS crudo: ${e.message}")
+        }
+    }
+
+    private fun quitarGps() {
+        try { locationManager?.removeUpdates(gpsListener) } catch (e: Exception) { }
+    }
+
     /**
-     * Cambia el intervalo de GPS en caliente. El TrackingService lo usa para
-     * pasar a 2 s cuando el operario entra al módulo de fertilización (alerta de
-     * cambio de UMA más rápida) y volver a 5 s al salir (cuidar batería).
-     * Reinicia los updates solo si el intervalo realmente cambió.
+     * Cambia el intervalo de posición en caliente. El TrackingService lo usa
+     * para pasar a 1 s cuando el operario entra al módulo de fertilización
+     * (alerta de cambio de UMA más rápida) y volver a 4 s al salir (batería).
+     * Reinicia AMBOS proveedores solo si el intervalo realmente cambió.
      */
     @SuppressLint("MissingPermission")
     fun setIntervalo(intervaloMs: Long) {
@@ -174,14 +388,17 @@ class LocationHelper(
         if (isTracking) {
             fusedClient.removeLocationUpdates(locationCallback)
             fusedClient.requestLocationUpdates(
-                construirLocationRequest(intervaloActualMs), locationCallback, Looper.getMainLooper()
+                construirLocationRequest(intervaloActualMs * 2), locationCallback, Looper.getMainLooper()
             )
+            quitarGps()
+            pedirGps()
         }
     }
 
     fun stopLocationUpdates() {
         if (!isTracking) return
         fusedClient.removeLocationUpdates(locationCallback)
+        quitarGps()
         isTracking = false
     }
 
