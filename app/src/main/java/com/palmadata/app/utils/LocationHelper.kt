@@ -69,7 +69,7 @@ class LocationHelper(
         // infinitamente mejor que quedarse sin ninguna posición mientras el
         // operario camina aplicando la dosis equivocada. Bajo dosel cerrado el
         // GNSS se pierde con frecuencia, así que la espera debe ser corta.
-        const val VENTANA_GPS_ALERTAS_MS = 8_000L
+        const val VENTANA_GPS_ALERTAS_MS = 3_000L
 
         // TRACKS (analítica de recorrido): lo que importa es la pureza de la
         // fuente. Al perderse el GNSS, Fused rellena con red y sensores y esa
@@ -77,7 +77,7 @@ class LocationHelper(
         // entre ambas fuentes aparece en los datos como un desplazamiento que
         // nunca ocurrió. Para el análisis de micromovimiento un hueco honesto
         // vale más que un punto inventado, así que aquí se es paciente.
-        const val VENTANA_GPS_TRACKS_MS = 30_000L
+        const val VENTANA_GPS_TRACKS_MS = 10_000L
 
         // Un fix más viejo que esto se descarta: Android puede servir una
         // posición guardada en caché que ya no representa dónde está el
@@ -89,7 +89,7 @@ class LocationHelper(
         // desfasada; comparándolas, una tablet con el reloj corrido dejaría de
         // guardar tracks en silencio. El reloj monotónico es inmune a eso, así
         // que se puede usar un umbral estricto sin riesgo.
-        const val EDAD_MAXIMA_FIX_NS = 15_000_000_000L   // 15 s reales
+        const val EDAD_MAXIMA_FIX_NS = 20_000_000_000L   // 15 s reales
 
         private const val TAG = "LocationHelper"
 
