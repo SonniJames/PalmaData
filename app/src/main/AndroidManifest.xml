@@ -160,6 +160,9 @@
         <activity android:name=".estudio_tiempos.EstudioTiemposActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Lotes -->
         <activity android:name=".mapa.MapaLotesActivity" android:exported="false" android:screenOrientation="portrait" />
+        <!-- Sup. Tiempos -->
+        <activity android:name=".super_tiempos.SuperTiemposActivity"  android:exported="false" />
+        <activity android:name=".super_tiempos.SuperTiempos1Activity" android:exported="false" />
     </application>
 
 </manifest>

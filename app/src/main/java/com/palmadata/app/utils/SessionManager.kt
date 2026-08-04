@@ -20,6 +20,8 @@ object SessionManager {
     private const val KEY_WORKER_SUPERVISOR = "current_worker_supervisor"
     private const val KEY_MAQUINARIA_TRABAJADOR_ACTIVO = "maquinaria_trabajador_activo"
 
+    private const val KEY_LAST_FIX_TIME = "last_fix_time"
+
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -112,6 +114,12 @@ object SessionManager {
     fun getLastLongitude(context: Context): Double =
         java.lang.Double.longBitsToDouble(prefs(context).getLong(KEY_LAST_LON, 0L))
 
+    fun saveLastFixTime(context: Context, fixTimeMs: Long) {
+        prefs(context).edit().putLong(KEY_LAST_FIX_TIME, fixTimeMs).apply()
+    }
+
+    fun getLastFixTime(context: Context): Long =
+        prefs(context).getLong(KEY_LAST_FIX_TIME, 0L)
     // ── Formulario activo (módulo en el que está el usuario) ──────────────────
     // Va a la columna `formulario` de cada track según generarFormulariosMovil:
     // 0 = pantalla principal / sin módulo, 1 = censo enfermedades, 2 = plagas,

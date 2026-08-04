@@ -5,13 +5,16 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.palmadata.app.data.model.UmaData
+import com.palmadata.app.super_tiempos.SuperTiemposRegistro
+import com.palmadata.app.super_tiempos.SuperTiemposTipo
+import com.palmadata.app.super_tiempos.TiposParadaDefecto
 
 class DatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 23  // ← v23: campos de calidad GNSS en tracks
+        const val DB_VERSION = 24  // ← v24: módulo supervisión de tiempos (form. 35)
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -51,6 +54,9 @@ class DatabaseHelper(context: Context) :
         const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
         const val T_SUPER_COSECHA_VAGON = "super_cosecha_vagon"
         const val T_SUPER_POLI          = "super_poli"
+        const val T_SUPER_TIEMPOS       = "super_tiempos"
+        const val T_SUPER_TIEMPOS_TIPO  = "super_tiempos_tipo"
+
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -164,6 +170,37 @@ class DatabaseHelper(context: Context) :
             latitud REAL NOT NULL,
             longitud REAL NOT NULL,
             sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_TIEMPOS (
+            id_unico TEXT PRIMARY KEY,
+            sesion_id TEXT NOT NULL,
+            secuencia INTEGER NOT NULL,
+            supervisor INTEGER NOT NULL,
+            trabajador INTEGER NOT NULL,
+            evento TEXT NOT NULL,
+            tipo_parada TEXT,
+            racimos INTEGER,
+            fecha TEXT NOT NULL,
+            hora_inicio TEXT NOT NULL,
+            hora_fin TEXT NOT NULL,
+            duracion_segundos INTEGER NOT NULL,
+            desfase_gps_segundos REAL,
+            latitud_inicio REAL,
+            longitud_inicio REAL,
+            latitud_fin REAL,
+            longitud_fin REAL,
+            observaciones TEXT,
+            equipo TEXT NOT NULL,
+            id_equipo TEXT,
+            sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_TIEMPOS_TIPO (
+            codigo TEXT PRIMARY KEY,
+            descripcion TEXT NOT NULL,
+            clase TEXT NOT NULL,
+            orden INTEGER DEFAULT 0)""")
+        // El catálogo real vive en el servidor, pero un equipo recién instalado
+        // que aún no ha sincronizado tendría el desplegable vacío y el módulo
+        // sería inusable en campo. La sincronización reemplaza estos valores.
+        sembrarTiposSuperTiempos(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -174,7 +211,7 @@ class DatabaseHelper(context: Context) :
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
             T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
-            T_LOTES_MAPA
+            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -382,6 +419,39 @@ class DatabaseHelper(context: Context) :
             try { db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN sat_visibles INTEGER DEFAULT 0") } catch (e: Exception) { }
         }
 
+        // v24: módulo de supervisión de tiempos. La tabla de eventos es de
+        // CAMPO: se crea con IF NOT EXISTS y nunca se borra, porque puede tener
+        // registros sin sincronizar. El catálogo de tipos es maestro y se
+        // recrea más abajo, con las demás.
+        //
+        // racimos y tipo_parada van SIN DEFAULT: deben quedar en NULL cuando no
+        // aplican. racimos = 0 es un dato real (revisó la palma y no cortó
+        // nada) y no puede confundirse con "este evento no es de corte".
+        if (oldVersion < 24) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS $T_SUPER_TIEMPOS (
+                id_unico TEXT PRIMARY KEY,
+                sesion_id TEXT NOT NULL,
+                secuencia INTEGER NOT NULL,
+                supervisor INTEGER NOT NULL,
+                trabajador INTEGER NOT NULL,
+                evento TEXT NOT NULL,
+                tipo_parada TEXT,
+                racimos INTEGER,
+                fecha TEXT NOT NULL,
+                hora_inicio TEXT NOT NULL,
+                hora_fin TEXT NOT NULL,
+                duracion_segundos INTEGER NOT NULL,
+                desfase_gps_segundos REAL,
+                latitud_inicio REAL,
+                longitud_inicio REAL,
+                latitud_fin REAL,
+                longitud_fin REAL,
+                observaciones TEXT,
+                equipo TEXT NOT NULL,
+                id_equipo TEXT,
+                sincronizado INTEGER DEFAULT 0)""")
+        }
+
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, supervisor INTEGER DEFAULT 0)")
@@ -415,6 +485,12 @@ class DatabaseHelper(context: Context) :
             palmas INTEGER DEFAULT 0,
             material TEXT,
             geojson TEXT NOT NULL)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_TIEMPOS_TIPO (
+            codigo TEXT PRIMARY KEY,
+            descripcion TEXT NOT NULL,
+            clase TEXT NOT NULL,
+            orden INTEGER DEFAULT 0)""")
+        sembrarTiposSuperTiempos(db)
     }
 
     // ── Reemplazar maestros ───────────────────────────────────────────────────
@@ -862,6 +938,111 @@ class DatabaseHelper(context: Context) :
     fun eliminarSuperPoli(id: String) = writableDatabase.delete(T_SUPER_POLI, "id_unico = ?", arrayOf(id))
     fun contarSuperPoliPendientes(): Int = contarPendientes(T_SUPER_POLI)
 
+    // ── Supervisión de tiempos (formulario 35) ────────────────────────────────
+
+    /**
+     * Siembra el catálogo de tipos de parada con los valores de fábrica.
+     *
+     * Recibe el SQLiteDatabase por parámetro y no usa writableDatabase porque
+     * se invoca desde onCreate y onUpgrade: pedir la base ahí provocaría
+     * recursión.
+     */
+    private fun sembrarTiposSuperTiempos(db: SQLiteDatabase) {
+        TiposParadaDefecto.LISTA.forEach { t ->
+            db.insertWithOnConflict(
+                T_SUPER_TIEMPOS_TIPO, null,
+                ContentValues().apply {
+                    put("codigo", t.codigo)
+                    put("descripcion", t.descripcion)
+                    put("clase", t.clase)
+                    put("orden", t.orden)
+                },
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+        }
+    }
+
+    /** Tipos de parada, en el orden en que debe verlos la supervisora. */
+    fun getSuperTiemposTipos(): List<SuperTiemposTipo> {
+        val result = mutableListOf<SuperTiemposTipo>()
+        val cursor = readableDatabase.query(
+            T_SUPER_TIEMPOS_TIPO, null, null, null, null, null, "orden, codigo"
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                result.add(
+                    SuperTiemposTipo(
+                        codigo      = it.getString(it.getColumnIndexOrThrow("codigo")),
+                        descripcion = it.getString(it.getColumnIndexOrThrow("descripcion")),
+                        clase       = it.getString(it.getColumnIndexOrThrow("clase")),
+                        orden       = it.getInt(it.getColumnIndexOrThrow("orden"))
+                    )
+                )
+            }
+        }
+        return result
+    }
+
+    /**
+     * Reemplaza el catálogo con lo que venga del servidor.
+     *
+     * Si la lista llega vacía NO se borra nada: un servidor mal configurado o
+     * una respuesta truncada dejarían a la supervisora sin poder registrar
+     * paradas en pleno campo. Es preferible conservar el catálogo anterior.
+     */
+    fun reemplazarSuperTiemposTipos(lista: List<SuperTiemposTipo>) {
+        if (lista.isEmpty()) return
+
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(T_SUPER_TIEMPOS_TIPO, null, null)
+            lista.forEach { t ->
+                db.insert(T_SUPER_TIEMPOS_TIPO, null, ContentValues().apply {
+                    put("codigo", t.codigo)
+                    put("descripcion", t.descripcion)
+                    put("clase", t.clase)
+                    put("orden", t.orden)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun guardarSuperTiempos(r: SuperTiemposRegistro) {
+        writableDatabase.insert(T_SUPER_TIEMPOS, null, ContentValues().apply {
+            put("id_unico",   r.idUnico)
+            put("sesion_id",  r.sesionId)
+            put("secuencia",  r.secuencia)
+            put("supervisor", r.supervisor)
+            put("trabajador", r.trabajador)
+            put("evento",     r.evento)
+            // put() con un valor null escribe NULL en SQLite, que es justo lo
+            // que se busca para los campos que no aplican al tipo de evento.
+            put("tipo_parada", r.tipoParada)
+            put("racimos",     r.racimos)
+            put("fecha",       r.fecha)
+            put("hora_inicio", r.horaInicio)
+            put("hora_fin",    r.horaFin)
+            put("duracion_segundos",    r.duracionSegundos)
+            put("desfase_gps_segundos", r.desfaseGpsSegundos)
+            put("latitud_inicio",  r.latitudInicio)
+            put("longitud_inicio", r.longitudInicio)
+            put("latitud_fin",     r.latitudFin)
+            put("longitud_fin",    r.longitudFin)
+            put("observaciones", r.observaciones)
+            put("equipo",        r.equipo)
+            put("id_equipo",     r.idEquipo)
+            put("sincronizado",  0)
+        })
+    }
+
+    // getPendientes ya contempla FIELD_TYPE_NULL y serializa null real en el
+    // JSON, así que los campos no aplicables llegan correctos al servidor.
+    fun getSuperTiemposPendientes(): List<Map<String, Any>> = getPendientes(T_SUPER_TIEMPOS)
+    fun eliminarSuperTiempos(id: String) = writableDatabase.delete(T_SUPER_TIEMPOS, "id_unico = ?", arrayOf(id))
+    fun contarSuperTiemposPendientes(): Int = contarPendientes(T_SUPER_TIEMPOS)
+
     // ── Lecturas de maestros ──────────────────────────────────────────────────
 
     private fun getPendientes(tabla: String): List<Map<String, Any>> {
@@ -1021,3 +1202,34 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

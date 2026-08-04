@@ -222,6 +222,11 @@ class LocationHelper(
         // fertilización) para que el cambio de uma se confirme rápido.
         if (location.accuracy <= MAX_ACCURACY_ULTIMA_UBICACION_METROS) {
             SessionManager.saveLastLocation(context, location.latitude, location.longitude)
+            // Hora del fix, para medir el desfase del reloj del equipo. Va aquí
+            // y no en el guardado de tracks: el módulo de supervisión de tiempos
+            // la necesita en CADA fix, también fuera del horario laboral o con
+            // la jornada ya cerrada, cuando no se graban tracks.
+            SessionManager.saveLastFixTime(context, location.time)
             onLocationUpdate(location.latitude, location.longitude)
         }
 
