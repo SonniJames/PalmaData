@@ -31,8 +31,9 @@ import java.util.*
  * Cómo: se escucha a los DOS proveedores a la vez. Cada fix del GPS refresca
  * un reloj; un fix de Fused solo se acepta si ese reloj lleva rato sin
  * refrescarse. Hay DOS umbrales, porque alertas y tracks piden cosas opuestas:
- * VENTANA_GPS_ALERTAS_MS (corta, prioriza no quedarse sin posición) y
- * VENTANA_GPS_TRACKS_MS (larga, prioriza no mezclar fuentes en el análisis).
+ * ventanaAlertasMs (corta y relativa a la cadencia, prioriza no quedarse
+ * sin posición) y VENTANA_GPS_TRACKS_MS (larga, prioriza no mezclar
+ * fuentes en el análisis).
  * La columna `proveedor` de cada track guarda cuál fue el origen real, así se
  * puede medir en la base qué proporción viene de cada uno.
  */
@@ -100,7 +101,14 @@ class LocationHelper(
         // infinitamente mejor que quedarse sin ninguna posición mientras el
         // operario camina aplicando la dosis equivocada. Bajo dosel cerrado el
         // GNSS se pierde con frecuencia, así que la espera debe ser corta.
-        const val VENTANA_GPS_ALERTAS_MS = 3_000L
+        //
+        // La ventana NO puede ser un valor fijo: debe superar siempre la
+        // cadencia vigente del GPS. Si fuera menor, el silencio NORMAL entre
+        // dos fixes sanos contaría como "GNSS caído" y Fused se colaría con
+        // señal plena — en modo normal (GPS a 4 s) una ventana de 3 s dejaba
+        // entrar una posición contaminada cada pocos segundos. Se calcula como
+        // cadencia + margen: normal 6 s, tiempos 4 s, fertilización 3 s.
+        const val MARGEN_VENTANA_ALERTAS_MS = 2_000L
 
         // TRACKS (analítica de recorrido): lo que importa es la pureza de la
         // fuente. Al perderse el GNSS, Fused rellena con red y sensores y esa
@@ -130,6 +138,12 @@ class LocationHelper(
 
     // Intervalo actual del GPS (cambia en caliente al entrar/salir de fertilización)
     private var intervaloActualMs = INTERVALO_NORMAL_MS
+
+    /** Ventana de alertas vigente: siempre por encima de la cadencia del GPS,
+     *  para que un hueco esperado entre fixes sanos no se confunda con una
+     *  pérdida de señal. */
+    private val ventanaAlertasMs: Long
+        get() = intervaloActualMs + MARGEN_VENTANA_ALERTAS_MS
 
     // Momento del último track guardado (para el portero de los 4 s)
     private var ultimoGuardadoMs = 0L
@@ -195,7 +209,7 @@ class LocationHelper(
 
         if (proveedor == PROVEEDOR_GPS) {
             ultimoFixGpsMs = ahoraMs
-        } else if (silencioGpsMs < VENTANA_GPS_ALERTAS_MS) {
+        } else if (silencioGpsMs < ventanaAlertasMs) {
             // El GNSS está vivo: este fix de Fused no aporta nada y solo
             // metería ruido. Se descarta por completo.
             return
