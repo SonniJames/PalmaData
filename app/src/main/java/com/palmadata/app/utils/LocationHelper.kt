@@ -4,9 +4,12 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
+import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
@@ -42,6 +45,22 @@ class LocationHelper(
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
+    // ── Diagnóstico GNSS ─────────────────────────────────────────────────────
+    // Se actualiza por callback del sistema y se adjunta a cada track. Es el
+    // termómetro objetivo de la señal bajo dosel: permite descartar fixes malos
+    // en el análisis con un criterio duro en vez de una corazonada.
+    @Volatile private var satelitesUsados = 0
+    @Volatile private var satelitesVisibles = 0
+
+    private val gnssCallback = object : GnssStatus.Callback() {
+        override fun onSatelliteStatusChanged(status: GnssStatus) {
+            var usados = 0
+            for (i in 0 until status.satelliteCount) if (status.usedInFix(i)) usados++
+            satelitesUsados = usados
+            satelitesVisibles = status.satelliteCount
+        }
+    }
+
     private val locationManager: LocationManager? =
         context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
@@ -59,6 +78,18 @@ class LocationHelper(
         // entregue una posición por segundo, solo se guarda un track cada 4 s:
         // así la detección es rápida sin multiplicar el volumen de tracks.
         const val PERIODO_GUARDADO_MS = 4_000L
+
+        // Estudio de tiempos: 2 s de GPS Y de guardado. Es el módulo del que
+        // saldrán los modelos de productividad, así que necesita el doble de
+        // resolución. Se lo puede permitir porque la jornada medida es corta
+        // (se corta al presionar FINALIZAR JORNADA) y no corre todo el día.
+        const val INTERVALO_TIEMPOS_MS       = 2_000L
+        const val PERIODO_GUARDADO_TIEMPOS_MS = 2_000L
+
+        // Ids de formulario que cambian la cadencia. Deben coincidir con
+        // ModuleRegistry.
+        const val FORMULARIO_FERTILIZACION = 25
+        const val FORMULARIO_TIEMPOS       = 30
 
         // ── Estrategia híbrida: DOS ventanas, no una ──────────────────────────
         // Las alertas y el guardado de tracks tienen requisitos opuestos, así
@@ -89,7 +120,7 @@ class LocationHelper(
         // desfasada; comparándolas, una tablet con el reloj corrido dejaría de
         // guardar tracks en silencio. El reloj monotónico es inmune a eso, así
         // que se puede usar un umbral estricto sin riesgo.
-        const val EDAD_MAXIMA_FIX_NS = 20_000_000_000L   // 15 s reales
+        const val EDAD_MAXIMA_FIX_NS = 20_000_000_000L   // 20 s reales
 
         private const val TAG = "LocationHelper"
 
@@ -192,13 +223,26 @@ class LocationHelper(
         // Aunque el GPS venga a 1 s, solo se guarda un track cada 4 s.
         // El margen de 500 ms evita descartar un track legítimo del modo
         // normal por unos milisegundos de desfase del sistema.
-        if (ahoraMs - ultimoGuardadoMs < PERIODO_GUARDADO_MS - 500L) return
+        if (ahoraMs - ultimoGuardadoMs < periodoGuardadoActual() - 500L) return
         ultimoGuardadoMs = ahoraMs
 
         val track = construirTrack(location, proveedor)
         TrackStorage.guardarTrack(context, track)
         onTrackGuardado?.invoke(track)
     }
+
+    /**
+     * Cada cuánto se guarda un track, según el módulo activo.
+     *
+     * Solo el estudio de tiempos baja a 2 s; los demás mantienen 4 s. Se
+     * consulta en cada fix, así que entrar o salir del módulo cambia la
+     * cadencia sin necesidad de reiniciar nada.
+     */
+    private fun periodoGuardadoActual(): Long =
+        if (SessionManager.getFormularioActivo(context) == FORMULARIO_TIEMPOS)
+            PERIODO_GUARDADO_TIEMPOS_MS
+        else
+            PERIODO_GUARDADO_MS
 
     /** ¿El fix es demasiado viejo para representar la posición actual?
      *  Usa el reloj monotónico del sistema, inmune al desfase de hora. */
@@ -257,17 +301,20 @@ class LocationHelper(
             // GNSS marca hasSpeed() = false cuando no tiene enganche Doppler
             // suficiente. Es más honesto, pero exige registrar ese "no sé".
             //
-            // Como la columna no admite nulos se usa -1.0 como centinela: la
-            // velocidad nunca puede ser negativa, así que el valor es
-            // inequívoco y el pipeline lo excluye con "velocidad >= 0".
-            // Escribir 0.0 aquí equivaldría a no comprobar nada.
-            //
-            // OJO: todo consumidor de estas columnas debe filtrar el centinela.
-            // Un AVG(velocidad) sin filtro queda sesgado hacia abajo en
-            // silencio. Cuando se pueda migrar el esquema, NULL es lo correcto.
-            velocidad    = if (location.hasSpeed()) location.speed.toDouble() else -1.0,
+            // Se guarda NULL, no un centinela: la columna admite nulos, así que
+            // el pipeline distingue con "velocidad IS NULL" sin convenciones
+            // que haya que recordar. Un AVG(velocidad) ignora los nulos solo.
+            velocidad    = if (location.hasSpeed()) location.speed.toDouble() else null,
             precision    = location.accuracy.toDouble(),
-            sentido      = if (location.hasBearing()) location.bearing.toDouble() else -1.0,
+            sentido      = if (location.hasBearing()) location.bearing.toDouble() else null,
+            // Cuánto confiar en esa velocidad. Sin este dato, 0,3 m/s puede ser
+            // movimiento real o ruido del chip, y no hay forma de saberlo.
+            precisionVelocidad =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasSpeedAccuracy())
+                    location.speedAccuracyMetersPerSecond.toDouble()
+                else null,
+            satelites    = satelitesUsados,
+            satVisibles  = satelitesVisibles,
             // Origen real del fix: permite medir en la base qué proporción del
             // recorrido vino del GPS crudo y cuánta del respaldo.
             proveedor    = proveedor,
@@ -366,6 +413,9 @@ class LocationHelper(
                 gpsListener,
                 Looper.getMainLooper()
             )
+            // Estado de satélites: alimenta las columnas satelites/sat_visibles
+            try { lm.registerGnssStatusCallback(gnssCallback, Handler(Looper.getMainLooper())) }
+            catch (e: Exception) { android.util.Log.w(TAG, "Sin estado GNSS: ${e.message}") }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "No se pudo suscribir el GPS crudo: ${e.message}")
         }
@@ -373,6 +423,7 @@ class LocationHelper(
 
     private fun quitarGps() {
         try { locationManager?.removeUpdates(gpsListener) } catch (e: Exception) { }
+        try { locationManager?.unregisterGnssStatusCallback(gnssCallback) } catch (e: Exception) { }
     }
 
     /**

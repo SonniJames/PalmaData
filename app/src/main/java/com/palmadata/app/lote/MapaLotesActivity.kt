@@ -2,12 +2,17 @@ package com.palmadata.app.mapa
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Looper
+import android.os.SystemClock
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -78,18 +83,70 @@ class MapaLotesActivity : AppCompatActivity() {
     private var fixesCandidato = 0
 
     private lateinit var fusedClient: FusedLocationProviderClient
+    private var locationManager: LocationManager? = null
     private var pidiendoUbicacion = false
 
+    /** Momento del último fix del GPS crudo: decide si se acepta uno de Fused. */
+    private var ultimoFixGpsMs = 0L
+
+    /** GPS crudo: fuente preferida. */
+    private val gpsListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            recibirUbicacion(location, esGps = true)
+        }
+        @Deprecated("Requerido por la interfaz en APIs antiguas")
+        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) { }
+        override fun onProviderEnabled(provider: String) { }
+        override fun onProviderDisabled(provider: String) { }
+    }
+
+    /** Fused: respaldo, solo cuando el GPS lleva rato callado. */
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val loc = result.lastLocation ?: return
-            procesarPosicion(loc.latitude, loc.longitude)
+            recibirUbicacion(loc, esGps = false)
         }
+    }
+
+    /**
+     * Punto único por donde pasan las posiciones de ambos proveedores: aquí se
+     * aplica la preferencia por GPS y se descartan los fixes viejos de caché.
+     */
+    private fun recibirUbicacion(location: Location, esGps: Boolean) {
+        if (esFixViejo(location)) return
+
+        val ahoraMs = System.currentTimeMillis()
+        if (esGps) {
+            ultimoFixGpsMs = ahoraMs
+        } else {
+            if (ahoraMs - ultimoFixGpsMs < VENTANA_GPS_MS) return
+        }
+        procesarPosicion(location.latitude, location.longitude)
+    }
+
+    /** ¿El fix es demasiado viejo para representar la posición actual? */
+    private fun esFixViejo(location: Location): Boolean {
+        val marcaNs = location.elapsedRealtimeNanos
+        if (marcaNs <= 0L) return false
+        return SystemClock.elapsedRealtimeNanos() - marcaNs > EDAD_MAXIMA_FIX_NS
     }
 
     companion object {
         private const val FIXES_PARA_CAMBIO = 3
         private const val INTERVALO_MS = 1_000L
+
+        // Estrategia híbrida, igual que LocationHelper: se prefiere el GPS
+        // crudo y solo se acepta Fused cuando el chip lleva rato sin reportar.
+        // La ventana es corta (3 s) porque este módulo es informativo: para
+        // responder "en qué lote estoy" es mejor una posición aproximada que
+        // ninguna. Los tracks que se analizan usan una ventana más larga.
+        private const val VENTANA_GPS_MS = 3_000L
+
+        // Un fix más viejo que esto se descarta. Se mide con el reloj
+        // monotónico, inmune al desfase de hora del equipo.
+        private const val EDAD_MAXIMA_FIX_NS = 20_000_000_000L   // 20 s reales
+
+        private const val TAG = "MapaLotes"
 
         /** Mapa base satelital (Esri World Imagery), el mismo de fertilización:
          *  permite descarga offline y muestra las hileras de palma reales. */
@@ -131,6 +188,7 @@ class MapaLotesActivity : AppCompatActivity() {
         btnActualizarLotes = findViewById(R.id.btnActualizarLotes)
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
         @SuppressLint("MissingPermission")
         btnCentrar.setOnClickListener {
@@ -394,21 +452,49 @@ class MapaLotesActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     private fun iniciarUbicacion() {
         if (pidiendoUbicacion) return
+
+        // Fused: respaldo, a la mitad de cadencia. Sus fixes se descartan
+        // mientras el GPS reporte, así que pedirlos al mismo ritmo solo
+        // gastaría batería.
         try {
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVALO_MS)
-                .setMinUpdateIntervalMillis(INTERVALO_MS)
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVALO_MS * 2)
+                .setMinUpdateIntervalMillis(INTERVALO_MS * 2)
                 .build()
             fusedClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
-            pidiendoUbicacion = true
         } catch (e: Exception) {
-            // Sin permisos de ubicación: el mapa y los lotes se ven igual,
-            // solo que sin detección del lote actual.
+            // Sin permisos: el mapa y los lotes se ven igual, solo que sin
+            // detección del lote actual.
+            android.util.Log.w(TAG, "Sin Fused: ${e.message}")
         }
+
+        // GPS crudo: la fuente preferida.
+        try {
+            val lm = locationManager
+            if (lm != null && lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                lm.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    INTERVALO_MS,
+                    0f,
+                    gpsListener,
+                    Looper.getMainLooper()
+                )
+            } else {
+                android.util.Log.w(TAG, "GPS apagado o no disponible: se usará solo Fused")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "No se pudo suscribir el GPS crudo: ${e.message}")
+        }
+
+        pidiendoUbicacion = true
     }
 
     private fun detenerUbicacion() {
         if (!pidiendoUbicacion) return
         try { fusedClient.removeLocationUpdates(locationCallback) } catch (e: Exception) { }
+        try { locationManager?.removeUpdates(gpsListener) } catch (e: Exception) { }
+        // Se reinicia para que al volver a entrar no se dé por bueno un fix
+        // de GPS de la sesión anterior.
+        ultimoFixGpsMs = 0L
         pidiendoUbicacion = false
     }
 

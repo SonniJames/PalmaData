@@ -11,7 +11,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 22  // ← v22: tabla maestra lotes_mapa (módulo mapas)
+        const val DB_VERSION = 23  // ← v23: campos de calidad GNSS en tracks
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -78,6 +78,9 @@ class DatabaseHelper(context: Context) :
             velocidad REAL DEFAULT 0,
             precision REAL DEFAULT 0,
             sentido REAL DEFAULT 0,
+            precision_velocidad REAL,
+            satelites INTEGER DEFAULT 0,
+            sat_visibles INTEGER DEFAULT 0,
             proveedor TEXT,
             fecha TEXT NOT NULL,
             hora TEXT NOT NULL,
@@ -185,6 +188,9 @@ class DatabaseHelper(context: Context) :
                 velocidad REAL DEFAULT 0,
                 precision REAL DEFAULT 0,
                 sentido REAL DEFAULT 0,
+            precision_velocidad REAL,
+            satelites INTEGER DEFAULT 0,
+            sat_visibles INTEGER DEFAULT 0,
                 proveedor TEXT,
                 fecha TEXT NOT NULL,
                 hora TEXT NOT NULL,
@@ -218,6 +224,9 @@ class DatabaseHelper(context: Context) :
                     velocidad REAL DEFAULT 0,
                     precision REAL DEFAULT 0,
                     sentido REAL DEFAULT 0,
+            precision_velocidad REAL,
+            satelites INTEGER DEFAULT 0,
+            sat_visibles INTEGER DEFAULT 0,
                     proveedor TEXT,
                     fecha TEXT NOT NULL,
                     hora TEXT NOT NULL,
@@ -362,6 +371,15 @@ class DatabaseHelper(context: Context) :
                     observaciones, latitud, longitud, sincronizado
                 FROM ${T_SUPER_COSECHA_VAGON}_old""")
             db.execSQL("DROP TABLE ${T_SUPER_COSECHA_VAGON}_old")
+        }
+
+        // v23: calidad de la señal GNSS en cada track. Son columnas nuevas,
+        // así que basta con ALTER: los tracks pendientes se conservan y
+        // quedan con NULL / 0, que en el análisis se lee como "sin dato".
+        if (oldVersion < 23) {
+            try { db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN precision_velocidad REAL") } catch (e: Exception) { }
+            try { db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN satelites INTEGER DEFAULT 0") } catch (e: Exception) { }
+            try { db.execSQL("ALTER TABLE $T_TRACKS ADD COLUMN sat_visibles INTEGER DEFAULT 0") } catch (e: Exception) { }
         }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
@@ -559,9 +577,15 @@ class DatabaseHelper(context: Context) :
             put("idunico",         track.idunico)
             put("x",               track.x)
             put("y",               track.y)
-            put("velocidad",       track.velocidad)
+            // null real, no 0: "no hubo dato" y "medido en cero" son cosas
+            // distintas para el análisis de tiempos.
+            if (track.velocidad != null) put("velocidad", track.velocidad) else putNull("velocidad")
             put("precision",       track.precision)
-            put("sentido",         track.sentido)
+            if (track.sentido != null) put("sentido", track.sentido) else putNull("sentido")
+            if (track.precisionVelocidad != null) put("precision_velocidad", track.precisionVelocidad)
+            else putNull("precision_velocidad")
+            put("satelites",       track.satelites)
+            put("sat_visibles",    track.satVisibles)
             put("proveedor",       track.proveedor)
             put("fecha",           track.fecha)
             put("hora",            track.hora)

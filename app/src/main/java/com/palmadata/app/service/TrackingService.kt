@@ -30,6 +30,7 @@ class TrackingService : Service() {
 
         // Id del módulo de fertilización según generarFormulariosMovil
         private const val FORMULARIO_FERTILIZACION = 25
+        private const val FORMULARIO_TIEMPOS       = 30
     }
 
     override fun onCreate() {
@@ -50,17 +51,25 @@ class TrackingService : Service() {
      */
     private fun manejarPosicion(lat: Double, lon: Double) {
         val formulario = SessionManager.getFormularioActivo(this)
+
+        // Cadencia del GPS según el módulo. El PERIODO DE GUARDADO lo decide
+        // LocationHelper por su cuenta (periodoGuardadoActual), así que aquí
+        // solo se ajusta cada cuánto se pide posición al chip.
+        when (formulario) {
+            // 1 s: confirma el cambio de UMA en ~3 s en vez de ~15 s. El
+            // guardado sigue siendo cada 4 s, así que NO genera más tracks.
+            FORMULARIO_FERTILIZACION -> locationHelper.setIntervalo(LocationHelper.INTERVALO_RAPIDO_MS)
+            // 2 s: el estudio de tiempos guarda un track cada 2 s, así que no
+            // tiene sentido pedir posición más lento que eso.
+            FORMULARIO_TIEMPOS       -> locationHelper.setIntervalo(LocationHelper.INTERVALO_TIEMPOS_MS)
+            else                     -> locationHelper.setIntervalo(LocationHelper.INTERVALO_NORMAL_MS)
+        }
+
         if (formulario == FORMULARIO_FERTILIZACION) {
-            // GPS a 1 s (como OruxMaps): confirma cambio de UMA en ~3 s en vez
-            // de ~15 s. El guardado de tracks sigue siendo cada 5 s (portero en
-            // LocationHelper), así que este módulo NO genera más tracks.
-            locationHelper.setIntervalo(LocationHelper.INTERVALO_RAPIDO_MS)
             UmaDetectionEngine.activar(this)
             UmaDetectionEngine.procesarPosicion(this, lat, lon)
         } else if (UmaDetectionEngine.activo) {
-            // Salió del módulo: volver a 5 s (batería), apagar el motor y
-            // restaurar la notificación base del servicio.
-            locationHelper.setIntervalo(LocationHelper.INTERVALO_NORMAL_MS)
+            // Salió del módulo: apagar el motor y restaurar la notificación.
             UmaDetectionEngine.desactivar()
             UmaDetectionEngine.restaurarNotificacionBase(this)
         }
