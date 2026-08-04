@@ -612,6 +612,17 @@ class DatabaseHelper(context: Context) :
                 val map = mutableMapOf<String, Any>()
                 for (i in 0 until it.columnCount) {
                     map[it.getColumnName(i)] = when (it.getType(i)) {
+                        // NULL real: se envía como null en el JSON, no como "".
+                        // Sin esta rama, una columna nula caía en el else,
+                        // getString devolvía null y el ?: "" la convertía en
+                        // cadena vacía: el servidor recibía "velocidad": "" y
+                        // rechazaba la fila (o la coercía a 0), perdiendo la
+                        // distinción entre "no se midió" y "está quieto".
+                        // JSONObject.NULL es el centinela que JSONObject
+                        // serializa como null literal; un null de Kotlin no
+                        // sirve porque el mapa es Map<String, Any> y la clave
+                        // se omitiría.
+                        android.database.Cursor.FIELD_TYPE_NULL    -> org.json.JSONObject.NULL
                         android.database.Cursor.FIELD_TYPE_INTEGER -> it.getLong(i)
                         android.database.Cursor.FIELD_TYPE_FLOAT   -> it.getDouble(i)
                         else -> it.getString(i) ?: ""
@@ -861,6 +872,17 @@ class DatabaseHelper(context: Context) :
                 val map = mutableMapOf<String, Any>()
                 for (i in 0 until it.columnCount) {
                     map[it.getColumnName(i)] = when (it.getType(i)) {
+                        // NULL real: se envía como null en el JSON, no como "".
+                        // Sin esta rama, una columna nula caía en el else,
+                        // getString devolvía null y el ?: "" la convertía en
+                        // cadena vacía: el servidor recibía "velocidad": "" y
+                        // rechazaba la fila (o la coercía a 0), perdiendo la
+                        // distinción entre "no se midió" y "está quieto".
+                        // JSONObject.NULL es el centinela que JSONObject
+                        // serializa como null literal; un null de Kotlin no
+                        // sirve porque el mapa es Map<String, Any> y la clave
+                        // se omitiría.
+                        android.database.Cursor.FIELD_TYPE_NULL    -> org.json.JSONObject.NULL
                         android.database.Cursor.FIELD_TYPE_INTEGER -> it.getLong(i)
                         android.database.Cursor.FIELD_TYPE_FLOAT   -> it.getDouble(i)
                         else -> it.getString(i) ?: ""
