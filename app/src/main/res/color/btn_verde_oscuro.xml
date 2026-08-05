@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tinte de fondo por estado.
+
+  backgroundTint con un color fijo NO cambia al deshabilitar el botón: Android
+  solo lo atenúa un poco y sobre el fondo beige apenas se nota. Un ColorStateList
+  resuelve un color distinto por estado, así que el botón deshabilitado se ve
+  claramente gris y el habilitado conserva su color.
+
+  El orden importa: Android toma la PRIMERA regla que coincide, por eso el
+  estado deshabilitado va primero y el color normal queda como caso por defecto.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="@color/btn_disabled" />
+    <item android:color="@color/palma_green_dark" />
+</selector>

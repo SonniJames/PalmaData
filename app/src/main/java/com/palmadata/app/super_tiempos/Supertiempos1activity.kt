@@ -44,10 +44,10 @@ import java.util.UUID
  * Cero racimos es un dato válido (revisó y no había nada maduro), por eso al
  * cerrar en cero se pide confirmación en vez de bloquear.
  *
- * ── Sin visual ───────────────────────────────────────────────────────────────
- * Para cuando ella deja de ver al trabajador. Sin este estado, ese tiempo se
- * cerraría como desplazamiento y entrarían etiquetas inventadas al
- * entrenamiento. Se registra para poder excluirlo.
+ * Nota: el evento 'sin_visual' sigue existiendo en el modelo y en la
+ * restricción CHECK del servidor, pero se retiró de esta pantalla. Si más
+ * adelante se quiere volver a marcar cuando la supervisora pierde de vista al
+ * trabajador, basta con reponer los dos botones y su rama en actualizarUi().
  */
 class SuperTiempos1Activity : AppCompatActivity() {
 
@@ -162,9 +162,6 @@ class SuperTiempos1Activity : AppCompatActivity() {
         binding.btnParadaInicio.setOnClickListener { abrirEvento(TiposEvento.PARADA) }
         binding.btnParadaFin.setOnClickListener    { intentarCerrarParada() }
 
-        binding.btnSinVisualInicio.setOnClickListener { abrirEvento(TiposEvento.SIN_VISUAL) }
-        binding.btnSinVisualFin.setOnClickListener    { cerrarEvento(null, null) }
-
         // Descartar el evento abierto sin guardarlo: para cuando se pulsó
         // INICIO por error. Es preferible a que lo cierre y quede un evento
         // basura en el conjunto de entrenamiento.
@@ -182,7 +179,6 @@ class SuperTiempos1Activity : AppCompatActivity() {
         val libre  = eventoActivo == null
         val corte  = eventoActivo == TiposEvento.CORTE
         val parada = eventoActivo == TiposEvento.PARADA
-        val sinVis = eventoActivo == TiposEvento.SIN_VISUAL
 
         binding.btnCorteInicio.isEnabled = libre
         binding.btnCorteFin.isEnabled    = corte
@@ -193,9 +189,6 @@ class SuperTiempos1Activity : AppCompatActivity() {
         binding.btnParadaFin.isEnabled    = parada
         binding.spTipoParada.isEnabled    = parada
 
-        binding.btnSinVisualInicio.isEnabled = libre
-        binding.btnSinVisualFin.isEnabled    = sinVis
-
         binding.btnCancelar.isEnabled        = !libre
         binding.btnCambiarCortador.isEnabled = libre
 
@@ -204,7 +197,6 @@ class SuperTiempos1Activity : AppCompatActivity() {
         binding.tvEstado.text = when (eventoActivo) {
             TiposEvento.CORTE      -> "CORTE en curso"
             TiposEvento.PARADA     -> "PARADA en curso"
-            TiposEvento.SIN_VISUAL -> "SIN VISUAL en curso"
             else                   -> "Sin evento activo"
         }
         binding.tvResumen.text = "Eventos registrados: $secuencia"

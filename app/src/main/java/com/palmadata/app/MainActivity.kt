@@ -514,7 +514,8 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvSuperCosecha.text         = db.contarSuperCosechaPendientes().toString()
         dialogBinding.tvMaquinaria.text           = db.contarMaquinariaPendientes().toString()
         dialogBinding.tvSuperCosechaVagon.text    = db.contarSuperCosechaVagonPendientes().toString()
-        dialogBinding.tvSuperPoli.text             = db.contarSuperPoliPendientes().toString()
+        dialogBinding.tvSuperPoli.text            = db.contarSuperPoliPendientes().toString()
+        dialogBinding.tvSuperTiempos.text         = db.contarSuperTiemposPendientes().toString()
 
         dialogBinding.btnCerrarInfo.setOnClickListener { dialog.dismiss() }
         dialog.show()

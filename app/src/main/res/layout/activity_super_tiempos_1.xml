@@ -30,7 +30,8 @@
             android:layout_marginStart="12dp"
             android:text="SUPERVISIÓN DE TIEMPOS"
             android:textSize="14sp"
-            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textColor="@color/palma_green_dark"
             android:letterSpacing="0.05" />
     </LinearLayout>
 
@@ -65,8 +66,8 @@
             android:layout_height="40dp"
             android:text="Cambiar"
             android:textSize="12sp"
-            android:backgroundTint="@color/palma_green_medium"
-            android:textColor="@color/white" />
+            android:backgroundTint="@color/btn_verde_medio"
+            android:textColor="@color/btn_texto" />
     </LinearLayout>
 
     <!-- ── Estado y cronómetro ──────────────────────────────────────────────
@@ -141,8 +142,8 @@
                     android:text="INICIO"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/palma_green_dark"
-                    android:textColor="@color/white" />
+                    android:backgroundTint="@color/btn_verde_oscuro"
+                    android:textColor="@color/btn_texto" />
 
                 <Button
                     android:id="@+id/btnRacimosMenos"
@@ -151,8 +152,8 @@
                     android:layout_marginStart="6dp"
                     android:text="−"
                     android:textSize="24sp"
-                    android:backgroundTint="@color/text_secondary"
-                    android:textColor="@color/white" />
+                    android:backgroundTint="@color/btn_gris"
+                    android:textColor="@color/btn_texto" />
 
                 <!-- El número ES el botón de sumar: es el que más se pulsa,
                      caminando y sin mirar, así que es el objetivo grande. -->
@@ -165,8 +166,8 @@
                     android:text="0"
                     android:textSize="26sp"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/palma_gold"
-                    android:textColor="@color/black" />
+                    android:backgroundTint="@color/btn_dorado"
+                    android:textColor="@color/btn_texto_oscuro" />
 
                 <Button
                     android:id="@+id/btnCorteFin"
@@ -177,8 +178,8 @@
                     android:text="FIN"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/palma_green_medium"
-                    android:textColor="@color/white" />
+                    android:backgroundTint="@color/btn_verde_medio"
+                    android:textColor="@color/btn_texto" />
             </LinearLayout>
 
             <TextView
@@ -217,8 +218,8 @@
                     android:text="INICIO"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/palma_green_dark"
-                    android:textColor="@color/white" />
+                    android:backgroundTint="@color/btn_verde_oscuro"
+                    android:textColor="@color/btn_texto" />
 
                 <Spinner
                     android:id="@+id/spTipoParada"
@@ -236,55 +237,8 @@
                     android:text="FIN"
                     android:textSize="14sp"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/palma_green_medium"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="14dp" />
-
-            <!-- ── SIN VISUAL ───────────────────────────────────────────────
-                 No es una parada del trabajador: es un hueco en la
-                 observación. Se registra para poder EXCLUIRLO al entrenar,
-                 en vez de que ese tiempo se cierre como desplazamiento. -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="SIN VISUAL — no se observa al trabajador"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_secondary"
-                android:letterSpacing="0.08"
-                android:paddingBottom="6dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="@color/white"
-                android:padding="8dp">
-
-                <Button
-                    android:id="@+id/btnSinVisualInicio"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:text="INICIO"
-                    android:textSize="14sp"
-                    android:backgroundTint="@color/text_secondary"
-                    android:textColor="@color/white" />
-
-                <Button
-                    android:id="@+id/btnSinVisualFin"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:text="FIN"
-                    android:textSize="14sp"
-                    android:backgroundTint="@color/text_secondary"
-                    android:textColor="@color/white" />
+                    android:backgroundTint="@color/btn_verde_medio"
+                    android:textColor="@color/btn_texto" />
             </LinearLayout>
 
             <View
@@ -312,8 +266,8 @@
                 android:layout_marginTop="10dp"
                 android:text="DESCARTAR EVENTO EN CURSO"
                 android:textSize="13sp"
-                android:backgroundTint="@color/palma_gold"
-                android:textColor="@color/black" />
+                android:backgroundTint="@color/btn_dorado"
+                android:textColor="@color/btn_texto_oscuro" />
 
             <TextView
                 android:id="@+id/tvResumen"

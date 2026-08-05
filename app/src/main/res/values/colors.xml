@@ -26,4 +26,8 @@
     <color name="divider">#BDBDBD</color>
     <color name="status_bar_color">#122812</color>
     <color name="dialog_title_text">#326E37</color>
+    <color name="btn_disabled">#D0D2CD</color>
+    <color name="btn_disabled_text">#8A8F89</color>
 </resources>
+
+
