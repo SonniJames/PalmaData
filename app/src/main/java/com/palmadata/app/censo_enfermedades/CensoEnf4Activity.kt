@@ -69,4 +69,19 @@ class CensoEnf4Activity : AppCompatActivity() {
     private fun actualizarDisplay() { binding.tvDisplay.text = valorActual }
     private fun mostrarError(msg: String) { binding.tvError.text = msg; binding.tvError.visibility = View.VISIBLE }
     private fun ocultarError() { binding.tvError.visibility = View.GONE }
+
+    /**
+     * Se ejecuta cuando la pantalla de opciones vuelve aquí con LÍNEA - PALMA.
+     * Por las flags CLEAR_TOP | SINGLE_TOP, Android reutiliza ESTA instancia
+     * (no llama a onCreate), así que el valor tecleado antes seguiría en
+     * pantalla. Se limpia aquí para que la supervisora empiece en blanco.
+     * Atrás sigue funcionando porque la pila de abajo no se toca.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        valorActual = ""
+        actualizarDisplay()
+        ocultarError()
+    }
 }
