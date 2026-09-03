@@ -119,18 +119,10 @@ object SyncManager {
             val huella = fetchObjeto(baseUrl, "palmas_version")
             val version = "${huella.optInt("total", -1)}|${huella.optString("ultima", "")}"
             if (version != getVersionPalmas(context) || db.contarPalmas() == 0) {
-                db.reemplazarPalmas(
-                    fetchLista(baseUrl, "palmas", readTimeout = 120_000) { o ->
-                        com.palmadata.app.data.model.PalmaMapa(
-                            catPalmaId = o.getLong("cat_palma_id"),
-                            catLoteId  = o.getInt("cat_lote_id"),
-                            linea      = o.optInt("linea", 0),
-                            palma      = o.optInt("palma", 0),
-                            lat        = o.getDouble("lat"),
-                            lon        = o.getDouble("lon")
-                        )
-                    }
-                )
+                // Descarga en streaming: ver fetchPalmasStreaming. Con 300.000
+                // filas, fetchLista (texto completo + JSONArray) superaba los
+                // 200 MB de heap y tumbaba la app en equipos de gama media.
+                db.reemplazarPalmas(fetchPalmasStreaming(baseUrl))
                 // La versión se guarda DESPUÉS de escribir: si la descarga
                 // falla a medias, la próxima sincronización lo reintenta.
                 guardarVersionPalmas(context, version)
@@ -322,6 +314,85 @@ object SyncManager {
         connection.disconnect()
         return JSONObject(response)
     }
+
+    /**
+     * Descarga /palmas SIN materializar la respuesta como texto ni como
+     * JSONArray: JsonReader lee del socket fila a fila y cada palma se
+     * convierte directo en su objeto compacto.
+     *
+     * Por qué no se usa fetchLista: con 300.000 palmas, el camino
+     * texto completo -> JSONArray -> lista necesitaba mas de 200 MB de heap
+     * (el String en UTF-16 mas un JSONObject con su HashMap por fila) y
+     * reventaba con OutOfMemoryError en equipos de gama media; como eso
+     * ocurre dentro de descargar(), quedaba como "parcial: Palmas" y se
+     * reintentaba en cada sincronizacion con el mismo resultado. Este camino
+     * usa ~20 MB (solo la lista final) sin importar cuantas palmas haya.
+     *
+     * La lista se materializa completa ANTES de tocar la base a proposito:
+     * si la red se corta a mitad de descarga, la excepcion salta aqui,
+     * reemplazarPalmas nunca se llama y las palmas anteriores quedan
+     * intactas. Ademas la transaccion de escritura no queda abierta
+     * esperando al socket, momento en que el TrackingService encontraria la
+     * base bloqueada.
+     *
+     * HttpURLConnection negocia gzip solo y lo descomprime de forma
+     * transparente, asi que los ~33 MB de JSON viajan como 3-5 MB.
+     */
+    private fun fetchPalmasStreaming(baseUrl: String): List<com.palmadata.app.data.model.PalmaMapa> {
+        val url = URL("$baseUrl/palmas")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 10_000
+        connection.readTimeout    = 120_000
+        connection.requestMethod  = "GET"
+        connection.connect()
+        try {
+            if (connection.responseCode != 200) throw Exception("Error en /palmas: ${connection.responseCode}")
+
+            val lista = ArrayList<com.palmadata.app.data.model.PalmaMapa>(320_000)
+            val reader = android.util.JsonReader(
+                java.io.InputStreamReader(connection.inputStream, Charsets.UTF_8)
+            )
+            reader.use { r ->
+                r.beginArray()
+                while (r.hasNext()) {
+                    var id    = 0L
+                    var lote  = 0
+                    var linea = 0
+                    var palma = 0
+                    var lat   = 0.0
+                    var lon   = 0.0
+                    r.beginObject()
+                    while (r.hasNext()) {
+                        when (r.nextName()) {
+                            "cat_palma_id" -> id    = r.nextLong()
+                            "cat_lote_id"  -> lote  = r.nextInt()
+                            // Equivalente a optInt(..., 0): un null no revienta la descarga
+                            "linea"        -> linea = leerIntONull(r)
+                            "palma"        -> palma = leerIntONull(r)
+                            "lat"          -> lat   = r.nextDouble()
+                            "lon"          -> lon   = r.nextDouble()
+                            else           -> r.skipValue()
+                        }
+                    }
+                    r.endObject()
+                    lista.add(com.palmadata.app.data.model.PalmaMapa(id, lote, linea, palma, lat, lon))
+                }
+                r.endArray()
+            }
+            return lista
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    /** Lee un entero que puede venir como null en el JSON; null se lee como 0. */
+    private fun leerIntONull(r: android.util.JsonReader): Int =
+        if (r.peek() == android.util.JsonToken.NULL) {
+            r.nextNull()
+            0
+        } else {
+            r.nextInt()
+        }
 
     private const val PREFS_SYNC    = "palma_sync"
     private const val KEY_LAST_SYNC = "ultima_sincronizacion"
