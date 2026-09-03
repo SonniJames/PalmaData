@@ -25,6 +25,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.palmadata.app.R
 import com.palmadata.app.data.model.LoteMapa
+import com.palmadata.app.data.model.PalmaMapa
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.LoteLocator
 import com.palmadata.app.utils.LotePoligono
@@ -65,8 +66,11 @@ class MapaLotesActivity : AppCompatActivity() {
     private lateinit var btnCentrar: FloatingActionButton
     private lateinit var btnDescargarMapa: FloatingActionButton
     private lateinit var btnActualizarLotes: FloatingActionButton
+    private lateinit var btnPalmas: FloatingActionButton
+    private lateinit var tvPalmaInfo: TextView
 
     private val lotesOverlay = LotesOverlay()
+    private val palmasOverlay = PalmasOverlay()
     private var lotesDibujados = false
 
     @Volatile private var poligonos: List<LotePoligono> = emptyList()
@@ -186,6 +190,8 @@ class MapaLotesActivity : AppCompatActivity() {
         btnCentrar         = findViewById(R.id.btnCentrar)
         btnDescargarMapa   = findViewById(R.id.btnDescargarMapa)
         btnActualizarLotes = findViewById(R.id.btnActualizarLotes)
+        btnPalmas          = findViewById(R.id.btnPalmas)
+        tvPalmaInfo        = findViewById(R.id.tvPalmaInfo)
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
         locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
@@ -198,6 +204,15 @@ class MapaLotesActivity : AppCompatActivity() {
         }
         btnDescargarMapa.setOnClickListener { confirmarDescargaMapaOffline() }
         btnActualizarLotes.setOnClickListener { recargarLotes() }
+        btnPalmas.setOnClickListener { cargarPalmasDelLoteActual() }
+
+        // El overlay avisa qué palma se tocó; la pantalla solo actualiza el panel.
+        palmasOverlay.onSeleccion = { palma -> mostrarPalma(palma) }
+        palmasOverlay.onZoomInsuficiente = {
+            android.widget.Toast.makeText(this,
+                "Acerque el mapa para seleccionar una palma",
+                android.widget.Toast.LENGTH_SHORT).show()
+        }
 
         mapView.setTileSource(FUENTE_SATELITAL)
         mapView.setMultiTouchControls(true)
@@ -234,6 +249,10 @@ class MapaLotesActivity : AppCompatActivity() {
 
     private fun recargarLotes() {
         mapView.overlays.remove(lotesOverlay)
+        // El mismo botón redibuja ambas capas: si los lotes cambiaron, las
+        // palmas que estaban pintadas pueden pertenecer a un lote que ya no
+        // existe o cambió de forma.
+        quitarPalmas()
         lotesDibujados = false
         lotesMinLat =  90.0; lotesMaxLat = -90.0
         lotesMinLon = 180.0; lotesMaxLon = -180.0
@@ -289,6 +308,10 @@ class MapaLotesActivity : AppCompatActivity() {
             loteCandidatoId = null
             fixesCandidato = 0
             mostrarLote(poligonos.firstOrNull { it.lote.catLoteId == loteActualId }?.lote)
+            // Las palmas dibujadas son de otro lote: se quitan para no mostrar
+            // puntos que ya no corresponden a donde está el operario. Vuelve a
+            // presionar el botón para ver las del lote nuevo.
+            if (palmasOverlay.hayPalmas()) quitarPalmas()
         }
     }
 
@@ -305,6 +328,81 @@ class MapaLotesActivity : AppCompatActivity() {
             tvNombre.text  = "Fuera de los lotes"
             tvInfo.text    = "—"
             tvDetalle.text = ""
+        }
+    }
+
+    // ── Capa de palmas ────────────────────────────────────────────────────────
+
+    /**
+     * Carga las palmas del lote donde está parado el operario.
+     *
+     * Solo las de ESE lote: son ~600 puntos en vez de las 300.000 de la
+     * plantación. Ahí está la diferencia entre algo fluido en un celular de
+     * gama baja y algo imposible de dibujar.
+     *
+     * Es manual a propósito: al cambiar de lote el operario vuelve a
+     * presionar. Recargar solo al detectar el cambio sería más "listo", pero
+     * dispararía trabajo cada vez que se cruza un lindero.
+     */
+    private fun cargarPalmasDelLoteActual() {
+        // Segundo toque con palmas ya puestas: se apaga la capa.
+        if (palmasOverlay.hayPalmas()) {
+            quitarPalmas()
+            android.widget.Toast.makeText(this, "Palmas ocultas", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val loteId = loteActualId
+        if (loteId == null) {
+            android.widget.Toast.makeText(this,
+                "Está fuera de los lotes: no hay palmas que mostrar",
+                android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        android.widget.Toast.makeText(this, "Cargando palmas...", android.widget.Toast.LENGTH_SHORT).show()
+        Thread {
+            val lista = try {
+                DatabaseHelper.getInstance(this).getPalmasPorLote(loteId)
+            } catch (e: Exception) { emptyList<PalmaMapa>() }
+
+            runOnUiThread {
+                if (lista.isEmpty()) {
+                    android.widget.Toast.makeText(this,
+                        "Sin palmas para este lote. Sincronice para descargarlas.",
+                        android.widget.Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                palmasOverlay.setPalmas(lista)
+                // Índice 1: encima de los lotes (que van en 0) y debajo del
+                // overlay de mi ubicación, para no tapar la mira roja.
+                if (!mapView.overlays.contains(palmasOverlay)) {
+                    mapView.overlays.add(1, palmasOverlay)
+                }
+                mostrarPalma(null)
+                mapView.invalidate()
+                android.widget.Toast.makeText(this,
+                    "${lista.size} palmas · toque una para ver su línea",
+                    android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }.start()
+    }
+
+    private fun quitarPalmas() {
+        palmasOverlay.limpiar()
+        mapView.overlays.remove(palmasOverlay)
+        mostrarPalma(null)
+        mapView.invalidate()
+    }
+
+    /** Muestra línea y palma de la seleccionada, o esconde la línea si no hay. */
+    private fun mostrarPalma(palma: PalmaMapa?) {
+        if (palma != null) {
+            tvPalmaInfo.text = "Palma: ${palma.palma}\nLínea: ${palma.linea}"
+            tvPalmaInfo.visibility = android.view.View.VISIBLE
+        } else {
+            tvPalmaInfo.text = ""
+            tvPalmaInfo.visibility = android.view.View.GONE
         }
     }
 

@@ -111,6 +111,32 @@ object SyncManager {
             })
         }
 
+        // Palmas: son cientos de miles de filas (varios MB). Se consulta
+        // primero una huella diminuta y solo se descargan si cambió algo. Sin
+        // esto, cada sincronización arrastraría esos MB para reescribir
+        // exactamente los mismos datos, y las palmas cambian muy poco.
+        descargar("Palmas", fallidos) {
+            val huella = fetchObjeto(baseUrl, "palmas_version")
+            val version = "${huella.optInt("total", -1)}|${huella.optString("ultima", "")}"
+            if (version != getVersionPalmas(context) || db.contarPalmas() == 0) {
+                db.reemplazarPalmas(
+                    fetchLista(baseUrl, "palmas", readTimeout = 120_000) { o ->
+                        com.palmadata.app.data.model.PalmaMapa(
+                            catPalmaId = o.getLong("cat_palma_id"),
+                            catLoteId  = o.getInt("cat_lote_id"),
+                            linea      = o.optInt("linea", 0),
+                            palma      = o.optInt("palma", 0),
+                            lat        = o.getDouble("lat"),
+                            lon        = o.getDouble("lon")
+                        )
+                    }
+                )
+                // La versión se guarda DESPUÉS de escribir: si la descarga
+                // falla a medias, la próxima sincronización lo reintenta.
+                guardarVersionPalmas(context, version)
+            }
+        }
+
         descargar("Tipos parada", fallidos) {
             db.reemplazarSuperTiemposTipos(
                 fetchLista(baseUrl, "super_tiempos_tipos") { o ->
@@ -282,9 +308,35 @@ object SyncManager {
     }
 
 
+    /** Igual que fetchLista pero para una respuesta que es un objeto suelto,
+     *  no un arreglo. Se usa para la huella del catálogo de palmas. */
+    private fun fetchObjeto(baseUrl: String, endpoint: String, readTimeout: Int = 15_000): JSONObject {
+        val url = URL("$baseUrl/$endpoint")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 10_000
+        connection.readTimeout    = readTimeout
+        connection.requestMethod  = "GET"
+        connection.connect()
+        if (connection.responseCode != 200) throw Exception("Error en /$endpoint: ${connection.responseCode}")
+        val response = connection.inputStream.bufferedReader().readText()
+        connection.disconnect()
+        return JSONObject(response)
+    }
+
     private const val PREFS_SYNC    = "palma_sync"
     private const val KEY_LAST_SYNC = "ultima_sincronizacion"
 
+
+    private const val KEY_VERSION_PALMAS = "version_palmas"
+
+    private fun getVersionPalmas(context: Context): String =
+        context.getSharedPreferences(PREFS_SYNC, Context.MODE_PRIVATE)
+            .getString(KEY_VERSION_PALMAS, "") ?: ""
+
+    private fun guardarVersionPalmas(context: Context, version: String) {
+        context.getSharedPreferences(PREFS_SYNC, Context.MODE_PRIVATE)
+            .edit().putString(KEY_VERSION_PALMAS, version).apply()
+    }
 
     private fun guardarFechaSincronizacion(context: Context) {
         val ahora = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())

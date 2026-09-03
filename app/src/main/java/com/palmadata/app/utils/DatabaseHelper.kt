@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 24  // ← v24: módulo supervisión de tiempos (form. 35)
+        const val DB_VERSION = 25  // ← v25: capa de palmas del módulo mapas
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -51,6 +51,7 @@ class DatabaseHelper(context: Context) :
         const val T_TRACKS             = "tracks_movil"
         const val T_UMAS               = "umas"
         const val T_LOTES_MAPA         = "lotes_mapa"
+        const val T_PALMAS             = "palmas"
         const val T_FERTILIZANTES      = "fertilizantes"  // ← cambio 2: nueva tabla maestra
         const val T_SUPER_COSECHA_VAGON = "super_cosecha_vagon"
         const val T_SUPER_POLI          = "super_poli"
@@ -129,6 +130,14 @@ class DatabaseHelper(context: Context) :
             palmas INTEGER DEFAULT 0,
             material TEXT,
             geojson TEXT NOT NULL)""")
+        db.execSQL("""CREATE TABLE $T_PALMAS (
+            cat_palma_id INTEGER PRIMARY KEY,
+            cat_lote_id INTEGER NOT NULL,
+            linea INTEGER DEFAULT 0,
+            palma INTEGER DEFAULT 0,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL)""")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_palmas_lote ON $T_PALMAS(cat_lote_id)")
         db.execSQL("""CREATE TABLE $T_SUPER_COSECHA_VAGON (
             id_unico TEXT PRIMARY KEY,
             fecha TEXT NOT NULL,
@@ -211,7 +220,7 @@ class DatabaseHelper(context: Context) :
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
             T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
-            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO
+            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -485,6 +494,14 @@ class DatabaseHelper(context: Context) :
             palmas INTEGER DEFAULT 0,
             material TEXT,
             geojson TEXT NOT NULL)""")
+        db.execSQL("""CREATE TABLE $T_PALMAS (
+            cat_palma_id INTEGER PRIMARY KEY,
+            cat_lote_id INTEGER NOT NULL,
+            linea INTEGER DEFAULT 0,
+            palma INTEGER DEFAULT 0,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL)""")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_palmas_lote ON $T_PALMAS(cat_lote_id)")
         db.execSQL("""CREATE TABLE $T_SUPER_TIEMPOS_TIPO (
             codigo TEXT PRIMARY KEY,
             descripcion TEXT NOT NULL,
@@ -616,6 +633,58 @@ class DatabaseHelper(context: Context) :
             }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
+    }
+
+    /**
+     * Reemplaza la capa de palmas. Se hace en una sola transacción porque son
+     * cientos de miles de filas: sin ella, SQLite haría un commit por
+     * inserción y la operación tardaría minutos en vez de segundos.
+     *
+     * Si la lista llega vacía NO se borra nada: una respuesta truncada del
+     * servidor dejaría al operario sin la capa en pleno campo.
+     */
+    fun reemplazarPalmas(lista: List<com.palmadata.app.data.model.PalmaMapa>) {
+        if (lista.isEmpty()) return
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(T_PALMAS, null, null)
+            lista.forEach { p ->
+                db.insert(T_PALMAS, null, ContentValues().apply {
+                    put("cat_palma_id", p.catPalmaId)
+                    put("cat_lote_id",  p.catLoteId)
+                    put("linea",        p.linea)
+                    put("palma",        p.palma)
+                    put("lat",          p.lat)
+                    put("lon",          p.lon)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    /** Palmas de UN lote. Nunca se piden todas: el índice por cat_lote_id
+     *  hace que traer las ~600 de un lote sea instantáneo. */
+    fun getPalmasPorLote(catLoteId: Int): List<com.palmadata.app.data.model.PalmaMapa> {
+        val result = mutableListOf<com.palmadata.app.data.model.PalmaMapa>()
+        readableDatabase.rawQuery(
+            "SELECT cat_palma_id, cat_lote_id, linea, palma, lat, lon FROM $T_PALMAS WHERE cat_lote_id = ?",
+            arrayOf(catLoteId.toString())
+        ).use { c ->
+            while (c.moveToNext()) result.add(
+                com.palmadata.app.data.model.PalmaMapa(
+                    c.getLong(0), c.getInt(1), c.getInt(2),
+                    c.getInt(3), c.getDouble(4), c.getDouble(5)
+                )
+            )
+        }
+        return result
+    }
+
+    fun contarPalmas(): Int {
+        readableDatabase.rawQuery("SELECT COUNT(*) FROM $T_PALMAS", null).use {
+            it.moveToFirst(); return it.getInt(0)
+        }
     }
 
     fun getLotesMapa(): List<com.palmadata.app.data.model.LoteMapa> {
