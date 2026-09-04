@@ -33,6 +33,7 @@ import com.palmadata.app.utils.aDecimalCampo
 import com.palmadata.app.ui.ModulesAdapter
 import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
+import com.palmadata.app.utils.ExportManager
 import com.palmadata.app.utils.LocationHelper
 import com.palmadata.app.utils.ModuleRegistry
 import com.palmadata.app.utils.SessionManager
@@ -113,6 +114,18 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* concedido o no, la app continúa; sin él solo se pierde la notificación */ }
+
+    /**
+     * Permiso de almacenamiento para DESCARGAR, necesario SOLO en Android 8 y 9:
+     * desde Android 10 se escribe en Descargas/PalmaData vía MediaStore sin
+     * permiso alguno. Si lo concede, se continúa con la descarga.
+     */
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) confirmarDescarga()
+        else Toast.makeText(this, "Sin permiso de almacenamiento no se pueden guardar los archivos.", Toast.LENGTH_LONG).show()
+    }
 
     /**
      * Android 13+ exige pedir el permiso de notificaciones en runtime.
@@ -351,6 +364,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupSincronizar() {
         binding.btnSincronizar.setOnClickListener { sincronizarDatos() }
+        binding.btnDescargar.setOnClickListener { descargarDatos() }
     }
 
     private fun sincronizarDatos() {
@@ -426,6 +440,112 @@ class MainActivity : AppCompatActivity() {
                     .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
                     .show()
             }
+        }
+    }
+
+    // ── DESCARGAR (exportar a Excel, para plantaciones sin red) ──────────────
+
+    /**
+     * Punto de entrada del botón. En Android 8/9 pide primero el permiso de
+     * almacenamiento; en Android 10+ va directo a la confirmación.
+     */
+    private fun descargarDatos() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+        confirmarDescarga()
+    }
+
+    private fun confirmarDescarga() {
+        val hora = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        // Misma regla que SINCRONIZAR: después de mediodía la jornada se cierra.
+        // Solo se avisa cuando aplica, para no asustar en una descarga de la
+        // mañana que no detiene nada.
+        val avisoJornada = if (hora >= 12)
+            "\n\nAl descargar se finaliza la jornada de hoy: el registro de recorrido " +
+                    "se detiene y se reanuda mañana a las 6:00 a.m."
+        else ""
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Generar archivos del día")
+            .setMessage(
+                "¿Seguro desea generar los archivos del día?\n\n" +
+                        "Se creará un archivo Excel por cada módulo con registros, más el de tracks, " +
+                        "en Descargas/${ExportManager.CARPETA}. Los registros exportados se eliminan del " +
+                        "teléfono, así que ya no se podrán sincronizar." + avisoJornada
+            )
+            .setPositiveButton("Sí, generar") { d, _ -> d.dismiss(); ejecutarDescarga() }
+            .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
+            .show()
+    }
+
+    private fun ejecutarDescarga() {
+        // Diálogo de carga — bloquea la interacción, igual que en sincronizar
+        val progressLayout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            setPadding(80, 60, 80, 60)
+        }
+        val progressBar = android.widget.ProgressBar(this)
+        val tvDescargando = android.widget.TextView(this).apply {
+            text = "Descargando..."
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 24, 0, 0)
+            textSize = 15f
+        }
+        progressLayout.addView(progressBar)
+        progressLayout.addView(tvDescargando)
+
+        val dialogCargando = MaterialAlertDialogBuilder(this)
+            .setView(progressLayout)
+            .setCancelable(false)
+            .create()
+        dialogCargando.show()
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        binding.btnDescargar.isEnabled = false
+        binding.btnSincronizar.isEnabled = false
+        binding.btnDescargar.text = "Descargando..."
+
+        val hora = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        if (hora >= 12) {
+            // Idéntico a sincronizar: jornada cerrada el resto del día, el
+            // servicio no se revive hasta mañana desde ningún punto de arranque.
+            SessionManager.cerrarJornadaHoy(this)
+            detenerTrackingService()
+            Toast.makeText(this, "Fin de jornada: el registro de recorrido se detiene y reinicia mañana al abrir la app.", Toast.LENGTH_LONG).show()
+        }
+
+        lifecycleScope.launch {
+            val resultado = try {
+                withContext(Dispatchers.IO) {
+                    ExportManager.exportar(this@MainActivity)
+                }
+            } catch (e: Exception) {
+                ExportManager.ResultadoExport(exitoso = false, mensaje = "Error inesperado: ${e.message}")
+            } finally {
+                dialogCargando.dismiss()
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                binding.btnDescargar.isEnabled = true
+                binding.btnSincronizar.isEnabled = true
+                binding.btnDescargar.text = "DESCARGAR"
+            }
+
+            val conteos = resultado.detalles.entries.joinToString("\n") { "• ${it.key}: ${it.value}" }
+            val lista = if (resultado.archivos.isNotEmpty())
+                "\n\nArchivos (descarga #${resultado.secuencia} de hoy):\n" +
+                        resultado.archivos.joinToString("\n") { "• $it" }
+            else ""
+
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(if (resultado.exitoso) "✅ Descarga completa" else "⚠️ Descarga parcial")
+                .setMessage(resultado.mensaje + (if (conteos.isNotEmpty()) "\n\n$conteos" else "") + lista)
+                .setPositiveButton("Aceptar") { d, _ -> d.dismiss() }
+                .show()
         }
     }
 

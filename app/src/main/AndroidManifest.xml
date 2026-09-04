@@ -3,6 +3,10 @@
 
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Solo Android 8 y 9: guardar los Excel de DESCARGAR en Descargas/PalmaData.
+         Desde Android 10 (API 29) se usa MediaStore y no hace falta permiso. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
