@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -213,7 +214,16 @@ object ExportManager {
         }
     }
 
-    /** Android 10+: sin permisos, la entrada aparece en la app de Archivos al instante. */
+    /**
+     * Android 10+: sin permisos, la entrada aparece en la app de Archivos al instante.
+     *
+     * @RequiresApi es obligatorio aunque el único llamador ya comprueba
+     * SDK_INT >= Q: lint analiza cada función por separado y no sigue la guarda
+     * hasta acá, así que sin la anotación marca error por MediaStore.Downloads
+     * (API 29) con minSdk 26. La anotación le dice que esta función solo se
+     * llama bajo esa condición; la guarda real sigue estando en escribirArchivo.
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun escribirMediaStore(context: Context, nombre: String, escritor: (OutputStream) -> Unit) {
         val resolver = context.contentResolver
         val valores = ContentValues().apply {
