@@ -64,6 +64,30 @@
         <activity android:name=".censo_enfermedades.CensoEnf8Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnf0Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".censo_enfermedades.CensoEnfOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
+
+        <!-- Medidas vegetativas (formulario 40) -->
+        <activity android:name=".med_veg.MedVegActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg0Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg5Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg6Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg7Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg8Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg9Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg10Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg11Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg12Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg13Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg14Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg15Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg16Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg17Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg18Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg19Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".med_veg.MedVeg20Activity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Tratamientos -->
         <activity android:name=".tratamientos.TratamientosActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat0Activity" android:exported="false" android:screenOrientation="portrait" />

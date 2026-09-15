@@ -100,7 +100,8 @@ object ExportManager {
             Modulo("sesionesmaquinaria",             { db.getMaquinariaPendientes() },        "id_unico", { db.eliminarMaquinaria(it) }),
             Modulo("supercosechavagon",              { db.getSuperCosechaVagonPendientes() }, "id_unico", { db.eliminarSuperCosechaVagon(it) }),
             Modulo("pro_ordenes_super_poli_detalle", { db.getSuperPoliPendientes() },         "id_unico", { db.eliminarSuperPoli(it) }),
-            Modulo("super_tiempos",                  { db.getSuperTiemposPendientes() },      "id_unico", { db.eliminarSuperTiempos(it) })
+            Modulo("super_tiempos",                  { db.getSuperTiemposPendientes() },      "id_unico", { db.eliminarSuperTiempos(it) }),
+            Modulo("medidas_vegetativas",            { db.getMedVegPendientes() },            "id",       { db.eliminarMedVeg(it) })
         )
 
         val detalles = linkedMapOf<String, Int>()

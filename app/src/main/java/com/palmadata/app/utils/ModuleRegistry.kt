@@ -16,6 +16,7 @@ import com.palmadata.app.super_poli.SuperPoliActivity
 import com.palmadata.app.estudio_tiempos.EstudioTiemposActivity
 import com.palmadata.app.mapa.MapaLotesActivity
 import com.palmadata.app.super_tiempos.SuperTiemposActivity
+import com.palmadata.app.med_veg.MedVegActivity
 object ModuleRegistry {
     // formularioId según generarFormulariosMovil() del sistema web:
     // 1=CENSO ENFERMEDADES, 2=CENSO PLAGAS, 3=CENSO TRAMPAS, 5=POLINIZACION,
@@ -37,6 +38,7 @@ object ModuleRegistry {
         AppModule(id = "estudio_tiempos",    name = "Estudio de tiempos", iconResId = R.drawable.tiempos,            destinationClass = EstudioTiemposActivity::class.java,     formularioId = 30),
         AppModule(id = "mapas",              name = "Mapas",              iconResId = R.drawable.mapas,              destinationClass = MapaLotesActivity::class.java),
         AppModule(id = "super_tiempos",      name = "Supervisión de tiempos",iconResId = R.drawable.super_tiempos,   destinationClass = SuperTiemposActivity::class.java,       formularioId = 35),
+        AppModule(id = "medidas_vegetativas",name = "Medidas vegetativas",iconResId = R.drawable.med_veg,            destinationClass = MedVegActivity::class.java,             formularioId = 40),
     )
 }
 

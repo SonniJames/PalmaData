@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 25  // ← v25: capa de palmas del módulo mapas
+        const val DB_VERSION = 27  // ← v27: módulo medidas vegetativas (tabla de campo + maestro nut_umas)
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -57,6 +57,8 @@ class DatabaseHelper(context: Context) :
         const val T_SUPER_POLI          = "super_poli"
         const val T_SUPER_TIEMPOS       = "super_tiempos"
         const val T_SUPER_TIEMPOS_TIPO  = "super_tiempos_tipo"
+        const val T_MED_VEG             = "medidas_vegetativas"
+        const val T_NUT_UMAS            = "nut_umas"
 
     }
 
@@ -69,6 +71,36 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_NUT_UMAS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("""CREATE TABLE IF NOT EXISTS $T_MED_VEG (
+                id TEXT PRIMARY KEY,
+                fecha TEXT NOT NULL,
+                hora TEXT NOT NULL,
+                cat_plantacion_id INTEGER NOT NULL,
+                cat_lote_id INTEGER NOT NULL,
+                evaluador INTEGER NOT NULL,
+                observaciones TEXT,
+                linea INTEGER NOT NULL,
+                palma INTEGER NOT NULL,
+                cat_palma_id INTEGER DEFAULT 0,
+                latitud REAL NOT NULL,
+                longitud REAL NOT NULL,
+                nut_uma_id INTEGER DEFAULT 0,
+                num_foliolos REAL,
+                long_peciolo REAL DEFAULT 0, anch_peciolo REAL DEFAULT 0,
+                prof_peciolo REAL DEFAULT 0, long_raquis REAL DEFAULT 0,
+                ancho_1 REAL DEFAULT 0, largo_1 REAL DEFAULT 0,
+                ancho_2 REAL DEFAULT 0, largo_2 REAL DEFAULT 0,
+                ancho_3 REAL DEFAULT 0, largo_3 REAL DEFAULT 0,
+                ancho_4 REAL DEFAULT 0, largo_4 REAL DEFAULT 0,
+                ancho_5 REAL DEFAULT 0, largo_5 REAL DEFAULT 0,
+                ancho_6 REAL DEFAULT 0, largo_6 REAL DEFAULT 0,
+                ancho_7 REAL DEFAULT 0, largo_7 REAL DEFAULT 0,
+                ancho_8 REAL DEFAULT 0, largo_8 REAL DEFAULT 0,
+                hoja INTEGER,
+                num_hojas_verdes INTEGER,
+                niv_foliar REAL,
+                sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_MAQUINARIA_MAESTRO (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
@@ -107,7 +139,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, id_movil TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona TEXT, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -220,7 +252,7 @@ class DatabaseHelper(context: Context) :
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
             T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
-            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS
+            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS, T_NUT_UMAS
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -461,6 +493,60 @@ class DatabaseHelper(context: Context) :
                 sincronizado INTEGER DEFAULT 0)""")
         }
 
+        // v26: id_movil en polen. Es el único módulo que subía sin un
+        // identificador propio, así que su endpoint no podía hacer ON CONFLICT
+        // y un reenvío tras un 200 perdido duplicaba la fila en Postgres.
+        //
+        // A los pendientes que ya estén en el equipo se les genera uno aquí
+        // mismo: sin esto subirían con id_movil NULL y, como en Postgres NULL
+        // nunca choca con NULL, seguirían sin protección contra el duplicado.
+        // randomblob(16) da 16 bytes aleatorios en hexadecimal — no tiene el
+        // formato con guiones de un UUID, pero la columna es una clave opaca y
+        // lo único que importa es que no se repita.
+        if (oldVersion < 26) {
+            try { db.execSQL("ALTER TABLE $T_POLEN ADD COLUMN id_movil TEXT") } catch (e: Exception) { }
+            try {
+                db.execSQL("UPDATE $T_POLEN SET id_movil = lower(hex(randomblob(16))) WHERE id_movil IS NULL")
+            } catch (e: Exception) { }
+        }
+
+        // v27: módulo MEDIDAS VEGETATIVAS. Tabla de CAMPO: IF NOT EXISTS y nunca
+        // se borra. El maestro nut_umas se recrea abajo con los demás.
+        // num_foliolos, hoja, num_hojas_verdes y niv_foliar van SIN DEFAULT
+        // para que un teclado vacío quede en NULL; las medidas de peciolo y
+        // foliolos sí tienen DEFAULT 0 porque así lo define la tabla destino.
+        if (oldVersion < 27) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS $T_MED_VEG (
+                id TEXT PRIMARY KEY,
+                fecha TEXT NOT NULL,
+                hora TEXT NOT NULL,
+                cat_plantacion_id INTEGER NOT NULL,
+                cat_lote_id INTEGER NOT NULL,
+                evaluador INTEGER NOT NULL,
+                observaciones TEXT,
+                linea INTEGER NOT NULL,
+                palma INTEGER NOT NULL,
+                cat_palma_id INTEGER DEFAULT 0,
+                latitud REAL NOT NULL,
+                longitud REAL NOT NULL,
+                nut_uma_id INTEGER DEFAULT 0,
+                num_foliolos REAL,
+                long_peciolo REAL DEFAULT 0, anch_peciolo REAL DEFAULT 0,
+                prof_peciolo REAL DEFAULT 0, long_raquis REAL DEFAULT 0,
+                ancho_1 REAL DEFAULT 0, largo_1 REAL DEFAULT 0,
+                ancho_2 REAL DEFAULT 0, largo_2 REAL DEFAULT 0,
+                ancho_3 REAL DEFAULT 0, largo_3 REAL DEFAULT 0,
+                ancho_4 REAL DEFAULT 0, largo_4 REAL DEFAULT 0,
+                ancho_5 REAL DEFAULT 0, largo_5 REAL DEFAULT 0,
+                ancho_6 REAL DEFAULT 0, largo_6 REAL DEFAULT 0,
+                ancho_7 REAL DEFAULT 0, largo_7 REAL DEFAULT 0,
+                ancho_8 REAL DEFAULT 0, largo_8 REAL DEFAULT 0,
+                hoja INTEGER,
+                num_hojas_verdes INTEGER,
+                niv_foliar REAL,
+                sincronizado INTEGER DEFAULT 0)""")
+        }
+
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, supervisor INTEGER DEFAULT 0)")
@@ -470,6 +556,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_EVENTOS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, enfermedad_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_NUT_UMAS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_MAQUINARIA_MAESTRO (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
@@ -551,6 +638,11 @@ class DatabaseHelper(context: Context) :
     fun reemplazarTrampas(lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_TRAMPAS_MAESTRO, null, null); lista.forEach { (id, codigo) -> db.insert(T_TRAMPAS_MAESTRO, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarNutUmas(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_NUT_UMAS, null, null); lista.forEach { (id, codigo) -> db.insert(T_NUT_UMAS, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarInsectos(lista: List<Pair<Int, String>>) {
@@ -832,6 +924,28 @@ class DatabaseHelper(context: Context) :
     fun eliminarCensoEnf(id: String) = writableDatabase.delete(T_CENSO_ENF, "id = ?", arrayOf(id))
     fun contarCensoEnfPendientes(): Int = contarPendientes(T_CENSO_ENF)
 
+    fun guardarMedVeg(r: com.palmadata.app.med_veg.MedVegRegistro) {
+        writableDatabase.insert(T_MED_VEG, null, ContentValues().apply {
+            put("id", r.id); put("fecha", r.fecha); put("hora", r.hora)
+            put("cat_plantacion_id", r.catPlantacionId); put("cat_lote_id", r.catLoteId); put("evaluador", r.evaluador)
+            put("observaciones", r.observaciones); put("linea", r.linea); put("palma", r.palma); put("cat_palma_id", 0)
+            put("latitud", r.latitud); put("longitud", r.longitud); put("nut_uma_id", r.nutUmaId)
+            // Nullable: putNull deja NULL real, que getPendientes envía como null
+            if (r.numFoliolos == null) putNull("num_foliolos") else put("num_foliolos", r.numFoliolos)
+            put("long_peciolo", r.longPeciolo); put("anch_peciolo", r.anchPeciolo)
+            put("prof_peciolo", r.profPeciolo); put("long_raquis", r.longRaquis)
+            put("ancho_1", r.ancho1); put("largo_1", r.largo1); put("ancho_2", r.ancho2); put("largo_2", r.largo2); put("ancho_3", r.ancho3); put("largo_3", r.largo3); put("ancho_4", r.ancho4); put("largo_4", r.largo4); put("ancho_5", r.ancho5); put("largo_5", r.largo5); put("ancho_6", r.ancho6); put("largo_6", r.largo6); put("ancho_7", r.ancho7); put("largo_7", r.largo7); put("ancho_8", r.ancho8); put("largo_8", r.largo8)
+            if (r.hoja == null) putNull("hoja") else put("hoja", r.hoja)
+            if (r.numHojasVerdes == null) putNull("num_hojas_verdes") else put("num_hojas_verdes", r.numHojasVerdes)
+            if (r.nivFoliar == null) putNull("niv_foliar") else put("niv_foliar", r.nivFoliar)
+            put("sincronizado", 0)
+        })
+    }
+
+    fun getMedVegPendientes(): List<Map<String, Any>> = getPendientes(T_MED_VEG)
+    fun eliminarMedVeg(id: String) = writableDatabase.delete(T_MED_VEG, "id = ?", arrayOf(id))
+    fun contarMedVegPendientes(): Int = contarPendientes(T_MED_VEG)
+
     fun guardarTratamiento(r: com.palmadata.app.tratamientos.TratamientoRegistro) {
         writableDatabase.insert(T_TRATAMIENTOS, null, ContentValues().apply {
             put("id", r.id); put("san_evento_trat_id", r.sanEventoTratId); put("aux_trabajador_id", r.auxTrabajadorId)
@@ -864,7 +978,12 @@ class DatabaseHelper(context: Context) :
     fun guardarPolen(r: com.palmadata.app.polen.PolenInicialFinalRegistro) {
         writableDatabase.insert(T_POLEN, null, ContentValues().apply {
             put("fecha", r.fecha); put("inicial", r.inicial); put("final", r.final)
-            put("trabajador", r.trabajador); put("sincronizado", 0)
+            put("trabajador", r.trabajador)
+            // id_movil viaja al servidor y es la clave del ON CONFLICT. El `id`
+            // autoincremental de esta tabla sigue siendo el que usa
+            // eliminarPolen() para borrar el registro una vez subido.
+            put("id_movil", r.idMovil)
+            put("sincronizado", 0)
         })
     }
 
@@ -1230,6 +1349,14 @@ class DatabaseHelper(context: Context) :
         return result
     }
 
+    /** Umas de plantacion.nut_uma para el módulo de medidas vegetativas: (nut_uma_id, codigo). */
+    fun getNutUmas(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_NUT_UMAS, null, null, null, null, null, "codigo")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
     fun getInsectos(): List<Pair<Int, String>> {
         val result = mutableListOf<Pair<Int, String>>()
         val cursor = readableDatabase.query(T_INSECTOS, null, null, null, null, null, "insecto")
@@ -1282,6 +1409,22 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/grid_background">
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:orientation="horizontal"
+        android:background="@color/header_background"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:elevation="6dp">
+
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/logo_palma"
+            android:scaleType="fitCenter"
+            android:contentDescription="Logo" />
+
+        <View android:layout_width="12dp" android:layout_height="match_parent" />
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="26dp"
+            android:layout_weight="1"
+            android:src="@drawable/texto_palma_data"
+            android:scaleType="fitStart"
+            android:adjustViewBounds="true"
+            android:contentDescription="PalmaData" />
+    </LinearLayout>
+
+    <!-- Título -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="PLANTACIÓN"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:background="@color/white"
+        android:elevation="2dp" />
+
+    <!-- Lista de plantaciones -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPlantaciones"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="8dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

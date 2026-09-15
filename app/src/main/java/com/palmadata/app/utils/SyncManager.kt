@@ -32,6 +32,7 @@ object SyncManager {
         val subidosCosechaVagon = subirPendientes(baseUrl, "super_cosecha_vagon",  db.getSuperCosechaVagonPendientes(), idKey = "id_unico") { id -> db.eliminarSuperCosechaVagon(id) }
         val subidosSuperPoli    = subirPendientes(baseUrl, "super_poli",           db.getSuperPoliPendientes(),    idKey = "id_unico") { id -> db.eliminarSuperPoli(id) }
         val subidosSuperTiempos = subirPendientes(baseUrl, "super_tiempos",        db.getSuperTiemposPendientes(), idKey = "id_unico") { id -> db.eliminarSuperTiempos(id) }
+        val subidosMedVeg       = subirPendientes(baseUrl, "medidas_vegetativas",  db.getMedVegPendientes())       { id -> db.eliminarMedVeg(id) }
         val subidosTracks       = subirTracks(baseUrl, context)
         // ── Descargar maestros ────────────────────────────────────────────────
         // ── Descargar maestros (cada uno independiente, con 1 reintento) ──────
@@ -129,6 +130,10 @@ object SyncManager {
             }
         }
 
+        descargar("Umas (nut)", fallidos) {
+            db.reemplazarNutUmas(fetchLista(baseUrl, "nut_umas") { o -> Pair(o.getInt("nut_uma_id"), o.getString("codigo")) })
+        }
+
         descargar("Tipos parada", fallidos) {
             db.reemplazarSuperTiemposTipos(
                 fetchLista(baseUrl, "super_tiempos_tipos") { o ->
@@ -152,7 +157,8 @@ object SyncManager {
             "Super cosecha" to subidosSuperCosecha, "Maquinaria" to subidosMaquinaria,
             "Sup. cosecha vagón" to subidosCosechaVagon,
             "Sup. polinización" to subidosSuperPoli,
-            "Sup. tiempos" to subidosSuperTiempos
+            "Sup. tiempos" to subidosSuperTiempos,
+            "Med. vegetativas" to subidosMedVeg
         )
 
         return if (fallidos.isEmpty()) {
