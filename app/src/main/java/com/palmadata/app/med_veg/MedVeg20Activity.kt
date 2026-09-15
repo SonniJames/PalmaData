@@ -2,6 +2,7 @@ package com.palmadata.app.med_veg
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.MainActivity
 import com.palmadata.app.databinding.ActivityMedVeg20Binding
@@ -28,6 +29,14 @@ class MedVeg20Activity : AppCompatActivity() {
         }
 
         binding.btnModulos.setOnClickListener { irAModulos() }
+
+        // Atrás hace lo mismo que MÓDULOS. Se registra en el dispatcher en vez
+        // de sobreescribir onBackPressed(): ese método ya no se invoca con los
+        // gestos de navegación de Android 13+, así que el comportamiento se
+        // perdería en los equipos nuevos sin dar ningún aviso.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { irAModulos() }
+        })
     }
 
     private fun irAModulos() {
@@ -35,11 +44,5 @@ class MedVeg20Activity : AppCompatActivity() {
         i.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(i)
         finish()
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        super.onBackPressed()
-        irAModulos()
     }
 }
