@@ -29,7 +29,7 @@ class Trat7Activity : AppCompatActivity() {
         val eventos = DatabaseHelper.getInstance(this).getEventosPorEnfermedad(enfermedadId)
         val adapter = WorkerAdapter { codigo ->
             val e = eventos.first { it.second == codigo }
-            val i = Intent(this, Trat8Activity::class.java)
+            val i = Intent(this, Trat7_1Activity::class.java)  // 7.1 EQUIPO DE APLICACIÓN (antes: Trat8)
             i.putExtra("plantacion_id", plantacionId)
             i.putExtra("plantacion_nombre", plantacionNombre)
             i.putExtra("sector_id", sectorId)

@@ -9,8 +9,9 @@
         <View android:layout_width="12dp" android:layout_height="match_parent" />
         <ImageView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:src="@drawable/texto_palma_data" android:scaleType="fitStart" android:adjustViewBounds="true" android:contentDescription="PalmaData" />
     </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="CANTIDAD DE PRODUCTO" android:gravity="center" android:textSize="16sp" android:textColor="@color/text_secondary" android:background="@color/white" android:elevation="2dp" />
-    <TextView android:id="@+id/tvDisplay" android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center" android:textSize="32sp" android:textColor="@color/text_primary" android:textStyle="bold" android:background="@color/white" android:layout_marginTop="16dp" android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:hint="--" android:textColorHint="@color/divider" />
+    <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="REMISIÓN" android:gravity="center" android:textSize="16sp" android:textColor="@color/text_secondary" android:background="@color/white" android:elevation="2dp" />
+    <TextView android:id="@+id/tvDisplay" android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center" android:textSize="32sp" android:textColor="@color/text_primary" android:textStyle="bold" android:background="@color/white" android:layout_marginTop="16dp" android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:hint="---" android:textColorHint="@color/divider" />
+    <TextView android:id="@+id/tvError" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:textSize="13sp" android:textColor="#D32F2F" android:layout_marginTop="4dp" android:visibility="gone" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:padding="16dp">
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
             <Button android:id="@+id/btn7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="7" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
@@ -28,13 +29,13 @@
             <Button android:id="@+id/btn1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="1" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
             <Button android:id="@+id/btn2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="2" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
             <Button android:id="@+id/btn3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="3" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-            <Button android:id="@+id/btnPunto" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="." android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
             <Button android:id="@+id/btn0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="0" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="2"/>
         </LinearLayout>
-        <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:text="UNIDAD DE MEDIDA" android:textSize="14sp" android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+        <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:text="OBSERVACIONES" android:textSize="14sp" android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
     </LinearLayout>
 </LinearLayout>

@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 27  // ← v27: módulo medidas vegetativas (tabla de campo + maestro nut_umas)
+        const val DB_VERSION = 28  // ← v28: tratamientos: equipo, área, categoría, producto, unidad, remisión + 4 maestros
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -59,6 +59,10 @@ class DatabaseHelper(context: Context) :
         const val T_SUPER_TIEMPOS_TIPO  = "super_tiempos_tipo"
         const val T_MED_VEG             = "medidas_vegetativas"
         const val T_NUT_UMAS            = "nut_umas"
+        const val T_EQUIPOS_APL         = "equipos_aplicacion"
+        const val T_CATEGORIAS_PROD     = "categorias_producto"
+        const val T_PRODUCTOS           = "productos"
+        const val T_UNIDADES_APL        = "unidades_aplicacion"
 
     }
 
@@ -72,6 +76,10 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_NUT_UMAS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_EQUIPOS_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_CATEGORIAS_PROD (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_PRODUCTOS (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, categoria_id INTEGER DEFAULT 0)")
+        db.execSQL("CREATE TABLE $T_UNIDADES_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("""CREATE TABLE IF NOT EXISTS $T_MED_VEG (
                 id TEXT PRIMARY KEY,
                 fecha TEXT NOT NULL,
@@ -137,7 +145,7 @@ class DatabaseHelper(context: Context) :
             sincronizado INTEGER DEFAULT 0
         )""")  // ← v16: fertilizante TEXT "[1,2]" en T_TRACKS de onCreate
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL DEFAULT 0, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, categoria_producto_id INTEGER, producto_id INTEGER, unidad_aplicacion_id INTEGER, remision INTEGER, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, id_movil TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -252,7 +260,8 @@ class DatabaseHelper(context: Context) :
             T_TRAMPAS_MAESTRO, T_INSECTOS, T_ESTADOS_INSECTO,
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
             T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
-            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS, T_NUT_UMAS
+            T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS, T_NUT_UMAS,
+            T_EQUIPOS_APL, T_CATEGORIAS_PROD, T_PRODUCTOS, T_UNIDADES_APL
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -547,6 +556,20 @@ class DatabaseHelper(context: Context) :
                 sincronizado INTEGER DEFAULT 0)""")
         }
 
+        // v28: tratamientos — 6 columnas nuevas (pantallas 7.1 a 8.2). ALTER
+        // en vez de recrear: los registros pendientes se conservan y quedan
+        // con NULL en lo nuevo, que es exactamente lo que significa "no se
+        // capturó". Todas son nullable; sin DEFAULT para que vacío sea NULL.
+        if (oldVersion < 28) {
+            for (col in listOf(
+                "equipo_aplicacion_id INTEGER", "area_intervenida REAL",
+                "categoria_producto_id INTEGER", "producto_id INTEGER",
+                "unidad_aplicacion_id INTEGER", "remision INTEGER"
+            )) {
+                try { db.execSQL("ALTER TABLE $T_TRATAMIENTOS ADD COLUMN $col") } catch (e: Exception) { }
+            }
+        }
+
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, supervisor INTEGER DEFAULT 0)")
@@ -557,6 +580,10 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_TRATAMIENTOS_EVT (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRAMPAS_MAESTRO (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_NUT_UMAS (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_EQUIPOS_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_CATEGORIAS_PROD (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_PRODUCTOS (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, categoria_id INTEGER DEFAULT 0)")
+        db.execSQL("CREATE TABLE $T_UNIDADES_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_MAQUINARIA_MAESTRO (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
@@ -638,6 +665,26 @@ class DatabaseHelper(context: Context) :
     fun reemplazarTrampas(lista: List<Pair<Int, String>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_TRAMPAS_MAESTRO, null, null); lista.forEach { (id, codigo) -> db.insert(T_TRAMPAS_MAESTRO, null, ContentValues().apply { put("id", id); put("codigo", codigo) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarEquiposAplicacion(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_EQUIPOS_APL, null, null); lista.forEach { (id, nombre) -> db.insert(T_EQUIPOS_APL, null, ContentValues().apply { put("id", id); put("nombre", nombre) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarCategoriasProducto(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_CATEGORIAS_PROD, null, null); lista.forEach { (id, nombre) -> db.insert(T_CATEGORIAS_PROD, null, ContentValues().apply { put("id", id); put("nombre", nombre) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarUnidadesAplicacion(lista: List<Pair<Int, String>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_UNIDADES_APL, null, null); lista.forEach { (id, nombre) -> db.insert(T_UNIDADES_APL, null, ContentValues().apply { put("id", id); put("nombre", nombre) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    fun reemplazarProductos(lista: List<Triple<Int, String, Int>>) {
+        val db = writableDatabase; db.beginTransaction()
+        try { db.delete(T_PRODUCTOS, null, null); lista.forEach { (id, nombre, catId) -> db.insert(T_PRODUCTOS, null, ContentValues().apply { put("id", id); put("nombre", nombre); put("categoria_id", catId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun reemplazarNutUmas(lista: List<Pair<Int, String>>) {
@@ -953,7 +1000,15 @@ class DatabaseHelper(context: Context) :
             put("cat_plantacion_id", r.catPlantacionId); put("linea", r.linea); put("palma", r.palma)
             put("san_enfermedades_id", r.sanEnfermedadesId); put("san_evento_enf_id", r.sanEventoEnfId)
             put("observaciones", r.observaciones); put("latitud", r.latitud); put("longitud", r.longitud)
-            put("cantidad", r.cantidad); put("equipo", r.equipo); put("sincronizado", 0)
+            put("cantidad", r.cantidad); put("equipo", r.equipo)
+            // Campos nuevos: putNull deja NULL real, que getPendientes manda como null
+            if (r.equipoAplicacionId == null) putNull("equipo_aplicacion_id") else put("equipo_aplicacion_id", r.equipoAplicacionId)
+            if (r.areaIntervenida == null) putNull("area_intervenida") else put("area_intervenida", r.areaIntervenida)
+            if (r.categoriaProductoId == null) putNull("categoria_producto_id") else put("categoria_producto_id", r.categoriaProductoId)
+            if (r.productoId == null) putNull("producto_id") else put("producto_id", r.productoId)
+            if (r.unidadAplicacionId == null) putNull("unidad_aplicacion_id") else put("unidad_aplicacion_id", r.unidadAplicacionId)
+            if (r.remision == null) putNull("remision") else put("remision", r.remision)
+            put("sincronizado", 0)
         })
     }
 
@@ -1349,6 +1404,42 @@ class DatabaseHelper(context: Context) :
         return result
     }
 
+    // ── Maestros del módulo de tratamientos (pantallas 7.1–8.2) ─────────────
+    fun getEquiposAplicacion(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_EQUIPOS_APL, arrayOf("id", "nombre"), null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getCategoriasProducto(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_CATEGORIAS_PROD, arrayOf("id", "nombre"), null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getUnidadesAplicacion(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_UNIDADES_APL, arrayOf("id", "nombre"), null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getProductos(): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_PRODUCTOS, arrayOf("id", "nombre"), null, null, null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
+    fun getProductosPorCategoria(categoriaId: Int): List<Pair<Int, String>> {
+        val result = mutableListOf<Pair<Int, String>>()
+        val cursor = readableDatabase.query(T_PRODUCTOS, arrayOf("id", "nombre"), "categoria_id = ?", arrayOf(categoriaId.toString()), null, null, "nombre")
+        cursor.use { while (it.moveToNext()) result.add(Pair(it.getInt(0), it.getString(1))) }
+        return result
+    }
+
     /** Umas de plantacion.nut_uma para el módulo de medidas vegetativas: (nut_uma_id, codigo). */
     fun getNutUmas(): List<Pair<Int, String>> {
         val result = mutableListOf<Pair<Int, String>>()
@@ -1409,28 +1500,6 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

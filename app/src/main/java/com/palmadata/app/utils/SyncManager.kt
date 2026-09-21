@@ -130,6 +130,20 @@ object SyncManager {
             }
         }
 
+        // Maestros de tratamientos (pantallas 7.1–8.2). El servidor ya filtra estado = 1.
+        descargar("Equipos aplicación", fallidos) {
+            db.reemplazarEquiposAplicacion(fetchLista(baseUrl, "equipos_aplicacion") { o -> Pair(o.getInt("equipo_aplicacion_id"), o.getString("equipo")) })
+        }
+        descargar("Categorías producto", fallidos) {
+            db.reemplazarCategoriasProducto(fetchLista(baseUrl, "categorias_producto") { o -> Pair(o.getInt("categoria_producto_id"), o.getString("categoria")) })
+        }
+        descargar("Productos", fallidos) {
+            db.reemplazarProductos(fetchLista(baseUrl, "productos") { o -> Triple(o.getInt("producto_id"), o.getString("producto"), o.optInt("categoria_producto_id", 0)) })
+        }
+        descargar("Unidades aplicación", fallidos) {
+            db.reemplazarUnidadesAplicacion(fetchLista(baseUrl, "unidades_aplicacion") { o -> Pair(o.getInt("unidad_aplicacion_id"), o.getString("unidad")) })
+        }
+
         descargar("Umas (nut)", fallidos) {
             db.reemplazarNutUmas(fetchLista(baseUrl, "nut_umas") { o -> Pair(o.getInt("nut_uma_id"), o.getString("codigo")) })
         }

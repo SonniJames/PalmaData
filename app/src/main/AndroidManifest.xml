@@ -99,6 +99,12 @@
         <activity android:name=".tratamientos.Trat6Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat7Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat8Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat7_1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat7_2Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat7_3Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat7_4Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat8_1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".tratamientos.Trat8_2Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.Trat9Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".tratamientos.TratOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Polinización -->

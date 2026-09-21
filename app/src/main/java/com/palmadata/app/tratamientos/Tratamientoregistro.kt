@@ -21,5 +21,12 @@ data class TratamientoRegistro(
     val usuario: Int = 1,
     val equipo: String,
     val lote: String? = null,
-    val loteAlias: String? = null
+    val loteAlias: String? = null,
+    // Pantallas 7.1–8.2 (sep 2026). Nullable: vacío u omitido se guarda NULL.
+    val equipoAplicacionId: Int? = null,
+    val areaIntervenida: Double? = null,
+    val categoriaProductoId: Int? = null,
+    val productoId: Int? = null,
+    val unidadAplicacionId: Int? = null,
+    val remision: Int? = null
 )
