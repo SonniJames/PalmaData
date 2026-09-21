@@ -13,18 +13,18 @@ import com.palmadata.app.utils.DatabaseHelper
 
 /**
  * Pantalla 3 — UMA. Lista de plantacion.nut_uma (código visible, nut_uma_id
- * es lo que viaja) con buscador. Tocar una uma la deja seleccionada; el botón
- * LÍNEA - PALMA exige una selección y pasa a la pantalla 4.
+ * es lo que viaja) con buscador. Igual que el resto de la app: tocar una uma
+ * avanza de inmediato a la pantalla 4. El botón LÍNEA - PALMA avanza SIN uma
+ * (nut_uma_id queda en 0, el DEFAULT de la tabla).
  *
  * Es también la pantalla a la que vuelve NUEVO REGISTRO (con CLEAR_TOP |
- * SINGLE_TOP): onNewIntent limpia la selección y el buscador para empezar en
- * blanco, con plantación, sector y lote ya cargados en los extras.
+ * SINGLE_TOP): onNewIntent limpia el buscador para mostrar la lista completa,
+ * con plantación, sector y lote ya cargados en los extras.
  */
 class MedVeg3Activity : AppCompatActivity() {
     private lateinit var binding: ActivityMedVeg3Binding
     private lateinit var adapter: WorkerAdapter
     private var umas = listOf<Pair<Int, String>>()
-    private var umaSeleccionada: Pair<Int, String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,11 +33,7 @@ class MedVeg3Activity : AppCompatActivity() {
 
         umas = DatabaseHelper.getInstance(this).getNutUmas()
 
-        adapter = WorkerAdapter { codigo ->
-            umaSeleccionada = umas.first { it.second == codigo }
-            binding.tvSeleccion.text = "UMA: $codigo"
-            binding.tvError.visibility = View.GONE
-        }
+        adapter = WorkerAdapter { codigo -> avanzar(umas.first { it.second == codigo }) }
         binding.rvUmas.layoutManager = LinearLayoutManager(this)
         binding.rvUmas.adapter = adapter
         adapter.submitList(umas.map { it.second })
@@ -52,27 +48,23 @@ class MedVeg3Activity : AppCompatActivity() {
             }
         })
 
-        binding.btnAccion.setOnClickListener {
-            val uma = umaSeleccionada
-            if (uma == null) {
-                binding.tvError.text = "Debe seleccionar una UMA"
-                binding.tvError.visibility = View.VISIBLE
-                return@setOnClickListener
+        // Sin tocar ninguna uma: avanza sin selección
+        binding.btnAccion.setOnClickListener { avanzar(null) }
+    }
+
+    private fun avanzar(uma: Pair<Int, String>?) {
+        startActivity(Intent(this, MedVeg4Activity::class.java).also {
+            intent.extras?.let { e -> it.putExtras(e) }
+            uma?.let { u ->
+                it.putExtra("uma_id", u.first)
+                it.putExtra("uma_codigo", u.second)
             }
-            startActivity(Intent(this, MedVeg4Activity::class.java).also {
-                intent.extras?.let { e -> it.putExtras(e) }
-                it.putExtra("uma_id", uma.first)
-                it.putExtra("uma_codigo", uma.second)
-            })
-        }
+        })
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        umaSeleccionada = null
-        binding.tvSeleccion.text = "Seleccione una uma"
-        binding.tvError.visibility = View.GONE
-        binding.etBuscador.setText("")
+        binding.etBuscador.setText("")   // el TextWatcher restaura la lista completa
     }
 }

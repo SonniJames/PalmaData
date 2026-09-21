@@ -18,11 +18,6 @@
     <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvUmas"
         android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
         android:paddingTop="4dp" android:clipToPadding="false" />
-    <TextView android:id="@+id/tvSeleccion" android:layout_width="match_parent" android:layout_height="44dp"
-        android:gravity="center" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/palma_green_dark"
-        android:background="@color/white" android:text="Seleccione una uma" />
-    <TextView android:id="@+id/tvError" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center" android:textSize="13sp" android:textColor="#D32F2F" android:visibility="gone" />
     <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="60dp"
         android:layout_margin="16dp" android:text="LÍNEA - PALMA" android:textSize="15sp"
         android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />

@@ -12,16 +12,15 @@ import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
 
 /**
- * Pantalla 7.4 — PRODUCTO. Lista con buscador; tocar una opción la deja seleccionada y el
- * botón pasa a la siguiente pantalla CON o SIN selección (el campo es
- * opcional: sin selección viaja sin extra y se guarda NULL).
+ * Pantalla 7.4 — PRODUCTO. Lista con buscador, igual que el resto del módulo: tocar una opción
+ * avanza de inmediato con esa selección. El botón de abajo avanza SIN
+ * selección (el campo es opcional: viaja sin extra y se guarda NULL).
  * Todos los extras acumulados se copian con putExtras.
  */
 class Trat7_4Activity : AppCompatActivity() {
     private lateinit var binding: ActivityTrat74Binding
     private lateinit var adapter: WorkerAdapter
     private var opciones = listOf<Pair<Int, String>>()
-    private var seleccion: Pair<Int, String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,10 +32,7 @@ class Trat7_4Activity : AppCompatActivity() {
         val categoriaId = intent.getIntExtra("categoria_producto_id", 0)
         opciones = if (categoriaId > 0) db.getProductosPorCategoria(categoriaId) else db.getProductos()
 
-        adapter = WorkerAdapter { nombre ->
-            seleccion = opciones.first { it.second == nombre }
-            binding.tvSeleccion.text = "Producto: $nombre"
-        }
+        adapter = WorkerAdapter { nombre -> avanzar(opciones.first { it.second == nombre }) }
         binding.rvProductos.layoutManager = LinearLayoutManager(this)
         binding.rvProductos.adapter = adapter
         adapter.submitList(opciones.map { it.second })
@@ -51,14 +47,17 @@ class Trat7_4Activity : AppCompatActivity() {
             }
         })
 
-        binding.btnAccion.setOnClickListener {
-            startActivity(Intent(this, Trat8Activity::class.java).also {
-                intent.extras?.let { e -> it.putExtras(e) }
-                seleccion?.let { s ->
-                    it.putExtra("producto_id", s.first)
-                    it.putExtra("producto_nombre", s.second)
-                }
-            })
-        }
+        // Sin tocar ninguna opción: avanza sin selección (queda NULL)
+        binding.btnAccion.setOnClickListener { avanzar(null) }
+    }
+
+    private fun avanzar(opcion: Pair<Int, String>?) {
+        startActivity(Intent(this, Trat8Activity::class.java).also {
+            intent.extras?.let { e -> it.putExtras(e) }
+            opcion?.let { o ->
+                it.putExtra("producto_id", o.first)
+                it.putExtra("producto_nombre", o.second)
+            }
+        })
     }
 }
