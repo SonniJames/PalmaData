@@ -26,6 +26,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.palmadata.app.R
 import com.palmadata.app.data.model.LoteMapa
 import com.palmadata.app.data.model.PalmaMapa
+import com.palmadata.app.data.model.TrampaMapa
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.LoteLocator
 import com.palmadata.app.utils.LotePoligono
@@ -67,10 +68,12 @@ class MapaLotesActivity : AppCompatActivity() {
     private lateinit var btnDescargarMapa: FloatingActionButton
     private lateinit var btnActualizarLotes: FloatingActionButton
     private lateinit var btnPalmas: FloatingActionButton
+    private lateinit var btnTrampas: FloatingActionButton
     private lateinit var tvPalmaInfo: TextView
 
     private val lotesOverlay = LotesOverlay()
     private val palmasOverlay = PalmasOverlay()
+    private val trampasOverlay = TrampasOverlay()
     private var lotesDibujados = false
 
     @Volatile private var poligonos: List<LotePoligono> = emptyList()
@@ -191,6 +194,7 @@ class MapaLotesActivity : AppCompatActivity() {
         btnDescargarMapa   = findViewById(R.id.btnDescargarMapa)
         btnActualizarLotes = findViewById(R.id.btnActualizarLotes)
         btnPalmas          = findViewById(R.id.btnPalmas)
+        btnTrampas         = findViewById(R.id.btnTrampas)
         tvPalmaInfo        = findViewById(R.id.tvPalmaInfo)
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
@@ -205,6 +209,7 @@ class MapaLotesActivity : AppCompatActivity() {
         btnDescargarMapa.setOnClickListener { confirmarDescargaMapaOffline() }
         btnActualizarLotes.setOnClickListener { recargarLotes() }
         btnPalmas.setOnClickListener { cargarPalmasDelLoteActual() }
+        btnTrampas.setOnClickListener { alternarTrampas() }
 
         // El overlay avisa qué palma se tocó; la pantalla solo actualiza el panel.
         palmasOverlay.onSeleccion = { palma -> mostrarPalma(palma) }
@@ -384,6 +389,41 @@ class MapaLotesActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this,
                     "${lista.size} palmas · toque una para ver su línea",
                     android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }.start()
+    }
+
+    /**
+     * Capa de trampas: un toque las pone (todas las de la plantación, son
+     * ~200), otro las quita. No dependen del lote actual.
+     */
+    private fun alternarTrampas() {
+        if (trampasOverlay.hayTrampas()) {
+            trampasOverlay.limpiar()
+            mapView.overlays.remove(trampasOverlay)
+            mapView.invalidate()
+            android.widget.Toast.makeText(this, "Trampas ocultas", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        Thread {
+            val lista = try {
+                DatabaseHelper.getInstance(this).getTrampasMapa()
+            } catch (e: Exception) { emptyList<TrampaMapa>() }
+            runOnUiThread {
+                if (lista.isEmpty()) {
+                    android.widget.Toast.makeText(this,
+                        "Sin trampas para mostrar. Sincronice para descargarlas.",
+                        android.widget.Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                trampasOverlay.setTrampas(lista)
+                // Encima de lotes y palmas, debajo de mi ubicación
+                if (!mapView.overlays.contains(trampasOverlay)) {
+                    val pos = if (mapView.overlays.contains(palmasOverlay)) 2 else 1
+                    mapView.overlays.add(minOf(pos, mapView.overlays.size), trampasOverlay)
+                }
+                mapView.invalidate()
+                android.widget.Toast.makeText(this, "${lista.size} trampas", android.widget.Toast.LENGTH_SHORT).show()
             }
         }.start()
     }

@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 29  // ← v29: tratamientos con varios productos (columna producto JSON)
+        const val DB_VERSION = 30  // ← v30: remision como texto (varias) + maestro trampas_mapa
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -63,6 +63,7 @@ class DatabaseHelper(context: Context) :
         const val T_CATEGORIAS_PROD     = "categorias_producto"
         const val T_PRODUCTOS           = "productos"
         const val T_UNIDADES_APL        = "unidades_aplicacion"
+        const val T_TRAMPAS_MAPA        = "trampas_mapa"
 
     }
 
@@ -80,6 +81,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_CATEGORIAS_PROD (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_PRODUCTOS (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, categoria_id INTEGER DEFAULT 0)")
         db.execSQL("CREATE TABLE $T_UNIDADES_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_TRAMPAS_MAPA (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL)")
         db.execSQL("""CREATE TABLE IF NOT EXISTS $T_MED_VEG (
                 id TEXT PRIMARY KEY,
                 fecha TEXT NOT NULL,
@@ -145,7 +147,7 @@ class DatabaseHelper(context: Context) :
             sincronizado INTEGER DEFAULT 0
         )""")  // ← v16: fertilizante TEXT "[1,2]" en T_TRACKS de onCreate
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, remision INTEGER, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, remision TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, id_movil TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -261,7 +263,7 @@ class DatabaseHelper(context: Context) :
             T_MAQUINARIA_MAESTRO, T_IMPLEMENTOS, T_LABORES_MAQUINARIA,
             T_UNIDADES_MAQUINARIA, T_UMAS, T_FERTILIZANTES,  // ← cambio 6: T_FERTILIZANTES en DROP
             T_LOTES_MAPA, T_SUPER_TIEMPOS_TIPO, T_PALMAS, T_NUT_UMAS,
-            T_EQUIPOS_APL, T_CATEGORIAS_PROD, T_PRODUCTOS, T_UNIDADES_APL
+            T_EQUIPOS_APL, T_CATEGORIAS_PROD, T_PRODUCTOS, T_UNIDADES_APL, T_TRAMPAS_MAPA
         ).forEach { db.execSQL("DROP TABLE IF EXISTS $it") }
 
         // ── Tablas de campo: migraciones seguras, NO se borran ────────────────
@@ -587,6 +589,20 @@ class DatabaseHelper(context: Context) :
             db.execSQL("ALTER TABLE ${T_TRATAMIENTOS}_v29 RENAME TO $T_TRATAMIENTOS")
         }
 
+        // v30: `remision` pasa de INTEGER a TEXT porque un registro puede llevar
+        // varias remisiones separadas por coma ("2015,8546,6987"). Con afinidad
+        // INTEGER, SQLite guardaría "2015" como número y el JSON lo mandaría
+        // como 2015 (no "2015"), y el servidor —que ahora espera texto— lo
+        // rechazaría. Se recrea la tabla con el tipo correcto; los pendientes
+        // se copian convirtiendo el valor viejo a texto.
+        if (oldVersion < 30) {
+            db.execSQL("""CREATE TABLE ${T_TRATAMIENTOS}_v30 (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, remision TEXT, sincronizado INTEGER DEFAULT 0)""")
+            db.execSQL("""INSERT INTO ${T_TRATAMIENTOS}_v30 (id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, remision, sincronizado)
+                          SELECT id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, CAST(remision AS TEXT), sincronizado FROM $T_TRATAMIENTOS""")
+            db.execSQL("DROP TABLE $T_TRATAMIENTOS")
+            db.execSQL("ALTER TABLE ${T_TRATAMIENTOS}_v30 RENAME TO $T_TRATAMIENTOS")
+        }
+
         // ── Recrear tablas maestras ───────────────────────────────────────────
         db.execSQL("CREATE TABLE $T_PLANTACIONES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_TRABAJADORES (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, supervisor INTEGER DEFAULT 0)")
@@ -601,6 +617,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("CREATE TABLE $T_CATEGORIAS_PROD (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_PRODUCTOS (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, categoria_id INTEGER DEFAULT 0)")
         db.execSQL("CREATE TABLE $T_UNIDADES_APL (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE $T_TRAMPAS_MAPA (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL)")
         db.execSQL("CREATE TABLE $T_INSECTOS (id INTEGER PRIMARY KEY, insecto TEXT NOT NULL)")
         db.execSQL("CREATE TABLE $T_ESTADOS_INSECTO (id INTEGER PRIMARY KEY, estado TEXT NOT NULL, insecto_id INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE $T_MAQUINARIA_MAESTRO (id INTEGER PRIMARY KEY, descripcion TEXT NOT NULL)")
@@ -702,6 +719,23 @@ class DatabaseHelper(context: Context) :
     fun reemplazarProductos(lista: List<Triple<Int, String, Int>>) {
         val db = writableDatabase; db.beginTransaction()
         try { db.delete(T_PRODUCTOS, null, null); lista.forEach { (id, nombre, catId) -> db.insert(T_PRODUCTOS, null, ContentValues().apply { put("id", id); put("nombre", nombre); put("categoria_id", catId) }) }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+    }
+
+    /** Trampas dentro del polígono de la plantación (vista trampas_mapa). Se reemplazan completas en cada sincronización: son ~200. */
+    fun reemplazarTrampasMapa(lista: List<com.palmadata.app.data.model.TrampaMapa>) {
+        val db = writableDatabase; db.beginTransaction()
+        try {
+            db.delete(T_TRAMPAS_MAPA, null, null)
+            lista.forEach { t -> db.insert(T_TRAMPAS_MAPA, null, ContentValues().apply { put("id", t.santrampaId); put("codigo", t.codigo); put("lat", t.lat); put("lon", t.lon) }) }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+
+    fun getTrampasMapa(): List<com.palmadata.app.data.model.TrampaMapa> {
+        val result = mutableListOf<com.palmadata.app.data.model.TrampaMapa>()
+        val cursor = readableDatabase.query(T_TRAMPAS_MAPA, arrayOf("id", "codigo", "lat", "lon"), null, null, null, null, "codigo")
+        cursor.use { while (it.moveToNext()) result.add(com.palmadata.app.data.model.TrampaMapa(it.getInt(0), it.getString(1), it.getDouble(2), it.getDouble(3))) }
+        return result
     }
 
     fun reemplazarNutUmas(lista: List<Pair<Int, String>>) {
@@ -1516,7 +1550,6 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
-
 
 
 

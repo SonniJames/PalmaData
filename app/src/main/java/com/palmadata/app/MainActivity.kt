@@ -190,6 +190,13 @@ class MainActivity : AppCompatActivity() {
         // "encerrado" navegando dentro del módulo sin pasar por aquí, el id
         // se mantiene hasta que regrese a esta pantalla.
         SessionManager.clearFormularioActivo(this)
+        mostrarIdEquipo()
+    }
+
+    /** Franja bajo el encabezado con el id de equipo ingresado en la configuración. */
+    private fun mostrarIdEquipo() {
+        val id = SessionManager.getIdEquipo(this).trim()
+        binding.tvIdEquipo.text = if (id.isEmpty()) "Equipo: sin id" else "Equipo: $id"
     }
 
     override fun onDestroy() {

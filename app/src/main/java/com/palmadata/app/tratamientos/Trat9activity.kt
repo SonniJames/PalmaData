@@ -74,7 +74,8 @@ class Trat9Activity : AppCompatActivity() {
             areaIntervenida     = (intent.getStringExtra("area_intervenida") ?: "").aDecimalCampo(),
             // Varios productos, cada uno con unidad y cantidad, como JSON (ver ProductosSeleccion)
             producto            = ProductosSeleccion.aBaseDeDatos(ProductosSeleccion.leer(intent)),
-            remision            = (intent.getStringExtra("remision") ?: "").toIntOrNull()
+            // Varias remisiones separadas por coma ("2015,8546"); vacío → NULL
+            remision            = (intent.getStringExtra("remision") ?: "").takeIf { it.isNotBlank() }
         )
         try {
             DatabaseHelper.getInstance(this).guardarTratamiento(registro)

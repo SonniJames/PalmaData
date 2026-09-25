@@ -27,5 +27,5 @@ data class TratamientoRegistro(
     val areaIntervenida: Double? = null,
     /** JSON: [{"producto_id","unidad_aplicacion_id","cantidad"}, ...] o null. Columna jsonb en Postgres. */
     val producto: String? = null,
-    val remision: Int? = null
+    val remision: String? = null      // una o varias, separadas por coma: "2015,8546,6987"
 )

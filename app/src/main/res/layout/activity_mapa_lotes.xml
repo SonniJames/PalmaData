@@ -55,6 +55,17 @@
             android:src="@android:drawable/ic_menu_compass"
             android:contentDescription="Mostrar palmas del lote actual"/>
 
+        <!-- Capa de trampas: todas las de la plantación; un toque las pone, otro las quita -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnTrampas"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="304dp"
+            android:src="@drawable/censo_trampas"
+            android:contentDescription="Mostrar u ocultar trampas"/>
+
     </FrameLayout>
 
     <!-- ===== PANEL LOTE ===== -->

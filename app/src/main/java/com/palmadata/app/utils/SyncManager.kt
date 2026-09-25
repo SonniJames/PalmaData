@@ -144,6 +144,20 @@ object SyncManager {
             db.reemplazarUnidadesAplicacion(fetchLista(baseUrl, "unidades_aplicacion") { o -> Pair(o.getInt("unidad_aplicacion_id"), o.getString("unidad")) })
         }
 
+        // Trampas para el mapa: solo las activas y dentro del polígono de la
+        // plantación (la vista trampas_mapa filtra en Postgres). Son ~200, así
+        // que se reemplazan completas en cada sincronización, sin huella.
+        descargar("Trampas mapa", fallidos) {
+            db.reemplazarTrampasMapa(fetchLista(baseUrl, "trampas_mapa") { o ->
+                com.palmadata.app.data.model.TrampaMapa(
+                    santrampaId = o.getInt("santrampaid"),
+                    codigo      = o.getString("codigo"),
+                    lat         = o.getDouble("lat"),
+                    lon         = o.getDouble("lon")
+                )
+            })
+        }
+
         descargar("Umas (nut)", fallidos) {
             db.reemplazarNutUmas(fetchLista(baseUrl, "nut_umas") { o -> Pair(o.getInt("nut_uma_id"), o.getString("codigo")) })
         }
