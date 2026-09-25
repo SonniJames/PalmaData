@@ -16,7 +16,7 @@ data class TratamientoRegistro(
     val observaciones: String,
     val latitud: Double,
     val longitud: Double,
-    val cantidad: Double,
+    val cantidad: Double? = null,     // desde sep 2026 viaja NULL: la cantidad va por producto en `producto`
     val sanEnfLecturaId: Int = 0,
     val usuario: Int = 1,
     val equipo: String,
@@ -25,8 +25,7 @@ data class TratamientoRegistro(
     // Pantallas 7.1–8.2 (sep 2026). Nullable: vacío u omitido se guarda NULL.
     val equipoAplicacionId: Int? = null,
     val areaIntervenida: Double? = null,
-    val categoriaProductoId: Int? = null,
-    val productoId: Int? = null,
-    val unidadAplicacionId: Int? = null,
+    /** JSON: [{"producto_id","unidad_aplicacion_id","cantidad"}, ...] o null. Columna jsonb en Postgres. */
+    val producto: String? = null,
     val remision: Int? = null
 )

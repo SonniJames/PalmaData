@@ -2,62 +2,91 @@ package com.palmadata.app.tratamientos
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.view.Gravity
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.palmadata.app.R
 import com.palmadata.app.databinding.ActivityTrat74Binding
-import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
+import org.json.JSONArray
 
 /**
- * Pantalla 7.4 — PRODUCTO. Lista con buscador, igual que el resto del módulo: tocar una opción
- * avanza de inmediato con esa selección. El botón de abajo avanza SIN
- * selección (el campo es opcional: viaja sin extra y se guarda NULL).
- * Todos los extras acumulados se copian con putExtras.
+ * Pantalla 7.4 — UNIDADES. Una fila por producto seleccionado en PRODUCTOS;
+ * el recuadro de la derecha abre la lista de unidades (unidad_aplicacion) y
+ * deja la elegida. Se puede avanzar con productos sin unidad (queda NULL).
  */
 class Trat7_4Activity : AppCompatActivity() {
     private lateinit var binding: ActivityTrat74Binding
-    private lateinit var adapter: WorkerAdapter
-    private var opciones = listOf<Pair<Int, String>>()
+    private lateinit var seleccion: JSONArray
+    private lateinit var unidades: List<Pair<Int, String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTrat74Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        val db = DatabaseHelper.getInstance(this)
-        // Filtrado por la categoría elegida en la pantalla anterior; si no se
-        // eligió ninguna (es opcional), se muestran todos los productos activos.
-        val categoriaId = intent.getIntExtra("categoria_producto_id", 0)
-        opciones = if (categoriaId > 0) db.getProductosPorCategoria(categoriaId) else db.getProductos()
 
-        adapter = WorkerAdapter { nombre -> avanzar(opciones.first { it.second == nombre }) }
-        binding.rvProductos.layoutManager = LinearLayoutManager(this)
-        binding.rvProductos.adapter = adapter
-        adapter.submitList(opciones.map { it.second })
-        if (opciones.isEmpty()) binding.tvNoProductos.visibility = View.VISIBLE
+        seleccion = ProductosSeleccion.leer(intent)
+        unidades  = DatabaseHelper.getInstance(this).getUnidadesAplicacion()
+        if (seleccion.length() == 0) binding.tvVacio.visibility = View.VISIBLE
 
-        binding.etBuscador.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                adapter.filter(s.toString())
-                binding.tvNoProductos.visibility = if (adapter.isEmpty()) View.VISIBLE else View.GONE
-            }
-        })
+        for (i in 0 until seleccion.length()) agregarFila(i)
 
-        // Sin tocar ninguna opción: avanza sin selección (queda NULL)
-        binding.btnAccion.setOnClickListener { avanzar(null) }
+        binding.btnAccion.setOnClickListener {
+            startActivity(Intent(this, Trat8Activity::class.java).also {
+                intent.extras?.let { e -> it.putExtras(e) }
+                it.putExtra(ProductosSeleccion.EXTRA, seleccion.toString())
+            })
+        }
     }
 
-    private fun avanzar(opcion: Pair<Int, String>?) {
-        startActivity(Intent(this, Trat8Activity::class.java).also {
-            intent.extras?.let { e -> it.putExtras(e) }
-            opcion?.let { o ->
-                it.putExtra("producto_id", o.first)
-                it.putExtra("producto_nombre", o.second)
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun agregarFila(i: Int) {
+        val p = seleccion.getJSONObject(i)
+        val blanco = ContextCompat.getColor(this, R.color.white)
+        val texto  = ContextCompat.getColor(this, R.color.text_primary)
+        val verde  = ContextCompat.getColor(this, R.color.palma_green_dark)
+
+        val recuadro = TextView(this).apply {
+            text = if (p.has("unidad_nombre")) p.getString("unidad_nombre") else "(Unidad)"
+            textSize = 14f
+            setTextColor(verde)
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.color.grid_background)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener {
+                if (unidades.isEmpty()) return@setOnClickListener
+                MaterialAlertDialogBuilder(this@Trat7_4Activity)
+                    .setTitle(p.getString("producto_nombre"))
+                    .setItems(unidades.map { it.second }.toTypedArray()) { d, pos ->
+                        p.put("unidad_aplicacion_id", unidades[pos].first)
+                        p.put("unidad_nombre", unidades[pos].second)
+                        text = unidades[pos].second
+                        d.dismiss()
+                    }
+                    .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
+                    .show()
             }
-        })
+        }
+        val fila = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(blanco)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(dp(12), dp(4), dp(12), 0)
+            }
+            addView(TextView(this@Trat7_4Activity).apply {
+                text = p.getString("producto_nombre"); textSize = 15f; setTextColor(texto)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.4f)
+            })
+            addView(recuadro)
+        }
+        binding.contenedor.addView(fila)
     }
 }

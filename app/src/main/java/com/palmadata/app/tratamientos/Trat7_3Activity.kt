@@ -2,59 +2,111 @@ package com.palmadata.app.tratamientos
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.view.Gravity
 import android.view.View
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.content.ContextCompat
+import com.palmadata.app.R
 import com.palmadata.app.databinding.ActivityTrat73Binding
-import com.palmadata.app.ui.WorkerAdapter
 import com.palmadata.app.utils.DatabaseHelper
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
- * Pantalla 7.3 — CATEGORÍA DE PRODUCTO. Lista con buscador, igual que el resto del módulo: tocar una opción
- * avanza de inmediato con esa selección. El botón de abajo avanza SIN
- * selección (el campo es opcional: viaja sin extra y se guarda NULL).
- * Todos los extras acumulados se copian con putExtras.
+ * Pantalla 7.3 — PRODUCTOS. Categorías plegadas ("+ Nombre"); al tocar una se
+ * despliegan sus productos, cada uno con casilla. Se pueden marcar varios de
+ * varias categorías. El botón UNIDADES avanza con los marcados (en el orden
+ * en que aparecen en pantalla) o sin ninguno.
+ *
+ * La lista se arma en código (sin adaptador): son unas decenas de filas y así
+ * el estado de cada casilla vive en la propia vista.
  */
 class Trat7_3Activity : AppCompatActivity() {
     private lateinit var binding: ActivityTrat73Binding
-    private lateinit var adapter: WorkerAdapter
-    private var opciones = listOf<Pair<Int, String>>()
+    /** producto_id → (nombre, casilla), en orden de aparición */
+    private val casillas = LinkedHashMap<Int, Pair<String, CheckBox>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTrat73Binding.inflate(layoutInflater)
         setContentView(binding.root)
+
         val db = DatabaseHelper.getInstance(this)
-        opciones = db.getCategoriasProducto()
+        val grupos = db.getCategoriasProducto().map { it to db.getProductosPorCategoria(it.first) }
+            .filter { it.second.isNotEmpty() }
+            .toMutableList()
+        // Productos sin categoría (categoria_producto_id nulo en el servidor)
+        val sinCategoria = db.getProductosPorCategoria(0)
+        if (sinCategoria.isNotEmpty()) grupos.add(Pair(0, "SIN CATEGORÍA") to sinCategoria)
 
-        adapter = WorkerAdapter { nombre -> avanzar(opciones.first { it.second == nombre }) }
-        binding.rvCategorias.layoutManager = LinearLayoutManager(this)
-        binding.rvCategorias.adapter = adapter
-        adapter.submitList(opciones.map { it.second })
-        if (opciones.isEmpty()) binding.tvNoCategorias.visibility = View.VISIBLE
+        if (grupos.isEmpty()) binding.tvVacio.visibility = View.VISIBLE
+        grupos.forEach { (categoria, productos) -> agregarGrupo(categoria.second, productos) }
 
-        binding.etBuscador.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                adapter.filter(s.toString())
-                binding.tvNoCategorias.visibility = if (adapter.isEmpty()) View.VISIBLE else View.GONE
+        binding.btnAccion.setOnClickListener {
+            val sel = JSONArray()
+            casillas.forEach { (id, par) ->
+                if (par.second.isChecked) sel.put(JSONObject().put("producto_id", id).put("producto_nombre", par.first))
             }
-        })
-
-        // Sin tocar ninguna opción: avanza sin selección (queda NULL)
-        binding.btnAccion.setOnClickListener { avanzar(null) }
+            startActivity(Intent(this, Trat7_4Activity::class.java).also {
+                intent.extras?.let { e -> it.putExtras(e) }
+                it.putExtra(ProductosSeleccion.EXTRA, sel.toString())
+            })
+        }
     }
 
-    private fun avanzar(opcion: Pair<Int, String>?) {
-        startActivity(Intent(this, Trat7_4Activity::class.java).also {
-            intent.extras?.let { e -> it.putExtras(e) }
-            opcion?.let { o ->
-                it.putExtra("categoria_producto_id", o.first)
-                it.putExtra("categoria_producto_nombre", o.second)
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun agregarGrupo(nombre: String, productos: List<Pair<Int, String>>) {
+        val verde  = ContextCompat.getColor(this, R.color.palma_green_dark)
+        val blanco = ContextCompat.getColor(this, R.color.white)
+        val texto  = ContextCompat.getColor(this, R.color.text_primary)
+
+        val hijos = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        val cabecera = TextView(this).apply {
+            text = "+  $nombre"
+            textSize = 16f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(blanco)
+            setBackgroundColor(verde)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(dp(12), dp(6), dp(12), 0)
             }
-        })
+            setOnClickListener {
+                val abrir = hijos.visibility != View.VISIBLE
+                hijos.visibility = if (abrir) View.VISIBLE else View.GONE
+                text = (if (abrir) "−  " else "+  ") + nombre
+            }
+        }
+        productos.forEach { (id, nombreProducto) ->
+            val casilla = CheckBox(this)
+            val fila = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setBackgroundColor(blanco)
+                setPadding(dp(28), dp(6), dp(12), dp(6))
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(dp(12), dp(2), dp(12), 0)
+                }
+                addView(TextView(this@Trat7_3Activity).apply {
+                    text = nombreProducto; textSize = 15f; setTextColor(texto)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                addView(casilla)
+                // Tocar el nombre también marca/desmarca
+                setOnClickListener { casilla.isChecked = !casilla.isChecked }
+            }
+            hijos.addView(fila)
+            casillas[id] = Pair(nombreProducto, casilla)
+        }
+        binding.contenedor.addView(cabecera)
+        binding.contenedor.addView(hijos)
     }
 }

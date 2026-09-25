@@ -2,39 +2,90 @@ package com.palmadata.app.tratamientos
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.palmadata.app.R
 import com.palmadata.app.databinding.ActivityTrat8Binding
+import com.palmadata.app.utils.aDecimalCampo
+import org.json.JSONArray
 
+/**
+ * Pantalla 8 — CANTIDADES. Una fila por producto seleccionado (con su unidad
+ * debajo del nombre, si la tiene); el recuadro abre el teclado numérico del
+ * sistema, solo dígitos y punto. Vacío = cantidad NULL para ese producto.
+ *
+ * Reemplaza al antiguo teclado de CANTIDAD (un solo valor por registro).
+ */
 class Trat8Activity : AppCompatActivity() {
     private lateinit var binding: ActivityTrat8Binding
-    private var valorActual = ""
+    private lateinit var seleccion: JSONArray
+    private val campos = mutableListOf<EditText>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTrat8Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        setupTeclado()
+
+        seleccion = ProductosSeleccion.leer(intent)
+        if (seleccion.length() == 0) binding.tvVacio.visibility = View.VISIBLE
+        for (i in 0 until seleccion.length()) agregarFila(i)
+
         binding.btnAccion.setOnClickListener {
-            // Siguiente: 8.1 UNIDAD DE MEDIDA (antes iba directo a observaciones).
-            // Los extras se copian completos: ya son demasiados para listarlos.
-            val i = Intent(this, Trat8_1Activity::class.java)
-            intent.extras?.let { e -> i.putExtras(e) }
-            i.putExtra("cantidad", valorActual)
-            startActivity(i)
-        }
-    }
-    private fun setupTeclado() {
-        val botones = mapOf(binding.btn0 to "0", binding.btn1 to "1", binding.btn2 to "2", binding.btn3 to "3", binding.btn4 to "4", binding.btn5 to "5", binding.btn6 to "6", binding.btn7 to "7", binding.btn8 to "8", binding.btn9 to "9")
-        botones.forEach { (btn, v) -> btn.setOnClickListener { valorActual += v; actualizarDisplay() } }
-        binding.btnPunto.setOnClickListener {
-            // Solo un punto por número; si está vacío, arranca con "0."
-            if (!valorActual.contains(".")) {
-                valorActual = if (valorActual.isEmpty()) "0." else valorActual + "."
-                actualizarDisplay()
+            for (i in 0 until seleccion.length()) {
+                val v = campos[i].text.toString().aDecimalCampo()
+                if (v == null) seleccion.getJSONObject(i).remove("cantidad")
+                else seleccion.getJSONObject(i).put("cantidad", v)
             }
+            startActivity(Intent(this, Trat8_2Activity::class.java).also {
+                intent.extras?.let { e -> it.putExtras(e) }
+                it.putExtra(ProductosSeleccion.EXTRA, seleccion.toString())
+            })
         }
-        binding.btnC.setOnClickListener { valorActual = ""; actualizarDisplay() }
-        binding.btnDel.setOnClickListener { if (valorActual.isNotEmpty()) { valorActual = valorActual.dropLast(1); actualizarDisplay() } }
     }
-    private fun actualizarDisplay() { binding.tvDisplay.text = valorActual }
+
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun agregarFila(i: Int) {
+        val p = seleccion.getJSONObject(i)
+        val blanco = ContextCompat.getColor(this, R.color.white)
+        val texto  = ContextCompat.getColor(this, R.color.text_primary)
+        val gris   = ContextCompat.getColor(this, R.color.text_secondary)
+
+        val nombres = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.4f)
+            addView(TextView(this@Trat8Activity).apply { text = p.getString("producto_nombre"); textSize = 15f; setTextColor(texto) })
+            if (p.has("unidad_nombre")) addView(TextView(this@Trat8Activity).apply { text = p.getString("unidad_nombre"); textSize = 12f; setTextColor(gris) })
+        }
+        val campo = EditText(this).apply {
+            hint = "0.0"
+            textSize = 16f
+            // Solo dígitos y punto: la coma del teclado no escribe nada
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789.")
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.color.grid_background)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            if (p.has("cantidad")) setText(p.getDouble("cantidad").toString())
+        }
+        campos.add(campo)
+        binding.contenedor.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(blanco)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(dp(12), dp(4), dp(12), 0)
+            }
+            addView(nombres)
+            addView(campo)
+        })
+    }
 }

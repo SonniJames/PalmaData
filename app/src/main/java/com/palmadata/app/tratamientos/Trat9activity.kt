@@ -65,15 +65,15 @@ class Trat9Activity : AppCompatActivity() {
             observaciones     = binding.etObservaciones.text.toString(),
             latitud           = SessionManager.getLastLatitude(this),
             longitud          = SessionManager.getLastLongitude(this),
-            cantidad          = cantidad.aDecimalCampo() ?: 0.0,
+            // La cantidad ya no es un valor por registro: viaja dentro de `producto`.
+            cantidad          = null,
             equipo            = SessionManager.getEquipoId(this),
             // Campos nuevos (7.1–8.2). Todos opcionales: sin extra o vacío → NULL.
             // -1 marca "no vino el extra" porque 0 podría ser un id válido en teoría.
             equipoAplicacionId  = intent.getIntExtra("equipo_aplicacion_id", -1).takeIf { it > 0 },
             areaIntervenida     = (intent.getStringExtra("area_intervenida") ?: "").aDecimalCampo(),
-            categoriaProductoId = intent.getIntExtra("categoria_producto_id", -1).takeIf { it > 0 },
-            productoId          = intent.getIntExtra("producto_id", -1).takeIf { it > 0 },
-            unidadAplicacionId  = intent.getIntExtra("unidad_aplicacion_id", -1).takeIf { it > 0 },
+            // Varios productos, cada uno con unidad y cantidad, como JSON (ver ProductosSeleccion)
+            producto            = ProductosSeleccion.aBaseDeDatos(ProductosSeleccion.leer(intent)),
             remision            = (intent.getStringExtra("remision") ?: "").toIntOrNull()
         )
         try {

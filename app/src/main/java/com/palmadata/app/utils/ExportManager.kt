@@ -113,7 +113,7 @@ object ExportManager {
             try {
                 val filas = m.pendientes()
                 if (filas.isEmpty()) continue
-                val nombre = nombreArchivo(m.tabla, fecha, secuencia)
+                val nombre = nombreArchivo(context, m.tabla, fecha, secuencia)
                 val columnas = columnasDe(filas, m.excluir)
                 escribirArchivo(context, nombre) { XlsxWriter.escribir(it, m.tabla, columnas, filas) }
                 // Archivo confirmado en disco: ahora sí se borran los registros
@@ -134,7 +134,7 @@ object ExportManager {
         try {
             val tracks = db.getTracksPendientes()
             if (tracks.isNotEmpty()) {
-                val nombre = nombreArchivo("tracksmoviltemp", fecha, secuencia)
+                val nombre = nombreArchivo(context, "tracksmoviltemp", fecha, secuencia)
                 val columnas = columnasDe(tracks, setOf("id"))
                 escribirArchivo(context, nombre) { XlsxWriter.escribir(it, "tracksmoviltemp", columnas, tracks) }
                 val ids = tracks.map { (it["id"] as? Long) ?: 0L }
@@ -177,8 +177,18 @@ object ExportManager {
 
     // ── Nombres y columnas ───────────────────────────────────────────────────
 
-    private fun nombreArchivo(tabla: String, fecha: String, secuencia: Int) =
-        "${tabla}_${fecha}_$secuencia.xlsx"
+    /**
+     * <tabla>_<yyyyMMdd>_<n>_<equipo>.xlsx. El equipo es el id asignado en la
+     * pantalla de configuración (junto con IP y puerto), saneado para nombre
+     * de archivo. Así dos equipos que descargan el mismo día no chocan y el
+     * pipeline sabe de cuál salió cada archivo.
+     */
+    private fun nombreArchivo(context: Context, tabla: String, fecha: String, secuencia: Int): String {
+        val equipo = SessionManager.getIdEquipo(context).trim()
+            .replace(Regex("[^A-Za-z0-9_-]"), "-")
+            .ifEmpty { "sin_equipo" }
+        return "${tabla}_${fecha}_${secuencia}_$equipo.xlsx"
+    }
 
     /**
      * Columnas en el orden del mapa (= orden de las columnas en SQLite, que es

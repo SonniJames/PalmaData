@@ -35,6 +35,6 @@
             <Button android:id="@+id/btn0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_margin="4dp" android:text="0" android:textSize="22sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="2"/>
         </LinearLayout>
-        <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:text="CATEGORÍA DE PRODUCTO" android:textSize="14sp" android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+        <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:text="PRODUCTOS" android:textSize="14sp" android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
     </LinearLayout>
 </LinearLayout>
