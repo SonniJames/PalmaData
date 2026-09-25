@@ -72,10 +72,9 @@ class Trat9Activity : AppCompatActivity() {
             // -1 marca "no vino el extra" porque 0 podría ser un id válido en teoría.
             equipoAplicacionId  = intent.getIntExtra("equipo_aplicacion_id", -1).takeIf { it > 0 },
             areaIntervenida     = (intent.getStringExtra("area_intervenida") ?: "").aDecimalCampo(),
-            // Varios productos, cada uno con unidad y cantidad, como JSON (ver ProductosSeleccion)
-            producto            = ProductosSeleccion.aBaseDeDatos(ProductosSeleccion.leer(intent)),
-            // Varias remisiones separadas por coma ("2015,8546"); vacío → NULL
-            remision            = (intent.getStringExtra("remision") ?: "").takeIf { it.isNotBlank() }
+            // Productos, cada uno con su unidad, cantidad y remisión, como JSON
+            // (ver ProductosSeleccion). Ya no hay columna `remision` suelta.
+            producto            = ProductosSeleccion.aBaseDeDatos(ProductosSeleccion.leer(intent))
         )
         try {
             DatabaseHelper.getInstance(this).guardarTratamiento(registro)

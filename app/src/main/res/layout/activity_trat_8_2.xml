@@ -10,17 +10,12 @@
         <ImageView android:layout_width="0dp" android:layout_height="26dp" android:layout_weight="1" android:src="@drawable/texto_palma_data" android:scaleType="fitStart" android:adjustViewBounds="true" android:contentDescription="PalmaData" />
     </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="48dp" android:text="REMISIÓN" android:gravity="center" android:textSize="16sp" android:textColor="@color/text_secondary" android:background="@color/white" android:elevation="2dp" />
-    <Button android:id="@+id/btnAgregar" android:layout_width="match_parent" android:layout_height="52dp"
-        android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:layout_marginTop="12dp"
-        android:text="+  Agregar remisión" android:textSize="15sp" android:textStyle="bold"
-        android:textColor="@color/palma_green_dark" android:backgroundTint="@color/white"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
     <TextView android:id="@+id/tvVacio" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Sin remisiones (opcional)" android:gravity="center" android:textSize="14sp"
-        android:textColor="@color/text_secondary" android:padding="16dp" />
+        android:text="No se seleccionaron productos." android:gravity="center" android:textSize="14sp"
+        android:textColor="@color/text_secondary" android:padding="16dp" android:visibility="gone" />
     <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <LinearLayout android:id="@+id/contenedor" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:paddingTop="4dp" android:paddingBottom="8dp" />
+            android:orientation="vertical" android:paddingTop="8dp" android:paddingBottom="8dp" />
     </ScrollView>
     <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="60dp"
         android:layout_margin="16dp" android:text="OBSERVACIONES" android:textSize="15sp"

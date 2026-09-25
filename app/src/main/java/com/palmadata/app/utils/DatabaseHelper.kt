@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 30  // ← v30: remision como texto (varias) + maestro trampas_mapa
+        const val DB_VERSION = 31  // ← v31: la remisión pasa a ser una por producto, dentro del JSON `producto`
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -147,7 +147,7 @@ class DatabaseHelper(context: Context) :
             sincronizado INTEGER DEFAULT 0
         )""")  // ← v16: fertilizante TEXT "[1,2]" en T_TRACKS de onCreate
         db.execSQL("""CREATE TABLE $T_CENSO_ENF (id TEXT PRIMARY KEY, censo INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, evaluador INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, observaciones TEXT, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, remision TEXT, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_TRATAMIENTOS (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLINIZACION (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, polinizador INTEGER NOT NULL, aplicacion1 INTEGER DEFAULT 0, aplicacion2 INTEGER DEFAULT 0, aplicacion3 INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_POLEN (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, inicial REAL DEFAULT 0, final REAL DEFAULT 0, trabajador INTEGER NOT NULL, id_movil TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
@@ -601,6 +601,20 @@ class DatabaseHelper(context: Context) :
                           SELECT id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, CAST(remision AS TEXT), sincronizado FROM $T_TRATAMIENTOS""")
             db.execSQL("DROP TABLE $T_TRATAMIENTOS")
             db.execSQL("ALTER TABLE ${T_TRATAMIENTOS}_v30 RENAME TO $T_TRATAMIENTOS")
+        }
+
+        // v31: la remisión pasa a ser UNA POR PRODUCTO y vive dentro del JSON
+        // de `producto`, así que la columna suelta desaparece. Se recrea la
+        // tabla sin ella; los pendientes se conservan. Un pendiente capturado
+        // antes de este cambio pierde su remisión: nunca llegó a subir y en el
+        // esquema nuevo no hay dónde ponerla sin adivinar a qué producto
+        // correspondía.
+        if (oldVersion < 31) {
+            db.execSQL("""CREATE TABLE ${T_TRATAMIENTOS}_v31 (id TEXT PRIMARY KEY, san_evento_trat_id INTEGER NOT NULL, aux_trabajador_id INTEGER NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, cat_palma_id REAL DEFAULT 0, cat_plantacion_id INTEGER DEFAULT 0, linea INTEGER NOT NULL, palma INTEGER NOT NULL, san_enfermedades_id INTEGER NOT NULL, san_evento_enf_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, cantidad REAL, equipo TEXT NOT NULL, equipo_aplicacion_id INTEGER, area_intervenida REAL, producto TEXT, sincronizado INTEGER DEFAULT 0)""")
+            db.execSQL("""INSERT INTO ${T_TRATAMIENTOS}_v31 (id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, sincronizado)
+                          SELECT id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, sincronizado FROM $T_TRATAMIENTOS""")
+            db.execSQL("DROP TABLE $T_TRATAMIENTOS")
+            db.execSQL("ALTER TABLE ${T_TRATAMIENTOS}_v31 RENAME TO $T_TRATAMIENTOS")
         }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
@@ -1057,7 +1071,6 @@ class DatabaseHelper(context: Context) :
             if (r.equipoAplicacionId == null) putNull("equipo_aplicacion_id") else put("equipo_aplicacion_id", r.equipoAplicacionId)
             if (r.areaIntervenida == null) putNull("area_intervenida") else put("area_intervenida", r.areaIntervenida)
             if (r.producto == null) putNull("producto") else put("producto", r.producto)   // JSON de productos
-            if (r.remision == null) putNull("remision") else put("remision", r.remision)
             put("sincronizado", 0)
         })
     }

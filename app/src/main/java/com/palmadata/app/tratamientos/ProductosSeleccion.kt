@@ -12,10 +12,15 @@ import org.json.JSONObject
  *   PRODUCTOS   producto_id, producto_nombre
  *   UNIDADES    + unidad_aplicacion_id, unidad_nombre   (pueden faltar)
  *   CANTIDADES  + cantidad                              (puede faltar)
+ *   REMISIÓN    + remision                              (puede faltar)
  *
- * Al guardar, [aBaseDeDatos] deja SOLO los ids y la cantidad, que es lo que
+ * Al guardar, [aBaseDeDatos] deja SOLO los ids, la cantidad y la remisión,
+ * que es lo que
  * se escribe en la columna jsonb `producto` de san_enf_tratamiento:
- *   [{"producto_id":12,"unidad_aplicacion_id":3,"cantidad":1.5}, ...]
+ *   [{"producto_id":12,"unidad_aplicacion_id":3,"cantidad":1.5,"remision":2015}, ...]
+ *
+ * La remisión es POR PRODUCTO, no una sola por registro: en una misma
+ * aplicación cada producto pudo llegar en una remisión distinta.
  * Los nombres solo sirven para mostrar; nunca van a la base.
  */
 object ProductosSeleccion {
@@ -34,6 +39,7 @@ object ProductosSeleccion {
                 put("producto_id", p.getInt("producto_id"))
                 put("unidad_aplicacion_id", if (p.has("unidad_aplicacion_id")) p.getInt("unidad_aplicacion_id") else JSONObject.NULL)
                 put("cantidad", if (p.has("cantidad")) p.getDouble("cantidad") else JSONObject.NULL)
+                put("remision", if (p.has("remision")) p.getLong("remision") else JSONObject.NULL)
             })
         }
         return salida.toString()

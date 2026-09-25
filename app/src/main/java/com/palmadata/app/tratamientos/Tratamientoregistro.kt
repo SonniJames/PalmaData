@@ -25,7 +25,11 @@ data class TratamientoRegistro(
     // Pantallas 7.1–8.2 (sep 2026). Nullable: vacío u omitido se guarda NULL.
     val equipoAplicacionId: Int? = null,
     val areaIntervenida: Double? = null,
-    /** JSON: [{"producto_id","unidad_aplicacion_id","cantidad"}, ...] o null. Columna jsonb en Postgres. */
-    val producto: String? = null,
-    val remision: String? = null      // una o varias, separadas por coma: "2015,8546,6987"
+    /**
+     * JSON con los productos del tratamiento, cada uno con su unidad, cantidad
+     * y remisión: [{"producto_id","unidad_aplicacion_id","cantidad","remision"}, ...]
+     * o null. Va a la columna jsonb `producto` de Postgres. La remisión es por
+     * producto: la columna suelta `remision` ya no existe.
+     */
+    val producto: String? = null
 )
