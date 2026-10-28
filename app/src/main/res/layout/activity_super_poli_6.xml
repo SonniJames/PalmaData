@@ -38,6 +38,31 @@
                 <Button android:id="@+id/btnMas3" android:layout_width="44dp" android:layout_height="44dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
             </LinearLayout>
 
+            <!-- DEJADAS: mismo diseño que POLINIZADAS. Alimenta flor_dejada_aplicacion1/2/3 -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="DEJADAS" android:gravity="center" android:textSize="14sp"
+                android:textStyle="bold" android:textColor="@color/palma_green_dark"
+                android:paddingTop="16dp" android:paddingBottom="12dp" />
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="60dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="Primera" android:textSize="14sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvValorDejada1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
+                <Button android:id="@+id/btnMenosDejada1" android:layout_width="44dp" android:layout_height="44dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/btnMasDejada1" android:layout_width="44dp" android:layout_height="44dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="60dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="Segunda" android:textSize="14sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvValorDejada2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
+                <Button android:id="@+id/btnMenosDejada2" android:layout_width="44dp" android:layout_height="44dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/btnMasDejada2" android:layout_width="44dp" android:layout_height="44dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="60dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="Tercera" android:textSize="14sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvValorDejada3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
+                <Button android:id="@+id/btnMenosDejada3" android:layout_width="44dp" android:layout_height="44dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/btnMasDejada3" android:layout_width="44dp" android:layout_height="44dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+            </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 

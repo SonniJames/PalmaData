@@ -6,9 +6,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.palmadata.app.databinding.ActivitySuperPoli6Binding
 
 /**
- * Pantalla 6 — DEJADAS/POLINIZADAS. Tres contadores (Primera, Segunda,
- * Tercera) que alimentan flor_polini_aplicacion1/2/3. Compartida por los
- * dos flujos: el extra "modo" solo pasa de largo hacia las siguientes.
+ * Pantalla 6 — DEJADAS/POLINIZADAS. Dos bloques de tres contadores
+ * (Primera, Segunda, Tercera):
+ *   POLINIZADAS → flor_polini_aplicacion1/2/3 (extras primera/segunda/tercera)
+ *   DEJADAS     → flor_dejada_aplicacion1/2/3 (extras dejada_primera/segunda/tercera)
+ * Compartida por los dos flujos: el extra "modo" solo pasa de largo hacia
+ * las siguientes.
  */
 class SuperPoli6Activity : AppCompatActivity() {
     private lateinit var binding: ActivitySuperPoli6Binding
@@ -16,6 +19,10 @@ class SuperPoli6Activity : AppCompatActivity() {
     private var primera = 0
     private var segunda = 0
     private var tercera = 0
+
+    private var dejadaPrimera = 0
+    private var dejadaSegunda = 0
+    private var dejadaTercera = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +58,9 @@ class SuperPoli6Activity : AppCompatActivity() {
                 it.putExtra("primera", primera)
                 it.putExtra("segunda", segunda)
                 it.putExtra("tercera", tercera)
+                it.putExtra("dejada_primera", dejadaPrimera)
+                it.putExtra("dejada_segunda", dejadaSegunda)
+                it.putExtra("dejada_tercera", dejadaTercera)
                 it.putExtra("paso", SuperPoliValorActivity.PASO_HOJA_SIN_MARCAR)
             })
         }
@@ -63,11 +73,21 @@ class SuperPoli6Activity : AppCompatActivity() {
         binding.btnMenos2.setOnClickListener { if (segunda > 0) { segunda--; actualizarDisplays() } }
         binding.btnMas3.setOnClickListener   { tercera++; actualizarDisplays() }
         binding.btnMenos3.setOnClickListener { if (tercera > 0) { tercera--; actualizarDisplays() } }
+
+        binding.btnMasDejada1.setOnClickListener   { dejadaPrimera++; actualizarDisplays() }
+        binding.btnMenosDejada1.setOnClickListener { if (dejadaPrimera > 0) { dejadaPrimera--; actualizarDisplays() } }
+        binding.btnMasDejada2.setOnClickListener   { dejadaSegunda++; actualizarDisplays() }
+        binding.btnMenosDejada2.setOnClickListener { if (dejadaSegunda > 0) { dejadaSegunda--; actualizarDisplays() } }
+        binding.btnMasDejada3.setOnClickListener   { dejadaTercera++; actualizarDisplays() }
+        binding.btnMenosDejada3.setOnClickListener { if (dejadaTercera > 0) { dejadaTercera--; actualizarDisplays() } }
     }
 
     private fun actualizarDisplays() {
         binding.tvValor1.text = primera.toString()
         binding.tvValor2.text = segunda.toString()
         binding.tvValor3.text = tercera.toString()
+        binding.tvValorDejada1.text = dejadaPrimera.toString()
+        binding.tvValorDejada2.text = dejadaSegunda.toString()
+        binding.tvValorDejada3.text = dejadaTercera.toString()
     }
 }

@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 31  // ← v31: la remisión pasa a ser una por producto, dentro del JSON `producto`
+        const val DB_VERSION = 32  // ← v32: super_poli agrega flor_dejada_aplicacion1/2/3 (DEJADAS, pantalla 6)
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -220,6 +220,9 @@ class DatabaseHelper(context: Context) :
             observaciones TEXT,
             latitud REAL NOT NULL,
             longitud REAL NOT NULL,
+            flor_dejada_aplicacion1 INTEGER DEFAULT 0,
+            flor_dejada_aplicacion2 INTEGER DEFAULT 0,
+            flor_dejada_aplicacion3 INTEGER DEFAULT 0,
             sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_SUPER_TIEMPOS (
             id_unico TEXT PRIMARY KEY,
@@ -615,6 +618,26 @@ class DatabaseHelper(context: Context) :
                           SELECT id, san_evento_trat_id, aux_trabajador_id, fecha, hora, cat_lote_id, cat_palma_id, cat_plantacion_id, linea, palma, san_enfermedades_id, san_evento_enf_id, observaciones, latitud, longitud, cantidad, equipo, equipo_aplicacion_id, area_intervenida, producto, sincronizado FROM $T_TRATAMIENTOS""")
             db.execSQL("DROP TABLE $T_TRATAMIENTOS")
             db.execSQL("ALTER TABLE ${T_TRATAMIENTOS}_v31 RENAME TO $T_TRATAMIENTOS")
+        }
+
+        // v32: super_poli — contadores DEJADAS (Primera/Segunda/Tercera) de la
+        // pantalla 6, destino flor_dejada_aplicacion1/2/3. Son columnas nuevas,
+        // así que basta con ALTER: los pendientes se conservan y quedan en 0,
+        // que es lo que el endpoint grababa fijo hasta ahora. ALTER las agrega
+        // al final (después de `sincronizado`); en onCreate van justo antes de
+        // `sincronizado`, así que el orden de columnas del Excel exportado
+        // (que omite `sincronizado`) es idéntico en equipos nuevos y migrados.
+        // El CREATE IF NOT EXISTS de la v19 conserva el esquema viejo a
+        // propósito: si crea la tabla, este ALTER le agrega las columnas.
+        // try/catch igual que en v23/v26: si la columna ya existe, se ignora.
+        if (oldVersion < 32) {
+            for (col in listOf(
+                "flor_dejada_aplicacion1 INTEGER DEFAULT 0",
+                "flor_dejada_aplicacion2 INTEGER DEFAULT 0",
+                "flor_dejada_aplicacion3 INTEGER DEFAULT 0"
+            )) {
+                try { db.execSQL("ALTER TABLE $T_SUPER_POLI ADD COLUMN $col") } catch (e: Exception) { }
+            }
         }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
@@ -1239,6 +1262,9 @@ class DatabaseHelper(context: Context) :
             put("flor_polini_aplicacion1", r.florPoliniAplicacion1)
             put("flor_polini_aplicacion2", r.florPoliniAplicacion2)
             put("flor_polini_aplicacion3", r.florPoliniAplicacion3)
+            put("flor_dejada_aplicacion1", r.florDejadaAplicacion1)
+            put("flor_dejada_aplicacion2", r.florDejadaAplicacion2)
+            put("flor_dejada_aplicacion3", r.florDejadaAplicacion3)
             put("hoja_sin_marcar", r.hojaSinMarcar)
             put("espata_sin_abrir", r.espataSinAbrir)
             put("espata_abierta", r.espataAbierta)
@@ -1563,7 +1589,6 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
-
 
 
 

@@ -10,8 +10,7 @@ package com.palmadata.app.super_poli
  *
  * Campos que NO viajan desde la app:
  *   id, cat_palma_id, geom, actualizacion   → PostgreSQL (función + trigger)
- *   id_orden=0, cumple=1, polinizador_sin_orden=0,
- *   flor_dejada_aplicacion1/2/3=0            → valores fijos que pone el endpoint
+ *   id_orden=0, cumple=1, polinizador_sin_orden=0 → valores fijos que pone el endpoint
  *   propolinizacionid, fecha, aplicacion1/2/3_repo → NULL
  */
 data class SuperPoliRegistro(
@@ -26,6 +25,9 @@ data class SuperPoliRegistro(
     val florPoliniAplicacion1: Int,      // pantalla 6 — Primera
     val florPoliniAplicacion2: Int,      // pantalla 6 — Segunda
     val florPoliniAplicacion3: Int,      // pantalla 6 — Tercera
+    val florDejadaAplicacion1: Int,      // pantalla 6 — DEJADAS Primera
+    val florDejadaAplicacion2: Int,      // pantalla 6 — DEJADAS Segunda
+    val florDejadaAplicacion3: Int,      // pantalla 6 — DEJADAS Tercera
     val hojaSinMarcar: Int,              // pantalla 7
     val espataSinAbrir: Int,             // pantalla 8
     val espataAbierta: Int,              // pantalla 9

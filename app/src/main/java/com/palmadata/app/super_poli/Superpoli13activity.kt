@@ -67,6 +67,10 @@ class SuperPoli13Activity : AppCompatActivity() {
             florPoliniAplicacion1   = intent.getIntExtra("primera", 0),
             florPoliniAplicacion2   = intent.getIntExtra("segunda", 0),
             florPoliniAplicacion3   = intent.getIntExtra("tercera", 0),
+            // Contadores de DEJADAS (pantalla 6): sin tocar = 0
+            florDejadaAplicacion1   = intent.getIntExtra("dejada_primera", 0),
+            florDejadaAplicacion2   = intent.getIntExtra("dejada_segunda", 0),
+            florDejadaAplicacion3   = intent.getIntExtra("dejada_tercera", 0),
             hojaSinMarcar           = num("hoja_sin_marcar"),
             espataSinAbrir          = num("espata_sin_abrir"),
             espataAbierta           = num("espata_abierta"),
