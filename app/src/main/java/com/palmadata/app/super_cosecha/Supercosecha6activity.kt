@@ -22,8 +22,8 @@ class SuperCosecha6Activity : AppCompatActivity() {
         val linea        = intent.getStringExtra("linea") ?: ""
         setupTeclado()
         binding.btnAccion.setOnClickListener {
+            // PALMA es opcional en este módulo: vacío viaja como "" y se guarda NULL
             when {
-                valorActual.isEmpty()  -> mostrarError("Debe ingresar un valor para PALMA")
                 valorActual.length > 2 -> mostrarError("PALMA debe tener máximo 2 dígitos")
                 else -> startActivity(Intent(this, SuperCosecha7Activity::class.java).also {
                     it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)

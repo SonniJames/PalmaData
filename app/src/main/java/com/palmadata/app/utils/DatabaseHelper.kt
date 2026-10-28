@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         const val DB_NAME    = "palma_data.db"
-        const val DB_VERSION = 32  // ← v32: super_poli agrega flor_dejada_aplicacion1/2/3 (DEJADAS, pantalla 6)
+        const val DB_VERSION = 33  // ← v33: super_cosecha agrega racimomalacomo, pendunculolargo, porcentajebasura y estado lote
 
         @Volatile
         private var instancia: DatabaseHelper? = null
@@ -153,7 +153,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL("""CREATE TABLE $T_STRATEGUS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, cat_lote_id INTEGER NOT NULL, linea INTEGER NOT NULL, palma INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, galerias INTEGER DEFAULT 0, censo INTEGER NOT NULL, evaluador INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_TRAMPAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER NOT NULL, censador INTEGER NOT NULL, machos INTEGER DEFAULT 0, hembras INTEGER DEFAULT 0, san_trampa_id INTEGER NOT NULL, san_tipo_trampa INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, atrayente INTEGER DEFAULT 0, feromona TEXT, observaciones TEXT, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_PLAGAS (id TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, lectura INTEGER DEFAULT 0, linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_palma_id INTEGER DEFAULT 0, cat_plantacion_id INTEGER NOT NULL, evaluador INTEGER NOT NULL, insecto_id INTEGER DEFAULT 0, estado_insecto_id INTEGER DEFAULT 0, cantidad INTEGER DEFAULT 0, niv_foliar INTEGER DEFAULT 0, defol5 REAL DEFAULT 0, defol13 REAL DEFAULT 0, defol21 REAL DEFAULT 0, defol29 REAL DEFAULT 0, defol37 REAL DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
-        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador TEXT DEFAULT '', recolector TEXT DEFAULT '', alistador TEXT DEFAULT '', linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, sincronizado INTEGER DEFAULT 0)""")
+        db.execSQL("""CREATE TABLE $T_SUPER_COSECHA (id_unico TEXT PRIMARY KEY, fecha TEXT NOT NULL, hora TEXT NOT NULL, supervisor INTEGER NOT NULL, cortador TEXT DEFAULT '', recolector TEXT DEFAULT '', alistador TEXT DEFAULT '', linea INTEGER DEFAULT 0, palma INTEGER DEFAULT 0, ciclo INTEGER DEFAULT 0, cat_lote_id INTEGER NOT NULL, cat_plantacion_id INTEGER NOT NULL, racimos_recogidos INTEGER DEFAULT 0, racimos_verdes INTEGER DEFAULT 0, racimos_sobremaduros INTEGER DEFAULT 0, racimos_podridos INTEGER DEFAULT 0, racimossinrecoger INTEGER DEFAULT 0, racimossincortar INTEGER DEFAULT 0, racimorobado INTEGER DEFAULT 0, hojasmalacomo INTEGER DEFAULT 0, hojacolgando INTEGER DEFAULT 0, frutoplato INTEGER DEFAULT 0, observaciones TEXT, latitud REAL NOT NULL, longitud REAL NOT NULL, equipo TEXT NOT NULL, racimomalacomo INTEGER, pendunculolargo INTEGER, porcentajebasura REAL, platos_enmalezados INTEGER, malezas_estipe INTEGER, lote_inundado INTEGER, poda_atrasada INTEGER, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_MAQUINARIA_SESION (id_unico TEXT PRIMARY KEY, maquina INTEGER DEFAULT 0, plantacion INTEGER DEFAULT 0, implemento INTEGER DEFAULT 0, labor INTEGER DEFAULT 0, trabajador INTEGER DEFAULT 0, kiloinicial REAL DEFAULT 0, kilofinal REAL DEFAULT 0, combustible REAL DEFAULT 0, horometroinicial REAL DEFAULT 0, horometrofinal REAL DEFAULT 0, lote TEXT, observaciones TEXT, unidadcantidad INTEGER DEFAULT 0, cantidad REAL DEFAULT 0, fechainicial TEXT, horainicial TEXT, fechafinal TEXT, horafinal TEXT, equipo TEXT, sincronizado INTEGER DEFAULT 0)""")
         db.execSQL("""CREATE TABLE $T_UMAS (
             nut_uma_pol_id INTEGER PRIMARY KEY,
@@ -638,6 +638,33 @@ class DatabaseHelper(context: Context) :
             )) {
                 try { db.execSQL("ALTER TABLE $T_SUPER_POLI ADD COLUMN $col") } catch (e: Exception) { }
             }
+        }
+
+        // v33: super_cosecha.
+        //  1. Columnas nuevas: racimomalacomo ("R. mal acomo."), pendunculolargo,
+        //     porcentajebasura (pantalla 7.1, REAL nullable) y las 4 casillas de
+        //     ESTADO LOTE (pantalla 7.2). Van SIN DEFAULT: los pendientes viejos
+        //     quedan en NULL = "no se capturó". La app siempre las llena en los
+        //     registros nuevos, salvo porcentajebasura, que en blanco es NULL.
+        //     Mismo esquema que v32: ALTER las agrega al final y en onCreate van
+        //     justo antes de `sincronizado`, así el Excel tiene el mismo orden de
+        //     columnas en equipos nuevos y migrados. El CREATE de la v20 conserva
+        //     el esquema viejo a propósito.
+        //  2. Hasta ahora la fila "R. mal acomo." se guardaba en hojasmalacomo.
+        //     Desde v33 va a racimomalacomo y hojasmalacomo es la fila nueva
+        //     "H. mal acomo.". Los pendientes capturados antes de actualizar se
+        //     corrigen aquí: su valor pasa a racimomalacomo y hojasmalacomo queda
+        //     NULL (esa fila no existía cuando se capturaron). Solo se tocan los
+        //     que tienen racimomalacomo en NULL, así que es idempotente.
+        if (oldVersion < 33) {
+            for (col in listOf(
+                "racimomalacomo INTEGER", "pendunculolargo INTEGER", "porcentajebasura REAL",
+                "platos_enmalezados INTEGER", "malezas_estipe INTEGER",
+                "lote_inundado INTEGER", "poda_atrasada INTEGER"
+            )) {
+                try { db.execSQL("ALTER TABLE $T_SUPER_COSECHA ADD COLUMN $col") } catch (e: Exception) { }
+            }
+            db.execSQL("UPDATE $T_SUPER_COSECHA SET racimomalacomo = hojasmalacomo, hojasmalacomo = NULL WHERE racimomalacomo IS NULL")
         }
 
         // ── Recrear tablas maestras ───────────────────────────────────────────
@@ -1189,13 +1216,21 @@ class DatabaseHelper(context: Context) :
             put("supervisor", r.supervisor)
             // Listas de ids en texto: "" ninguno, "112" uno, "125,159,520" varios
             put("cortador", r.cortador); put("recolector", r.recolector); put("alistador", r.alistador)
-            put("linea", r.linea); put("palma", r.palma); put("ciclo", r.ciclo)
+            // LÍNEA y PALMA opcionales: null se guarda como NULL (no 0)
+            if (r.linea != null) put("linea", r.linea) else putNull("linea")
+            if (r.palma != null) put("palma", r.palma) else putNull("palma")
+            put("ciclo", r.ciclo)
             put("cat_lote_id", r.catLoteId); put("cat_plantacion_id", r.catPlantacionId)
             put("racimos_recogidos", r.racimosRecogidos); put("racimos_verdes", r.racimosVerdes)
             put("racimos_sobremaduros", r.racimossobremaduros); put("racimos_podridos", r.racimosPodridos)
             put("racimossinrecoger", r.racimossinrecoger); put("racimossincortar", r.racimossincortar)
             put("racimorobado", r.racimorobado); put("hojasmalacomo", r.hojasmalacomo)
             put("hojacolgando", r.hojacolgando); put("frutoplato", r.frutoplato)
+            put("racimomalacomo", r.racimomalacomo); put("pendunculolargo", r.pendunculolargo)
+            // PORCENTAJE BASURA en blanco = NULL
+            if (r.porcentajeBasura != null) put("porcentajebasura", r.porcentajeBasura) else putNull("porcentajebasura")
+            put("platos_enmalezados", r.platosEnmalezados); put("malezas_estipe", r.malezasEstipe)
+            put("lote_inundado", r.loteInundado); put("poda_atrasada", r.podaAtrasada)
             put("observaciones", r.observaciones)
             put("latitud", r.latitud); put("longitud", r.longitud)
             put("equipo", r.equipo); put("sincronizado", 0)
@@ -1589,9 +1624,6 @@ class DatabaseHelper(context: Context) :
         cursor.use { it.moveToFirst(); return it.getInt(0) > 0 }
     }
 }
-
-
-
 
 
 

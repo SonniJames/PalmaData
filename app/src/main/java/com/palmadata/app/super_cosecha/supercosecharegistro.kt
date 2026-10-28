@@ -12,8 +12,8 @@ data class SuperCosechaRegistro(
     val cortador: String,
     val recolector: String,
     val alistador: String,
-    val linea: Int,
-    val palma: Int,
+    val linea: Int?,                // null = no se digitó (opcional en este módulo)
+    val palma: Int?,                // null = no se digitó (opcional en este módulo)
     val ciclo: Int,
     val catLoteId: Long,
     val catPlantacionId: Int,
@@ -24,9 +24,16 @@ data class SuperCosechaRegistro(
     val racimossinrecoger: Int,
     val racimossincortar: Int,
     val racimorobado: Int,
-    val hojasmalacomo: Int,
+    val hojasmalacomo: Int,         // "H. mal acomo." (pantalla 7)
     val hojacolgando: Int,
     val frutoplato: Int,
+    val racimomalacomo: Int,        // "R. mal acomo." (pantalla 7)
+    val pendunculolargo: Int,       // "Pendun. largo" (pantalla 7)
+    val porcentajeBasura: Double?,  // pantalla 7.1 — null = en blanco
+    val platosEnmalezados: Int,     // pantalla 7.2 — 1/0
+    val malezasEstipe: Int,         // pantalla 7.2 — 1/0
+    val loteInundado: Int,          // pantalla 7.2 — 1/0
+    val podaAtrasada: Int,          // pantalla 7.2 — 1/0
     val observaciones: String,
     val latitud: Double,
     val longitud: Double,

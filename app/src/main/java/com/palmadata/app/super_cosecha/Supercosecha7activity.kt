@@ -20,8 +20,10 @@ class SuperCosecha7Activity : AppCompatActivity() {
     private var racimossinrecoger = 0
     private var racimossincortar = 0
     private var racimorobado = 0
-    private var hojasmalacomo = 0
+    private var racimomalacomo = 0     // fila "R. mal acomo."
     private var hojacolgando = 0
+    private var pendunculolargo = 0    // fila "Pendun. largo"
+    private var hojasmalacomo = 0      // fila "H. mal acomo."
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +45,8 @@ class SuperCosecha7Activity : AppCompatActivity() {
             // Campos con teclado: vacío = 0
             val racimosRecogidos = binding.etRacimosRecogidos.text.toString().trim().toIntOrNull() ?: 0
             val frutoplato       = binding.etFrutoPlato.text.toString().trim().toIntOrNull() ?: 0
-            startActivity(Intent(this, SuperCosecha8Activity::class.java).also {
+            // Siguiente: PORCENTAJE BASURA (7_1) → ESTADO LOTE (7_2) → OBSERVACIONES (8)
+            startActivity(Intent(this, SuperCosecha7_1Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)
                 it.putExtra("ciclo", ciclo); it.putExtra("cortador_ids",   cortadorIds)
                 it.putExtra("recolector_ids", recolectorIds); it.putExtra("alistador_ids",  alistadorIds);
@@ -56,8 +59,10 @@ class SuperCosecha7Activity : AppCompatActivity() {
                 it.putExtra("racimossinrecoger", racimossinrecoger)
                 it.putExtra("racimossincortar", racimossincortar)
                 it.putExtra("racimorobado", racimorobado)
-                it.putExtra("hojasmalacomo", hojasmalacomo)
+                it.putExtra("racimomalacomo", racimomalacomo)
                 it.putExtra("hojacolgando", hojacolgando)
+                it.putExtra("pendunculolargo", pendunculolargo)
+                it.putExtra("hojasmalacomo", hojasmalacomo)
                 it.putExtra("frutoplato", frutoplato)
             })
         }
@@ -91,10 +96,14 @@ class SuperCosecha7Activity : AppCompatActivity() {
         binding.btnMenos6.setOnClickListener { if (racimossincortar > 0) { racimossincortar--; actualizarDisplays() } }
         binding.btnMas7.setOnClickListener  { racimorobado++;        actualizarDisplays() }
         binding.btnMenos7.setOnClickListener { if (racimorobado > 0) { racimorobado--; actualizarDisplays() } }
-        binding.btnMas8.setOnClickListener  { hojasmalacomo++;       actualizarDisplays() }
-        binding.btnMenos8.setOnClickListener { if (hojasmalacomo > 0) { hojasmalacomo--; actualizarDisplays() } }
+        binding.btnMas8.setOnClickListener  { racimomalacomo++;      actualizarDisplays() }
+        binding.btnMenos8.setOnClickListener { if (racimomalacomo > 0) { racimomalacomo--; actualizarDisplays() } }
         binding.btnMas9.setOnClickListener  { hojacolgando++;        actualizarDisplays() }
         binding.btnMenos9.setOnClickListener { if (hojacolgando > 0) { hojacolgando--; actualizarDisplays() } }
+        binding.btnMas10.setOnClickListener  { pendunculolargo++;    actualizarDisplays() }
+        binding.btnMenos10.setOnClickListener { if (pendunculolargo > 0) { pendunculolargo--; actualizarDisplays() } }
+        binding.btnMas11.setOnClickListener  { hojasmalacomo++;      actualizarDisplays() }
+        binding.btnMenos11.setOnClickListener { if (hojasmalacomo > 0) { hojasmalacomo--; actualizarDisplays() } }
     }
     private fun actualizarDisplays() {
         binding.tvValor2.text  = racimosVerdes.toString()
@@ -103,7 +112,9 @@ class SuperCosecha7Activity : AppCompatActivity() {
         binding.tvValor5.text  = racimossinrecoger.toString()
         binding.tvValor6.text  = racimossincortar.toString()
         binding.tvValor7.text  = racimorobado.toString()
-        binding.tvValor8.text  = hojasmalacomo.toString()
+        binding.tvValor8.text  = racimomalacomo.toString()
         binding.tvValor9.text  = hojacolgando.toString()
+        binding.tvValor10.text = pendunculolargo.toString()
+        binding.tvValor11.text = hojasmalacomo.toString()
     }
 }

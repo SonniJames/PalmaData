@@ -162,6 +162,8 @@
         <activity android:name=".supercosecha.SuperCosecha5Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha6Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha7Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha7_1Activity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".supercosecha.SuperCosecha7_2Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosecha8Activity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".supercosecha.SuperCosechaOpcionesActivity" android:exported="false" android:screenOrientation="portrait" />
         <!-- Maquinaria -->

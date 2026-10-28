@@ -68,7 +68,7 @@
                 <Button android:id="@+id/btnMenos7" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
                 <Button android:id="@+id/btnMas7" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
             </LinearLayout>
-            <!-- 8. R. mal acomo. -->
+            <!-- 8. R. mal acomo. → racimomalacomo -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="R. mal acomo." android:textSize="13sp" android:textColor="@color/text_primary" />
                 <TextView android:id="@+id/tvValor8" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
@@ -82,7 +82,21 @@
                 <Button android:id="@+id/btnMenos9" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
                 <Button android:id="@+id/btnMas9" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
             </LinearLayout>
-            <!-- 10. Fruto plato: teclado numerico del sistema, igual que R. cosechados -->
+            <!-- 10. Pendun. largo → pendunculolargo -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="Pendun. largo" android:textSize="13sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvValor10" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
+                <Button android:id="@+id/btnMenos10" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/btnMas10" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+            </LinearLayout>
+            <!-- 11. H. mal acomo. → hojasmalacomo -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="H. mal acomo." android:textSize="13sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvValor11" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:text="0" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/palma_green_dark" android:gravity="center" />
+                <Button android:id="@+id/btnMenos11" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:textSize="18sp" android:backgroundTint="@color/white" android:textColor="@color/text_primary" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/btnMas11" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:textSize="18sp" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
+            </LinearLayout>
+            <!-- 12. Fruto plato: teclado numerico del sistema, igual que R. cosechados -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp" android:background="@color/white" android:layout_marginBottom="2dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:text="Fruto plato" android:textSize="13sp" android:textColor="@color/text_primary" />
                 <EditText android:id="@+id/etFrutoPlato"
@@ -97,6 +111,6 @@
         </LinearLayout>
     </ScrollView>
     <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="60dp"
-        android:layout_margin="16dp" android:text="OBSERVACIONES" android:textSize="15sp"
+        android:layout_margin="16dp" android:text="PORCENTAJE BASURA" android:textSize="15sp"
         android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
 </LinearLayout>

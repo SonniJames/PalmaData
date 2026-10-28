@@ -35,9 +35,18 @@ class SuperCosecha8Activity : AppCompatActivity() {
         val racimossinrecoger   = intent.getIntExtra("racimossinrecoger", 0)
         val racimossincortar    = intent.getIntExtra("racimossincortar", 0)
         val racimorobado        = intent.getIntExtra("racimorobado", 0)
-        val hojasmalacomo       = intent.getIntExtra("hojasmalacomo", 0)
+        val hojasmalacomo       = intent.getIntExtra("hojasmalacomo", 0)   // "H. mal acomo."
         val hojacolgando        = intent.getIntExtra("hojacolgando", 0)
         val frutoplato          = intent.getIntExtra("frutoplato", 0)
+        val racimomalacomo      = intent.getIntExtra("racimomalacomo", 0)  // "R. mal acomo."
+        val pendunculolargo     = intent.getIntExtra("pendunculolargo", 0)
+        // Pantalla 7.1 — vacío = null (NULL en la base)
+        val porcentajeBasura    = (intent.getStringExtra("porcentaje_basura") ?: "").trim().toDoubleOrNull()
+        // Pantalla 7.2 — casillas: 1 marcada, 0 sin marcar
+        val platosEnmalezados   = intent.getIntExtra("platos_enmalezados", 0)
+        val malezasEstipe       = intent.getIntExtra("malezas_estipe", 0)
+        val loteInundado        = intent.getIntExtra("lote_inundado", 0)
+        val podaAtrasada        = intent.getIntExtra("poda_atrasada", 0)
 
         binding.etObservaciones.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -48,7 +57,9 @@ class SuperCosecha8Activity : AppCompatActivity() {
         binding.btnGuardar.setOnClickListener {
             guardarRegistro(plantacionId, loteId, ciclo, cortadorIds, recolectorIds, alistadorIds, linea, palma,
                 racimosRecogidos, racimosVerdes, racimossobremaduros, racimosPodridos,
-                racimossinrecoger, racimossincortar, racimorobado, hojasmalacomo, hojacolgando, frutoplato)
+                racimossinrecoger, racimossincortar, racimorobado, hojasmalacomo, hojacolgando, frutoplato,
+                racimomalacomo, pendunculolargo, porcentajeBasura,
+                platosEnmalezados, malezasEstipe, loteInundado, podaAtrasada)
         }
     }
     private fun guardarRegistro(
@@ -56,7 +67,9 @@ class SuperCosecha8Activity : AppCompatActivity() {
         cortadorIds: String, recolectorIds: String, alistadorIds: String,
         linea: String, palma: String, racimosRecogidos: Int, racimosVerdes: Int,
         racimossobremaduros: Int, racimosPodridos: Int, racimossinrecoger: Int,
-        racimossincortar: Int, racimorobado: Int, hojasmalacomo: Int, hojacolgando: Int, frutoplato: Int
+        racimossincortar: Int, racimorobado: Int, hojasmalacomo: Int, hojacolgando: Int, frutoplato: Int,
+        racimomalacomo: Int, pendunculolargo: Int, porcentajeBasura: Double?,
+        platosEnmalezados: Int, malezasEstipe: Int, loteInundado: Int, podaAtrasada: Int
     ) {
         val worker = SessionManager.getCurrentWorker(this)
         if (worker == null) { Toast.makeText(this, "Error: no hay trabajador en sesión", Toast.LENGTH_SHORT).show(); return }
@@ -69,8 +82,9 @@ class SuperCosecha8Activity : AppCompatActivity() {
             cortador            = cortadorIds,
             recolector          = recolectorIds,
             alistador           = alistadorIds,
-            linea               = linea.toIntOrNull() ?: 0,
-            palma               = palma.toIntOrNull() ?: 0,
+            // LÍNEA y PALMA son opcionales en este módulo: vacío = NULL
+            linea               = linea.toIntOrNull(),
+            palma               = palma.toIntOrNull(),
             ciclo               = ciclo.toIntOrNull() ?: 0,
             catLoteId           = loteId.toLong(),
             catPlantacionId     = plantacionId,
@@ -84,6 +98,13 @@ class SuperCosecha8Activity : AppCompatActivity() {
             hojasmalacomo       = hojasmalacomo,
             hojacolgando        = hojacolgando,
             frutoplato          = frutoplato,
+            racimomalacomo      = racimomalacomo,
+            pendunculolargo     = pendunculolargo,
+            porcentajeBasura    = porcentajeBasura,
+            platosEnmalezados   = platosEnmalezados,
+            malezasEstipe       = malezasEstipe,
+            loteInundado        = loteInundado,
+            podaAtrasada        = podaAtrasada,
             observaciones       = binding.etObservaciones.text.toString(),
             latitud             = SessionManager.getLastLatitude(this),
             longitud            = SessionManager.getLastLongitude(this),

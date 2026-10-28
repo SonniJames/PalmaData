@@ -24,8 +24,8 @@ class SuperCosecha5Activity : AppCompatActivity() {
         val alistadorIds  = intent.getStringExtra("alistador_ids")  ?: ""
         setupTeclado()
         binding.btnAccion.setOnClickListener {
+            // LÍNEA es opcional en este módulo: vacío viaja como "" y se guarda NULL
             when {
-                valorActual.isEmpty()  -> mostrarError("Debe ingresar un valor para LÍNEA")
                 valorActual.length > 3 -> mostrarError("LÍNEA debe tener máximo 3 dígitos")
                 else -> startActivity(Intent(this, SuperCosecha6Activity::class.java).also {
                     it.putExtra("plantacion_id", plantacionId); it.putExtra("lote_id", loteId)
