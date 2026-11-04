@@ -183,7 +183,7 @@ object SyncManager {
             "Polen inicial/final" to subidosPolen, "Sanstrategus" to subidosStrategus,
             "Censo trampas" to subidosTrampas, "Muestreo plagas" to subidosPlagas,
             "Super cosecha" to subidosSuperCosecha, "Maquinaria" to subidosMaquinaria,
-            "Sup. cosecha vagón" to subidosCosechaVagon,
+            // OCULTO: "Sup. cosecha vagón" to subidosCosechaVagon,
             "Sup. polinización" to subidosSuperPoli,
             "Sup. tiempos" to subidosSuperTiempos,
             "Med. vegetativas" to subidosMedVeg

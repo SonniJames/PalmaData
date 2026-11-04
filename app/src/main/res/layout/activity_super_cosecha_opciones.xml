@@ -71,8 +71,11 @@
             android:textColor="@color/text_secondary"
             android:layout_marginBottom="24dp" />
 
+        <!-- OCULTO: las pantallas LÍNEA y PALMA no se usan por ahora.
+             Para reactivarlo, quitar android:visibility="gone". -->
         <Button
             android:id="@+id/btnLineaPalma"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="64dp"
             android:layout_marginBottom="12dp"

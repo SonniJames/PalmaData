@@ -62,6 +62,6 @@
         </LinearLayout>
     </ScrollView>
     <Button android:id="@+id/btnAccion" android:layout_width="match_parent" android:layout_height="60dp"
-        android:layout_margin="16dp" android:text="LINEA-PALMA" android:textSize="15sp"
+        android:layout_margin="16dp" android:text="DATOS" android:textSize="15sp"
         android:textStyle="bold" android:backgroundTint="@color/palma_green_dark" android:textColor="@color/white" />
 </LinearLayout>

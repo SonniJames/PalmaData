@@ -62,7 +62,12 @@ class SuperCosecha4Activity : AppCompatActivity() {
         precargar(intent.getStringExtra("alistador_ids")  ?: "", selAlistador,  binding.contAlistador)
 
         binding.btnAccion.setOnClickListener {
-            startActivity(Intent(this, SuperCosecha5Activity::class.java).also {
+            // LÍNEA (5) y PALMA (6) están OCULTAS: se salta directo a DATOS (7).
+            // Línea y palma no viajan, así que se guardan NULL. Para volver a
+            // mostrarlas, cambiar SuperCosecha7Activity por SuperCosecha5Activity
+            // aquí, poner el texto LINEA-PALMA en el botón y volver a mostrar
+            // btnLineaPalma en activity_super_cosecha_opciones.xml.
+            startActivity(Intent(this, SuperCosecha7Activity::class.java).also {
                 it.putExtra("plantacion_id", plantacionId)
                 it.putExtra("plantacion_nombre", plantacionNombre)
                 it.putExtra("sector_id", sectorId)

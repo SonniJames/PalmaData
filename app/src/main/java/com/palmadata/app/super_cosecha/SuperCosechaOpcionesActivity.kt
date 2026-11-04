@@ -22,6 +22,8 @@ class SuperCosechaOpcionesActivity : AppCompatActivity() {
         val alistadorIds  = intent.getStringExtra("alistador_ids")  ?: ""
 
         // LÍNEA-PALMA → SuperCosecha5Activity (conserva plantacion, lote, ciclo y los trabajadores)
+        // OCULTO por ahora: el botón está en visibility="gone" en el layout, así
+        // que este listener nunca se dispara. Se deja para poder reactivarlo.
         binding.btnLineaPalma.setOnClickListener {
             val intent = Intent(this, SuperCosecha5Activity::class.java)
             intent.putExtra("plantacion_id",  plantacionId)

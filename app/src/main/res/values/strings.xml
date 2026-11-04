@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PalmaData</string>
+    <!-- app_name ya NO va aquí: lo define cada versión (avc / pdy / cucu) en
+         app/build.gradle.kts con resValue. Si se vuelve a poner aquí, la
+         compilación falla con "Duplicate resources". -->
     <string name="worker_not_selected">Trabajador actual: Toque aquí para seleccionar</string>
     <string name="worker_selected_prefix">Trabajador actual: </string>
     <string name="no_worker_warning">Agregue un trabajador primero</string>

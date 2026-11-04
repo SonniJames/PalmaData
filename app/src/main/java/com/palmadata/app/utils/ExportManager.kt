@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
+import com.palmadata.app.BuildConfig
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -60,8 +61,14 @@ object ExportManager {
         val secuencia: Int = 0
     )
 
-    /** Subcarpeta dentro de Descargas donde quedan los archivos. */
-    const val CARPETA = "PalmaData"
+    /**
+     * Subcarpeta dentro de Descargas donde quedan los archivos. La define cada
+     * versión de la app (avc / pdy / cucu) en app/build.gradle.kts: si las tres
+     * instaladas en el mismo celular usaran la misma carpeta, los archivos de
+     * un servidor se mezclarían con los de otro, y en Android 8 y 9 una podría
+     * sobrescribir el archivo de otra después de haber borrado sus registros.
+     */
+    val CARPETA: String = BuildConfig.CARPETA_EXPORT
     const val MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     private const val PREFS_EXPORT   = "palma_export"
