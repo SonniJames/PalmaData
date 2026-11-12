@@ -7,13 +7,24 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Looper
 import android.os.SystemClock
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -25,7 +36,9 @@ import com.google.android.gms.location.Priority
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.palmadata.app.R
 import com.palmadata.app.data.model.LoteMapa
+import com.palmadata.app.data.model.MesCenso
 import com.palmadata.app.data.model.PalmaMapa
+import com.palmadata.app.data.model.PuntoCenso
 import com.palmadata.app.data.model.TrampaMapa
 import com.palmadata.app.utils.DatabaseHelper
 import com.palmadata.app.utils.LoteLocator
@@ -39,6 +52,9 @@ import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Módulo MAPAS: ubicación en la plantación.
@@ -69,12 +85,24 @@ class MapaLotesActivity : AppCompatActivity() {
     private lateinit var btnActualizarLotes: FloatingActionButton
     private lateinit var btnPalmas: FloatingActionButton
     private lateinit var btnTrampas: FloatingActionButton
+    private lateinit var btnCenso: FloatingActionButton
     private lateinit var tvPalmaInfo: TextView
+    private lateinit var tvCensoInfo: TextView
+    private lateinit var leyendaCenso: LinearLayout
 
     private val lotesOverlay = LotesOverlay()
     private val palmasOverlay = PalmasOverlay()
     private val trampasOverlay = TrampasOverlay()
+    private val censoOverlay = CensoOverlay()
     private var lotesDibujados = false
+
+    /** La mira roja de mi ubicación: las capas se ponen siempre debajo de ella. */
+    private var miUbicacionOverlay: MyLocationNewOverlay? = null
+
+    // ── Capa de censo de enfermedades ─────────────────────────────────────────
+    /** Mes, datos y eventos elegidos: se conservan mientras la pantalla esté abierta. */
+    private val estadoCenso = EstadoCenso()
+    private var censoActivo = false
 
     @Volatile private var poligonos: List<LotePoligono> = emptyList()
 
@@ -195,7 +223,10 @@ class MapaLotesActivity : AppCompatActivity() {
         btnActualizarLotes = findViewById(R.id.btnActualizarLotes)
         btnPalmas          = findViewById(R.id.btnPalmas)
         btnTrampas         = findViewById(R.id.btnTrampas)
+        btnCenso           = findViewById(R.id.btnCenso)
         tvPalmaInfo        = findViewById(R.id.tvPalmaInfo)
+        tvCensoInfo        = findViewById(R.id.tvCensoInfo)
+        leyendaCenso       = findViewById(R.id.leyendaCenso)
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
         locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
@@ -210,12 +241,21 @@ class MapaLotesActivity : AppCompatActivity() {
         btnActualizarLotes.setOnClickListener { recargarLotes() }
         btnPalmas.setOnClickListener { cargarPalmasDelLoteActual() }
         btnTrampas.setOnClickListener { alternarTrampas() }
+        btnCenso.setOnClickListener { abrirCenso() }
+        // Tocar la leyenda abre la misma ventana, para cambiar mes o eventos
+        leyendaCenso.setOnClickListener { abrirCenso() }
 
         // El overlay avisa qué palma se tocó; la pantalla solo actualiza el panel.
         palmasOverlay.onSeleccion = { palma -> mostrarPalma(palma) }
         palmasOverlay.onZoomInsuficiente = {
             android.widget.Toast.makeText(this,
                 "Acerque el mapa para seleccionar una palma",
+                android.widget.Toast.LENGTH_SHORT).show()
+        }
+        censoOverlay.onSeleccion = { punto -> mostrarPuntoCenso(punto) }
+        censoOverlay.onZoomInsuficiente = {
+            android.widget.Toast.makeText(this,
+                "Acerque el mapa para ver el detalle de una palma del censo",
                 android.widget.Toast.LENGTH_SHORT).show()
         }
 
@@ -446,6 +486,210 @@ class MapaLotesActivity : AppCompatActivity() {
         }
     }
 
+    // ── Capa de censo de enfermedades ─────────────────────────────────────────
+
+    /**
+     * Abre la ventana de la capa de censo: año y mes obligatorios, después los
+     * eventos (la misma lista, colores y textos de Mapas · Censo de la web).
+     * Al aceptar se pintan las palmas de TODA la plantación con esos eventos
+     * en el mes: no depende del lote donde esté parado el operario.
+     */
+    private fun abrirCenso() {
+        CensoDialogo(
+            activity = this,
+            estado = estadoCenso,
+            capaActiva = censoActivo,
+            onAceptar = { aplicarCenso() },
+            onQuitar = {
+                quitarCenso()
+                aviso("Censo quitado del mapa")
+            }
+        ).mostrar()
+    }
+
+    private fun aplicarCenso() {
+        val datos = estadoCenso.datosMes ?: return
+        val cat = estadoCenso.catalogo ?: return
+        val sel = estadoCenso.seleccion
+
+        if (sel.isEmpty()) {
+            if (censoActivo) {
+                quitarCenso()
+                aviso("Sin eventos seleccionados: se quitó el censo del mapa")
+            } else {
+                aviso("No seleccionó ningún evento")
+            }
+            return
+        }
+
+        val elegidos = datos.puntos.filter { it.eventoId in sel }
+        val conUbicacion = elegidos.filter { it.lat != null && it.lon != null }
+        censoOverlay.setPuntos(
+            conUbicacion,
+            cat.eventos.map { it.id },
+            cat.eventos.associate { it.id to it.color }
+        )
+        if (!mapView.overlays.contains(censoOverlay)) {
+            // Encima de lotes, palmas y trampas; debajo de la mira de mi ubicación
+            val i = miUbicacionOverlay?.let { mapView.overlays.indexOf(it) } ?: -1
+            mapView.overlays.add(if (i >= 0) i else mapView.overlays.size, censoOverlay)
+        }
+        censoActivo = true
+        mostrarPuntoCenso(null)
+        pintarLeyendaCenso(datos, conUbicacion, elegidos.size - conUbicacion.size)
+        mapView.invalidate()
+
+        val mes = "${CensoDialogo.MESES[datos.mes - 1]} ${datos.anio}"
+        if (conUbicacion.isEmpty()) {
+            aviso("Ninguna palma con esos eventos en $mes", largo = true)
+        } else {
+            aviso("${miles(conUbicacion.size)} palmas · $mes · acerque el mapa y toque una para ver su detalle", largo = true)
+        }
+    }
+
+    private fun quitarCenso() {
+        censoOverlay.limpiar()
+        mapView.overlays.remove(censoOverlay)
+        censoActivo = false
+        leyendaCenso.removeAllViews()
+        leyendaCenso.visibility = View.GONE
+        mostrarPuntoCenso(null)
+        mapView.invalidate()
+    }
+
+    /**
+     * Leyenda arriba a la izquierda, como la de la web: el mes y, por cada
+     * evento elegido que tiene palmas, su color y cuántas hay en el mapa.
+     * Los eventos sin palmas no salen, para no llenarla de ceros.
+     */
+    private fun pintarLeyendaCenso(datos: MesCenso, conUbicacion: List<PuntoCenso>, sinUbicacion: Int) {
+        val cat = estadoCenso.catalogo ?: return
+        val d = resources.displayMetrics.density
+        fun dp(v: Int) = (v * d).toInt()
+
+        leyendaCenso.removeAllViews()
+        leyendaCenso.background = GradientDrawable().apply {
+            setColor(Color.argb(240, 255, 255, 255))
+            cornerRadius = 8 * d
+        }
+        leyendaCenso.setPadding(dp(10), dp(7), dp(10), dp(7))
+
+        val porEvento = conUbicacion.groupingBy { it.eventoId }.eachCount()
+        val conPalmas = cat.eventos.filter { it.id in estadoCenso.seleccion && (porEvento[it.id] ?: 0) > 0 }
+
+        leyendaCenso.addView(TextView(this).apply {
+            text = "Censo · ${CensoDialogo.MESES[datos.mes - 1]} ${datos.anio}"
+            textSize = 12f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.rgb(50, 110, 55))
+        })
+        leyendaCenso.addView(TextView(this).apply {
+            text = if (conPalmas.isEmpty()) "Ninguna palma con esos eventos"
+            else "${miles(conUbicacion.size)} palmas en el mapa"
+            textSize = 11f
+            setTextColor(Color.rgb(117, 117, 117))
+            setPadding(0, 0, 0, dp(3))
+        })
+
+        // Con muchos eventos marcados la leyenda taparía el mapa: se muestran
+        // los primeros y se dice cuántos faltan.
+        val maximo = 8
+        for (e in conPalmas.take(maximo)) {
+            val fila = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(2), 0, dp(2))
+            }
+            fila.addView(View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(e.color)
+                    setStroke(dp(1), Color.WHITE)
+                }
+            }, LinearLayout.LayoutParams(dp(11), dp(11)).apply { marginEnd = dp(7) })
+            fila.addView(TextView(this).apply {
+                text = e.codigo
+                textSize = 12f
+                setTextColor(Color.rgb(33, 33, 33))
+                maxWidth = dp(170)
+                setSingleLine()
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            fila.addView(TextView(this).apply {
+                text = miles(porEvento[e.id] ?: 0)
+                textSize = 12f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(Color.rgb(33, 33, 33))
+                setPadding(dp(12), 0, 0, 0)
+            })
+            leyendaCenso.addView(fila, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        if (conPalmas.size > maximo) leyendaCenso.addView(notaLeyenda("y ${conPalmas.size - maximo} eventos más"))
+        if (sinUbicacion > 0) leyendaCenso.addView(notaLeyenda("${miles(sinUbicacion)} sin ubicación (no están en cat_palma)"))
+        if (datos.sinConexion) {
+            leyendaCenso.addView(notaLeyenda("Sin conexión: datos del ${fechaHora(datos.guardadoMs)}").apply {
+                setTextColor(Color.rgb(138, 97, 0))
+            })
+        }
+        leyendaCenso.visibility = View.VISIBLE
+    }
+
+    private fun notaLeyenda(t: String) = TextView(this).apply {
+        text = t
+        textSize = 11f
+        setTextColor(Color.rgb(117, 117, 117))
+        setPadding(0, (3 * resources.displayMetrics.density).toInt(), 0, 0)
+    }
+
+    /** Detalle de la palma del censo tocada, en el panel de abajo (como el globo de la web). */
+    private fun mostrarPuntoCenso(p: PuntoCenso?) {
+        if (p == null) {
+            tvCensoInfo.text = ""
+            tvCensoInfo.visibility = View.GONE
+            return
+        }
+        val evento = estadoCenso.catalogo?.eventos?.firstOrNull { it.id == p.eventoId }
+        val sb = SpannableStringBuilder()
+        sb.append("● ", ForegroundColorSpan(evento?.color ?: Color.GRAY), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.append(evento?.codigo ?: "Evento ${p.eventoId}", StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.append("\nPalma: ${p.palma}   Línea: ${p.linea}   Lote: ${p.lote.ifBlank { "—" }}")
+        if (p.enfermedad.isNotBlank()) sb.append("\nEnfermedad: ${p.enfermedad}")
+        sb.append("\nFecha: ${fechaCenso(p.fecha)}${horaCenso(p.hora)}")
+        if (p.trabajador.isNotBlank()) sb.append("\nTrabajador: ${p.trabajador}")
+        if (p.registros > 1) {
+            val ini = sb.length
+            sb.append("\n${p.registros} registros en el mes: se muestra el último.")
+            sb.setSpan(RelativeSizeSpan(0.85f), ini, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(ForegroundColorSpan(Color.rgb(117, 117, 117)), ini, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        tvCensoInfo.text = sb
+        tvCensoInfo.visibility = View.VISIBLE
+    }
+
+    /** "2026-11-03" → "03/11/2026". */
+    private fun fechaCenso(iso: String): String {
+        val p = iso.take(10).split("-")
+        return if (p.size == 3) "${p[2]}/${p[1]}/${p[0]}" else iso.ifBlank { "—" }
+    }
+
+    /** "07:35:00" → " · 07:35"; vacío si no hay hora. */
+    private fun horaCenso(h: String): String {
+        if (h.isBlank()) return ""
+        val corta = Regex("^(\\d{1,2}:\\d{2}):\\d{2}(\\.\\d+)?$").find(h.trim())?.groupValues?.get(1) ?: h.trim()
+        return " · $corta"
+    }
+
+    private fun fechaHora(ms: Long): String =
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.forLanguageTag("es-CO")).format(Date(ms))
+
+    private fun miles(n: Int): String = String.format(Locale.US, "%,d", n).replace(',', '.')
+
+    private fun aviso(texto: String, largo: Boolean = false) {
+        android.widget.Toast.makeText(this, texto,
+            if (largo) android.widget.Toast.LENGTH_LONG else android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     // ── Descarga del mapa base para uso offline ───────────────────────────────
 
     private fun confirmarDescargaMapaOffline() {
@@ -564,6 +808,7 @@ class MapaLotesActivity : AppCompatActivity() {
         overlay.enableMyLocation()
         overlay.enableFollowLocation()
         mapView.overlays.add(overlay)
+        miUbicacionOverlay = overlay
     }
 
     private fun crearIconoPosicion(): Bitmap {

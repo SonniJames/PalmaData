@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -52,8 +53,20 @@
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="232dp"
-            android:src="@android:drawable/ic_menu_compass"
-            android:contentDescription="Mostrar palmas del lote actual"/>
+            android:contentDescription="Mostrar palmas del lote actual">
+            <aapt:attr name="android:src">
+                <vector android:width="24dp" android:height="24dp"
+                    android:viewportWidth="24" android:viewportHeight="24">
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M11.2,9 L12.8,9 L13.5,22 L10.5,22 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C9,5 5,5 2,8 C5,7 8,7.5 12,9 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C15,5 19,5 22,8 C19,7 16,7.5 12,9 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C10,5 7,2.5 4,3 C7,4 9.5,6 12,9 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C14,5 17,2.5 20,3 C17,4 14.5,6 12,9 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C9,9 6,11 5,14 C7,11.5 9.5,10 12,9 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,9 C15,9 18,11 19,14 C17,11.5 14.5,10 12,9 Z"/>
+                </vector>
+            </aapt:attr>
+        </com.google.android.material.floatingactionbutton.FloatingActionButton>
 
         <!-- Capa de trampas: todas las de la plantación; un toque las pone, otro las quita -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -63,8 +76,47 @@
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="304dp"
-            android:src="@drawable/censo_trampas"
-            android:contentDescription="Mostrar u ocultar trampas"/>
+            android:contentDescription="Mostrar u ocultar trampas">
+            <aapt:attr name="android:src">
+                <vector android:width="24dp" android:height="24dp"
+                    android:viewportWidth="24" android:viewportHeight="24">
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2 L21,6.5 L12,11 L3,6.5 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M3,8 L11,12 L11,22 L3,18 Z"/>
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M13,12 L21,8 L21,18 L13,22 Z"/>
+                </vector>
+            </aapt:attr>
+        </com.google.android.material.floatingactionbutton.FloatingActionButton>
+
+        <!-- Capa de censo de enfermedades: abre la ventana de año, mes y eventos -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnCenso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="376dp"
+            android:contentDescription="Censo de enfermedades en el mapa">
+            <aapt:attr name="android:src">
+                <vector android:width="24dp" android:height="24dp"
+                    android:viewportWidth="24" android:viewportHeight="24">
+                    <path android:fillColor="#FFFFFFFF" android:pathData="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z"/>
+                </vector>
+            </aapt:attr>
+        </com.google.android.material.floatingactionbutton.FloatingActionButton>
+
+        <!-- Leyenda de la capa de censo. Se llena desde el código; oculta
+             mientras la capa no esté puesta. Tocarla abre la ventana. -->
+        <LinearLayout
+            android:id="@+id/leyendaCenso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:elevation="3dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone" />
 
     </FrameLayout>
 
@@ -115,6 +167,19 @@
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#D32F2F"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginTop="6dp"
+            android:visibility="gone" />
+
+        <!-- Palma del censo seleccionada en el mapa: evento, palma, línea,
+             lote, enfermedad, fecha y trabajador. Oculto si no hay ninguna. -->
+        <TextView
+            android:id="@+id/tvCensoInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="#212121"
             android:lineSpacingExtra="2dp"
             android:layout_marginTop="6dp"
             android:visibility="gone" />
