@@ -88,6 +88,40 @@ object CensoMapaRepo {
         )
     }
 
+    // ── Precarga en la sincronización ─────────────────────────────────────────
+
+    /** Cuántos meses se dejan en el teléfono en cada sincronización: el actual y el anterior. */
+    const val MESES_PRECARGA = 2
+
+    /**
+     * Se llama al sincronizar: baja la lista de eventos y los últimos
+     * [MESES_PRECARGA] meses COMPLETOS (hoy 12 de noviembre: todo octubre y
+     * noviembre hasta hoy) y los deja guardados, para que el mapa los tenga
+     * en campo sin haberlos abierto antes.
+     *
+     * A diferencia de [eventos] y [mes], aquí NO se usa lo guardado si falla
+     * la red: se lanza el error para que la sincronización lo reporte.
+     * Devuelve cuántas palmas quedaron guardadas en total.
+     */
+    fun precargar(context: Context): Int {
+        val textoEventos = pedir(context, "censo_mapa_eventos")
+        leerEventos(textoEventos, System.currentTimeMillis(), sinConexion = false)   // valida el JSON
+        guardar(File(carpeta(context), ARCHIVO_EVENTOS), textoEventos)
+
+        var total = 0
+        val cal = java.util.Calendar.getInstance()
+        repeat(MESES_PRECARGA) {
+            val anio = cal.get(java.util.Calendar.YEAR)
+            val mes = cal.get(java.util.Calendar.MONTH) + 1
+            val texto = pedir(context, "censo_mapa?anio=$anio&mes=$mes")
+            total += leerMes(texto, anio, mes, System.currentTimeMillis(), sinConexion = false).puntos.size
+            guardar(File(carpeta(context), "censo_%04d_%02d.json".format(anio, mes)), texto)
+            cal.add(java.util.Calendar.MONTH, -1)
+        }
+        podar(context)
+        return total
+    }
+
     // ── Red ───────────────────────────────────────────────────────────────────
 
     private fun pedir(context: Context, ruta: String): String {

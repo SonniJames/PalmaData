@@ -175,6 +175,15 @@ object SyncManager {
             )
         }
 
+        // Censo de enfermedades para el mapa: el mes actual y el anterior
+        // completos (~2.000 palmas por mes, unos cientos de KB comprimidos).
+        // Se guardan como archivos, igual que al abrir un mes en Mapas, para
+        // tenerlos en campo sin conexión. No toca la base local.
+        var palmasCensoMapa = 0
+        descargar("Censo para mapa", fallidos) {
+            palmasCensoMapa = CensoMapaRepo.precargar(context)
+        }
+
         guardarFechaSincronizacion(context)
 
         val detallesFinal = mapOf(
@@ -186,7 +195,8 @@ object SyncManager {
             // OCULTO: "Sup. cosecha vagón" to subidosCosechaVagon,
             "Sup. polinización" to subidosSuperPoli,
             "Sup. tiempos" to subidosSuperTiempos,
-            "Med. vegetativas" to subidosMedVeg
+            "Med. vegetativas" to subidosMedVeg,
+            "Censo para mapa (2 meses, descargadas)" to palmasCensoMapa
         )
 
         return if (fallidos.isEmpty()) {
